@@ -1452,15 +1452,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         type="button"
                         onClick={() => setSimrsApiUrl('http://localhost:8000/api/save-pesanan-gizi')}
                         className="px-2 py-0.5 text-[10px] font-mono bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-md border border-indigo-200 transition-colors cursor-pointer"
+                        title="Endpoint untuk data transaksi pesanan makanan pasien rawat inap"
                       >
                         Pesanan Gizi
                       </button>
                       <button
                         type="button"
-                        onClick={() => setSimrsApiUrl('http://localhost:8000/api/sync-batch-menu')}
+                        onClick={() => setSimrsApiUrl('http://localhost:8000/api/save-master-menu')}
                         className="px-2 py-0.5 text-[10px] font-mono bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-md border border-emerald-200 transition-colors cursor-pointer"
+                        title="Endpoint untuk menyimpan master 1 menu gizi (memerlukan id & name)"
                       >
-                        Sync Menu
+                        Save Master Menu
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSimrsApiUrl('http://localhost:8000/api/sync-batch-menu')}
+                        className="px-2 py-0.5 text-[10px] font-mono bg-teal-50 hover:bg-teal-100 text-teal-700 rounded-md border border-teal-200 transition-colors cursor-pointer"
+                        title="Endpoint untuk sinkronisasi batch banyak menu sekaligus"
+                      >
+                        Batch Menu
                       </button>
                       <button
                         type="button"
@@ -1469,6 +1479,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       >
                         Simulator Lokal
                       </button>
+                    </div>
+                    <div className="mt-2 p-2 bg-indigo-50/70 rounded-lg text-[11px] text-indigo-900 border border-indigo-100">
+                      💡 <strong>Perbedaan Endpoint SIMRS:</strong>
+                      <ul className="list-disc pl-4 mt-0.5 space-y-0.5 text-[10px] text-indigo-800">
+                        <li><strong>save-pesanan-gizi:</strong> Khusus transaksi pesanan gizi pasien rawat inap (menerima noregistrasi, no_pesanan, items).</li>
+                        <li><strong>save-master-menu:</strong> Khusus katalog 1 menu gizi (menerima id &amp; name / nama_menu).</li>
+                        <li><strong>sync-batch-menu:</strong> Sinkronisasi seluruh katalog menu gizi RS sekaligus (menerima menu_items).</li>
+                      </ul>
                     </div>
                   </div>
 

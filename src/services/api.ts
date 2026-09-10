@@ -810,12 +810,88 @@ export class HospitalRealtimeService {
     // 2. Uji langsung dari browser ke endpoint Laravel SIMRS (Mode Mandiri / Vercel)
     const testRegistrationNo = 'TEST-' + Date.now().toString().slice(-6);
     const testOrderNo = 'GZ-UJI-' + Date.now().toString().slice(-6);
+    const sampleItems = [
+      {
+        id_menu: 'menu-1',
+        menuItemId: 'menu-1',
+        name: 'Sup Ayam Sayur Bening',
+        nama_menu: 'Sup Ayam Sayur Bening',
+        portion: 1,
+        jumlah_porsi: 1,
+        price: 18000,
+        harga_satuan: 18000,
+        category: 'makanan_utama',
+        kategori: 'makanan_utama',
+        calories: 120,
+        kalori: 120,
+      },
+      {
+        id_menu: 'menu-5',
+        menuItemId: 'menu-5',
+        name: 'Puding Buah Segar Rendah Gula',
+        nama_menu: 'Puding Buah Segar Rendah Gula',
+        portion: 1,
+        jumlah_porsi: 1,
+        price: 10000,
+        harga_satuan: 10000,
+        category: 'snack',
+        kategori: 'snack',
+        calories: 60,
+        kalori: 60,
+      },
+    ];
+
     const samplePayload = {
+      // 1. Data Menu jika endpoint yang diuji adalah save-master-menu
+      id: 'menu-1',
+      id_menu: 'menu-1',
+      name: 'Sup Ayam Sayur Bening',
+      nama: 'Sup Ayam Sayur Bening',
+      nama_menu: 'Sup Ayam Sayur Bening',
+      kategori: 'makanan_utama',
+      category: 'makanan_utama',
+      harga: 18000,
+      price: 18000,
+      kalori: 120,
+      calories: 120,
+      protein: 15,
+      karbohidrat: 20,
+      lemak: 5,
+      natrium: 300,
+      deskripsi: 'Menu uji coba integrasi SIMRS gizi',
+      is_tersedia: true,
+
+      // 2. Data Pesanan jika endpoint yang diuji adalah save-pesanan-gizi
       noregistrasi: testRegistrationNo,
       no_pesanan: testOrderNo,
       order_number: testOrderNo,
       orderNumber: testOrderNo,
       orderId: testOrderNo,
+      room_name: 'Kamar Melati 101',
+      roomName: 'Kamar Melati 101',
+      nomor_kamar: 'Kamar Melati 101',
+      patient_name: 'Uji Coba Integrasi SIMRS',
+      patientName: 'Uji Coba Integrasi SIMRS',
+      nama_pasien: 'Uji Coba Integrasi SIMRS',
+      phone_number: '081298765432',
+      phoneNumber: '081298765432',
+      meal_time: 'siang',
+      mealTime: 'siang',
+      waktu_makan: 'siang',
+      total_price: 28000,
+      totalPrice: 28000,
+      total_biaya: 28000,
+      total_calories: 180,
+      totalCalories: 180,
+      total_kalori: 180,
+      patient_notes: 'Uji coba komunikasi endpoint Laravel PostgreSQL dengan header X-AUTH-TOKEN',
+      patientNotes: 'Uji coba komunikasi endpoint Laravel PostgreSQL dengan header X-AUTH-TOKEN',
+      dietaryNotes: 'Uji coba komunikasi endpoint Laravel PostgreSQL dengan header X-AUTH-TOKEN',
+      status: 'baru',
+      order_status: 'baru',
+      status_pesanan: 'baru',
+      items: sampleItems,
+      menu_items: sampleItems,
       hasil_json: {
         // ID & Nomor Pesanan Multi-format
         orderId: testOrderNo,
@@ -1150,8 +1226,17 @@ export class HospitalRealtimeService {
       throw new Error('URL Endpoint SIMRS belum dikonfigurasi');
     }
 
-    const baseUrl = targetUrl.replace(/\/save-pesanan-gizi\/?$/, '');
-    const syncUrl = `${baseUrl}/sync-batch-menu`;
+    // Cek apakah endpoint diarahkan khusus ke save-master-menu (menyimpan 1 menu per request)
+    const isSingleMenuEndpoint = targetUrl.includes('save-master-menu');
+
+    let syncUrl = targetUrl;
+    if (!isSingleMenuEndpoint) {
+      if (syncUrl.includes('/save-pesanan-gizi')) {
+        syncUrl = syncUrl.replace('/save-pesanan-gizi', '/sync-batch-menu');
+      } else if (!syncUrl.includes('/sync-batch-menu')) {
+        syncUrl = syncUrl.replace(/\/$/, '') + '/sync-batch-menu';
+      }
+    }
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -1165,23 +1250,90 @@ export class HospitalRealtimeService {
 
     const start = Date.now();
     try {
+      if (isSingleMenuEndpoint) {
+        // Simpan setiap item menu satu per satu ke endpoint save-master-menu
+        let successCount = 0;
+        let lastResponseData: any = null;
+        for (const m of items) {
+          const itemPayload = {
+            id: m.id,
+            id_menu: m.id,
+            name: m.name,
+            nama: m.name,
+            nama_menu: m.name,
+            kategori: m.category,
+            category: m.category,
+            harga: m.price,
+            price: m.price,
+            kalori: m.calories,
+            calories: m.calories,
+            protein: m.protein,
+            karbohidrat: m.carbs,
+            lemak: m.fat,
+            natrium: m.sodium,
+            waktu_makan: m.mealTimes,
+            deskripsi: m.description,
+            gambar_url: m.image,
+            is_tersedia: m.isAvailable !== false,
+          };
+          const singleRes = await fetch(targetUrl, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(itemPayload),
+          });
+          if (singleRes.ok) {
+            successCount++;
+            lastResponseData = await singleRes.json().catch(() => null);
+          }
+        }
+        const latency = `${Date.now() - start}ms`;
+        return {
+          success: successCount > 0,
+          totalSynced: successCount,
+          latency,
+          message: `Berhasil menyinkronkan ${successCount} dari ${items.length} master menu ke endpoint SIMRS!`,
+          data: lastResponseData || { status: 'success' },
+        };
+      }
+
+      // Batch Sync ke sync-batch-menu
+      const firstItem = items[0] || {} as any;
       const res = await fetch(syncUrl, {
         method: 'POST',
         headers,
         body: JSON.stringify({
+          // Sertakan juga parameter id & name di level root agar aman jika endpoint ternyata save-master-menu
+          id: firstItem.id || 'menu-1',
+          id_menu: firstItem.id || 'menu-1',
+          name: firstItem.name || 'Master Menu',
+          nama: firstItem.name || 'Master Menu',
+          nama_menu: firstItem.name || 'Master Menu',
+          kategori: firstItem.category || 'makanan_utama',
+          category: firstItem.category || 'makanan_utama',
+          harga: firstItem.price || 0,
+          price: firstItem.price || 0,
+          kalori: firstItem.calories || 0,
+          calories: firstItem.calories || 0,
           menu_items: items.map(m => ({
+            id: m.id,
             id_menu: m.id,
+            name: m.name,
             nama_menu: m.name,
             kategori: m.category,
+            category: m.category,
             harga: m.price,
+            price: m.price,
             kalori: m.calories,
+            calories: m.calories,
             protein: m.protein,
             karbohidrat: m.carbs,
             lemak: m.fat,
             natrium: m.sodium,
             deskripsi: m.description,
             status_tersedia: m.isAvailable,
+            is_tersedia: m.isAvailable,
           })),
+          items: items,
         }),
       });
       const latency = `${Date.now() - start}ms`;

@@ -582,7 +582,29 @@ async function syncOrderToSimrs(
       kalori: i.calories,
     }));
 
+    const firstItem = mappedItems[0] || {
+      id_menu: 'menu-1',
+      name: 'Sup Ayam Sayur Bening',
+      category: 'makanan_utama',
+      price: 18000,
+      calories: 120,
+    };
+
     const payload = {
+      // Data Menu jika endpoint adalah save-master-menu
+      id: (firstItem as any).id_menu || (firstItem as any).id || 'menu-1',
+      id_menu: (firstItem as any).id_menu || (firstItem as any).id || 'menu-1',
+      name: (firstItem as any).name || 'Menu Gizi',
+      nama: (firstItem as any).name || 'Menu Gizi',
+      nama_menu: (firstItem as any).name || 'Menu Gizi',
+      kategori: (firstItem as any).category || 'makanan_utama',
+      category: (firstItem as any).category || 'makanan_utama',
+      harga: (firstItem as any).price || 18000,
+      price: (firstItem as any).price || 18000,
+      kalori: (firstItem as any).calories || 120,
+      calories: (firstItem as any).calories || 120,
+
+      // Data Pesanan jika endpoint adalah save-pesanan-gizi
       noregistrasi: order.registrationNo || `REG-${testOrderNum.replace(/[^0-9]/g, '')}`,
       no_pesanan: testOrderNum,
       order_number: testOrderNum,
@@ -712,12 +734,6 @@ async function syncMenuToSimrs(
   }
 
   try {
-    const payload = {
-      menu_items: items,
-      total_count: items.length,
-      synced_at: new Date().toISOString(),
-    };
-
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
@@ -727,6 +743,69 @@ async function syncMenuToSimrs(
       headers['X-AUTH-TOKEN'] = rawToken;
       headers['Authorization'] = `Bearer ${rawToken}`;
     }
+
+    // Jika target URL secara spesifik adalah /api/save-master-menu (menyimpan 1 menu per request)
+    if (url.includes('save-master-menu')) {
+      let savedCount = 0;
+      let lastData: any = null;
+      for (const item of items) {
+        const itemPayload = {
+          id: item.id,
+          id_menu: item.id,
+          name: item.name,
+          nama: item.name,
+          nama_menu: item.name,
+          category: item.category,
+          kategori: item.category,
+          price: item.price,
+          harga: item.price,
+          calories: item.calories,
+          kalori: item.calories,
+          protein: item.protein,
+          karbohidrat: item.carbs,
+          lemak: item.fat,
+          natrium: item.sodium,
+          waktu_makan: item.mealTimes,
+          deskripsi: item.description,
+          gambar_url: item.image,
+          is_tersedia: item.isAvailable,
+        };
+        const singleRes = await fetch(url, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(itemPayload),
+        });
+        if (singleRes.ok) {
+          savedCount++;
+          lastData = await singleRes.json().catch(() => null);
+        }
+      }
+      return {
+        success: savedCount > 0,
+        totalSynced: savedCount,
+        data: lastData || { status: 'success', message: `${savedCount} master menu berhasil disimpan ke SIMRS!` },
+      };
+    }
+
+    // Batch Sync: kirim data array sekaligus, sertakan juga id & name menu pertama di root level
+    const first = items[0] || {} as any;
+    const payload = {
+      id: first.id || 'menu-1',
+      id_menu: first.id || 'menu-1',
+      name: first.name || 'Menu Gizi',
+      nama: first.name || 'Menu Gizi',
+      nama_menu: first.name || 'Menu Gizi',
+      category: first.category || 'makanan_utama',
+      kategori: first.category || 'makanan_utama',
+      price: first.price || 0,
+      harga: first.price || 0,
+      calories: first.calories || 0,
+      kalori: first.calories || 0,
+      menu_items: items,
+      items: items,
+      total_count: items.length,
+      synced_at: new Date().toISOString(),
+    };
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 12000);

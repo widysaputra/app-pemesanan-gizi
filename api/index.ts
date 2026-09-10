@@ -165,6 +165,31 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
       ];
 
       const samplePayload = {
+        // ID & Nama Menu untuk endpoint master menu (save-master-menu)
+        id: 'menu-1',
+        id_menu: 'menu-1',
+        name: 'Sup Ayam Sayur Bening',
+        nama: 'Sup Ayam Sayur Bening',
+        nama_menu: 'Sup Ayam Sayur Bening',
+        kategori: 'makanan_utama',
+        category: 'makanan_utama',
+        harga: 18000,
+        price: 18000,
+        kalori: 120,
+        calories: 120,
+        protein: 15,
+        karbohidrat: 20,
+        carbs: 20,
+        lemak: 5,
+        fat: 5,
+        natrium: 300,
+        sodium: 300,
+        deskripsi: 'Menu uji coba integrasi gizi RS',
+        description: 'Menu uji coba integrasi gizi RS',
+        is_tersedia: true,
+        isAvailable: true,
+
+        // Data Pesanan untuk endpoint pesanan (save-pesanan-gizi)
         noregistrasi: testRegNo,
         no_pesanan: testOrderNum,
         order_number: testOrderNum,
