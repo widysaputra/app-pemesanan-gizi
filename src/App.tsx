@@ -9,24 +9,38 @@ import { realtimeService } from './services/api';
 import { playHospitalChime } from './utils/audio';
 import { PatientDashboard } from './components/PatientDashboard';
 import { AdminDashboard } from './components/AdminDashboard';
-import { SplitViewMode } from './components/SplitViewMode';
 import { 
   HeartPulse, 
   User, 
-  Split, 
   ShieldCheck, 
   Volume2, 
   VolumeX, 
   HelpCircle, 
   X, 
   Sparkles,
-  MessageCircle
+  MessageCircle,
+  Lock,
+  Unlock,
+  KeyRound,
+  LogOut,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
-type AppView = 'patient' | 'admin' | 'split';
+type AppView = 'patient' | 'admin';
 
 export default function App() {
-  const [activeView, setActiveView] = useState<AppView>('split'); // Default to split for instant preview of both
+  const [activeView, setActiveView] = useState<AppView>('patient');
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
+    return typeof window !== 'undefined' && sessionStorage.getItem('nutrihospital_admin_auth') === 'true';
+  });
+  const [showAdminLoginModal, setShowAdminLoginModal] = useState<boolean>(false);
+  const [adminPasswordInput, setAdminPasswordInput] = useState<string>('');
+  const [showPasswordText, setShowPasswordText] = useState<boolean>(false);
+  const [loginError, setLoginError] = useState<string>('');
+  const [adminPassword, setAdminPassword] = useState<string>(() => {
+    return (typeof window !== 'undefined' && localStorage.getItem('nutrihospital_admin_pwd')) || 'admin123';
+  });
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [orders, setOrders] = useState<HospitalOrder[]>([]);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
@@ -166,6 +180,56 @@ export default function App() {
     }
   };
 
+  // Admin access handlers
+  const handleSelectAdminView = () => {
+    if (isAdminAuthenticated) {
+      setActiveView('admin');
+    } else {
+      setAdminPasswordInput('');
+      setLoginError('');
+      setShowAdminLoginModal(true);
+    }
+  };
+
+  const handleAdminLogin = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!adminPasswordInput.trim()) {
+      setLoginError('Silakan masukkan kata sandi admin.');
+      return;
+    }
+
+    if (adminPasswordInput.trim() === adminPassword) {
+      setIsAdminAuthenticated(true);
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('nutrihospital_admin_auth', 'true');
+      }
+      setShowAdminLoginModal(false);
+      setAdminPasswordInput('');
+      setLoginError('');
+      setActiveView('admin');
+      setToastMessage({
+        title: 'Akses Admin Berhasil',
+        desc: 'Selamat datang di Dashboard Admin NutriHospital.',
+      });
+      setTimeout(() => setToastMessage(null), 3000);
+    } else {
+      setLoginError('Kata sandi salah! Coba lagi (Kata sandi default: admin123)');
+    }
+  };
+
+  const handleAdminLogout = () => {
+    setIsAdminAuthenticated(false);
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('nutrihospital_admin_auth');
+    }
+    setActiveView('patient');
+    setToastMessage({
+      title: 'Sesi Admin Dikunci',
+      desc: 'Berhasil keluar dari Dashboard Admin.',
+    });
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
   const newOrdersCount = orders.filter((o) => o.status === 'baru').length;
 
   if (!isLoaded) {
@@ -209,23 +273,11 @@ export default function App() {
             </div>
           </div>
 
-          {/* View Switcher Tabs: Pasien, Admin, Split View */}
+          {/* View Switcher Tabs: Hanya Dashboard Pasien & Dashboard Admin */}
           <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
             <button
-              onClick={() => setActiveView('split')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                activeView === 'split'
-                  ? 'bg-white text-slate-900 shadow-xs ring-1 ring-slate-200'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Split className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Layar Ganda</span>
-            </button>
-
-            <button
               onClick={() => setActiveView('patient')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                 activeView === 'patient'
                   ? 'bg-white text-slate-900 shadow-xs ring-1 ring-slate-200'
                   : 'text-slate-600 hover:text-slate-900'
@@ -236,23 +288,44 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => setActiveView('admin')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer relative ${
+              onClick={handleSelectAdminView}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer relative ${
                 activeView === 'admin'
                   ? 'bg-white text-slate-900 shadow-xs ring-1 ring-slate-200'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+              {isAdminAuthenticated ? (
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+              ) : (
+                <Lock className="w-3.5 h-3.5 text-amber-500" />
+              )}
               <span>Dashboard Admin</span>
+              {!isAdminAuthenticated && (
+                <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded font-semibold">
+                  Terkunci
+                </span>
+              )}
               {newOrdersCount > 0 && (
                 <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
               )}
             </button>
           </div>
 
-          {/* Utilities (Audio & Help) */}
+          {/* Utilities (Logout Admin, Audio, Help) */}
           <div className="flex items-center gap-2">
+
+            {/* Logout Admin Button when in Admin View */}
+            {isAdminAuthenticated && activeView === 'admin' && (
+              <button
+                onClick={handleAdminLogout}
+                className="px-2.5 py-1.5 rounded-xl text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors flex items-center gap-1.5 cursor-pointer"
+                title="Kunci & Keluar dari Dashboard Admin"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">Kunci Admin</span>
+              </button>
+            )}
             
             {/* Audio Toggle */}
             <button
@@ -306,17 +379,6 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {activeView === 'split' && (
-          <SplitViewMode
-            menuItems={menuItems}
-            orders={orders}
-            onSubmitOrder={handleSubmitOrder}
-            onUpdateStatus={handleUpdateStatus}
-            onToggleMenuItem={handleToggleMenuItem}
-            onResetDemo={handleResetDemo}
-          />
-        )}
-
         {activeView === 'patient' && (
           <PatientDashboard
             menuItems={menuItems}
@@ -335,6 +397,99 @@ export default function App() {
           />
         )}
       </main>
+
+      {/* Admin Password Verification Modal */}
+      {showAdminLoginModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 border border-slate-200 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center">
+                  <KeyRound className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm">Autentikasi Admin</h3>
+                  <p className="text-[11px] text-slate-500">Akses terbatas petugas Dapur Gizi</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setShowAdminLoginModal(false);
+                  setLoginError('');
+                }}
+                className="p-1 text-slate-400 hover:text-slate-700 rounded-lg cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAdminLogin} className="py-4 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Kata Sandi Admin
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPasswordText ? 'text' : 'password'}
+                    value={adminPasswordInput}
+                    onChange={(e) => {
+                      setAdminPasswordInput(e.target.value);
+                      if (loginError) setLoginError('');
+                    }}
+                    placeholder="Masukkan password admin..."
+                    autoFocus
+                    className="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswordText(!showPasswordText)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer"
+                  >
+                    {showPasswordText ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+                {loginError && (
+                  <p className="text-[11px] font-semibold text-rose-600 mt-1.5 flex items-center gap-1">
+                    <span>&bull;</span> {loginError}
+                  </p>
+                )}
+              </div>
+
+              {/* Password Hint Box */}
+              <div className="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-xl flex items-start gap-2 text-emerald-900 text-xs">
+                <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div className="text-[11px] leading-relaxed">
+                  Kata sandi default: <code className="font-bold bg-white px-1.5 py-0.5 rounded border border-emerald-300 text-emerald-800">admin123</code>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAdminLoginModal(false);
+                    setLoginError('');
+                  }}
+                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Unlock className="w-3.5 h-3.5" />
+                  <span>Buka Admin</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Help / Guidance Modal */}
       {showHelpModal && (
