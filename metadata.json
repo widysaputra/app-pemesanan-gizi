@@ -1,0 +1,6 @@
+{
+  "name": "NutriHospital - Pemesanan Menu & Integrasi WhatsApp Fonnte",
+  "description": "Aplikasi pemesanan menu gizi rumah sakit dengan Dashboard Admin untuk kelola menu & harga, Dashboard Pasien, integrasi WhatsApp Fonnte, serta integrasi database PostgreSQL & API Laravel SIMRS.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
