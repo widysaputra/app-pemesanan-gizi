@@ -203,24 +203,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // Filtered Menu Items
   const filteredMenuItems = useMemo(() => {
-    return menuItems.filter((item) => {
-      const matchCat = selectedCategory === 'all' || item.category === selectedCategory;
-      const matchQuery = item.name.toLowerCase().includes(searchMenuQuery.toLowerCase()) ||
-        item.description.toLowerCase().includes(searchMenuQuery.toLowerCase());
-      return matchCat && matchQuery;
-    });
+    return (menuItems || [])
+      .filter((item): item is MenuItem => Boolean(item && item.id && item.name))
+      .filter((item) => {
+        const matchCat = selectedCategory === 'all' || item.category === selectedCategory;
+        const itemName = (item.name || '').toLowerCase();
+        const itemDesc = (item.description || '').toLowerCase();
+        const query = (searchMenuQuery || '').toLowerCase();
+        const matchQuery = itemName.includes(query) || itemDesc.includes(query);
+        return matchCat && matchQuery;
+      });
   }, [menuItems, selectedCategory, searchMenuQuery]);
 
   // Filtered Orders
   const filteredOrders = useMemo(() => {
-    return orders.filter((order) => {
-      const matchStatus = orderStatusFilter === 'all' || order.status === orderStatusFilter;
-      const matchSearch = order.roomName.toLowerCase().includes(searchOrderQuery.toLowerCase()) ||
-        order.patientName.toLowerCase().includes(searchOrderQuery.toLowerCase()) ||
-        order.phoneNumber.includes(searchOrderQuery) ||
-        order.orderNumber.toLowerCase().includes(searchOrderQuery.toLowerCase());
-      return matchStatus && matchSearch;
-    });
+    return (orders || [])
+      .filter((order): order is HospitalOrder => Boolean(order && order.id))
+      .filter((order) => {
+        const matchStatus = orderStatusFilter === 'all' || order.status === orderStatusFilter;
+        const query = (searchOrderQuery || '').toLowerCase();
+        const matchSearch =
+          (order.roomName || '').toLowerCase().includes(query) ||
+          (order.patientName || '').toLowerCase().includes(query) ||
+          (order.phoneNumber || '').includes(query) ||
+          (order.orderNumber || '').toLowerCase().includes(query);
+        return matchStatus && matchSearch;
+      });
   }, [orders, orderStatusFilter, searchOrderQuery]);
 
   // Handlers for Menu Management
@@ -240,6 +248,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     } else {
       await realtimeService.addMenuItem(itemData);
     }
+    setEditingMenuItem(null);
   };
 
   const handleDeleteMenuItem = async (id: string, name: string) => {
@@ -666,7 +675,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       >
                         <div className="text-[9px] sm:text-xs text-slate-400 font-medium">Harga:</div>
                         <div className="text-xs sm:text-sm font-black text-emerald-700 truncate">
-                          {item.price > 0 ? `Rp ${item.price.toLocaleString('id-ID')}` : 'Gratis'}
+                          {Number(item.price || 0) > 0 ? `Rp ${Number(item.price || 0).toLocaleString('id-ID')}` : 'Gratis'}
                         </div>
                         <Edit3 className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-slate-300 group-hover:text-emerald-600 transition-colors shrink-0" />
                       </div>

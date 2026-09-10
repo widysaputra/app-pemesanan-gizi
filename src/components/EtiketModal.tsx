@@ -80,27 +80,23 @@ export const EtiketModal: React.FC<EtiketModalProps> = ({ order, onClose }) => {
             <div className="grid grid-cols-2 gap-2 text-xs mb-3 pb-3 border-b border-slate-200">
               <div>
                 <span className="text-slate-400 block text-[10px] font-semibold">NAMA PASIEN</span>
-                <span className="font-bold text-slate-900 text-sm">{order.patientName}</span>
+                <span className="font-bold text-slate-900 text-sm">{order.patientName || 'Pasien Umum'}</span>
               </div>
               <div>
-                <span className="text-slate-400 block text-[10px] font-semibold">NO. REKAM MEDIS (RM)</span>
-                <span className="font-mono font-bold text-slate-800 text-sm">{order.rmNumber}</span>
+                <span className="text-slate-400 block text-[10px] font-semibold">NO. REGISTRASI / RM</span>
+                <span className="font-mono font-bold text-slate-800 text-sm">{order.registrationNo || '-'}</span>
               </div>
-              <div>
+              <div className="col-span-2">
                 <span className="text-slate-400 block text-[10px] font-semibold">RUANGAN &amp; BED</span>
-                <span className="font-bold text-slate-900">{order.room} / {order.bed}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 block text-[10px] font-semibold">GEDUNG / BANGSAL</span>
-                <span className="font-semibold text-slate-800">Bangsal {order.ward}</span>
+                <span className="font-bold text-slate-900">{order.roomName || 'Ruang Rawat'}</span>
               </div>
             </div>
 
             {/* Clinical Diet Prescription */}
             <div className="mb-3">
-              <span className="text-slate-400 block text-[10px] font-semibold uppercase mb-1">PRESCRIPTION DIET KLINIS</span>
-              <div className={`px-2.5 py-1.5 rounded-md border font-bold text-xs ${getDietBadgeColor(order.dietCategory)}`}>
-                {order.clinicalDiet}
+              <span className="text-slate-400 block text-[10px] font-semibold uppercase mb-1">CATATAN DIET KLINIS</span>
+              <div className="px-2.5 py-1.5 rounded-md border font-bold text-xs bg-emerald-100 text-emerald-800 border-emerald-300">
+                {order.patientNotes || 'Diet Standar Gizi Rumah Sakit'}
               </div>
             </div>
 

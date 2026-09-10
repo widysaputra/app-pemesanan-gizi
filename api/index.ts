@@ -145,15 +145,51 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
         return res.status(400).json({ success: false, error: 'URL Endpoint SIMRS wajib diisi' });
       }
 
+      const testOrderNum = 'GZ-UJI-' + Date.now().toString().slice(-6);
+      const testRegNo = 'TEST-' + Date.now().toString().slice(-6);
       const samplePayload = {
-        noregistrasi: 'TEST-' + Date.now().toString().slice(-6),
+        noregistrasi: testRegNo,
+        no_pesanan: testOrderNum,
+        order_number: testOrderNum,
+        orderNumber: testOrderNum,
+        orderId: testOrderNum,
         hasil_json: {
-          orderNumber: 'GZ-UJI-VERCEL',
+          orderId: testOrderNum,
+          no_pesanan: testOrderNum,
+          order_number: testOrderNum,
+          orderNumber: testOrderNum,
+          noregistrasi: testRegNo,
+          registrationNo: testRegNo,
           patientName: 'Uji Coba Integrasi SIMRS',
-          roomName: 'Kamar Bedah / Tes',
+          nama_pasien: 'Uji Coba Integrasi SIMRS',
+          roomName: 'Kamar Melati 101',
+          roomNumber: 'Kamar Melati 101',
+          nomor_kamar: 'Kamar Melati 101',
+          patientInfo: {
+            roomNumber: 'Kamar Melati 101',
+            roomName: 'Kamar Melati 101',
+            patientName: 'Uji Coba Integrasi SIMRS',
+          },
           mealTime: 'siang',
+          waktu_makan: 'siang',
           totalPrice: 28000,
+          total_biaya: 28000,
+          totalCalories: 180,
+          total_kalori: 180,
           patientNotes: 'Uji coba komunikasi endpoint Laravel SIMRS dengan header X-AUTH-TOKEN via Vercel',
+          dietaryNotes: 'Uji coba komunikasi endpoint Laravel SIMRS dengan header X-AUTH-TOKEN via Vercel',
+          catatan_alergi_diet: 'Uji coba komunikasi endpoint Laravel SIMRS dengan header X-AUTH-TOKEN via Vercel',
+          status: 'baru',
+          status_pesanan: 'baru',
+          items: [
+            {
+              name: 'Sup Ayam Sayur Bening',
+              portion: 1,
+              price: 18000,
+              category: 'makanan_utama',
+              calories: 120,
+            },
+          ],
           timestamp: new Date().toISOString(),
         },
       };
@@ -265,6 +301,63 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
         message: `${items.length} master menu gizi berhasil disinkronkan ke SIMRS (Vercel Simulator)`,
         total_items: items.length,
       });
+    }
+
+    // 5. Menu Catalog APIs (/api/menu)
+    if (parsedPath === '/api/menu' || parsedPath.startsWith('/api/menu/')) {
+      if (parsedPath === '/api/menu') {
+        if (method === 'GET') {
+          return res.json([]);
+        }
+        if (method === 'POST') {
+          const { name, price, category, mealTimes, calories, protein, carbs, fat, sodium, description, image, isAvailable } = body;
+          const newItem = {
+            id: `menu-${Date.now()}`,
+            name: name ? String(name).trim() : 'Menu Baru',
+            price: Number(price) >= 0 ? Number(price) : 0,
+            category: category || 'makanan_utama',
+            mealTimes: Array.isArray(mealTimes) && mealTimes.length > 0 ? mealTimes : ['pagi', 'siang', 'malam'],
+            calories: Number(calories) || 100,
+            protein: Number(protein) || 5,
+            carbs: Number(carbs) || 15,
+            fat: Number(fat) || 2,
+            sodium: Number(sodium) || 20,
+            description: description ? String(description).trim() : '',
+            image: image ? String(image).trim() : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+            isAvailable: isAvailable !== false,
+          };
+          return res.status(201).json(newItem);
+        }
+      }
+
+      const pathParts = parsedPath.split('/');
+      const menuId = pathParts[3]; // /api/menu/:id
+      const isToggle = pathParts[4] === 'toggle';
+
+      if (menuId) {
+        if (method === 'PATCH') {
+          const updatedItem = {
+            id: menuId,
+            name: body.name ? String(body.name).trim() : 'Menu',
+            price: body.price !== undefined ? Math.max(0, Number(body.price)) : 10000,
+            category: body.category || 'makanan_utama',
+            mealTimes: Array.isArray(body.mealTimes) ? body.mealTimes : ['pagi', 'siang', 'malam'],
+            calories: Number(body.calories) || 100,
+            protein: Number(body.protein) || 5,
+            carbs: Number(body.carbs) || 15,
+            fat: Number(body.fat) || 2,
+            sodium: Number(body.sodium) || 20,
+            description: body.description ? String(body.description).trim() : '',
+            image: body.image ? String(body.image).trim() : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+            isAvailable: isToggle ? !Boolean(body.isAvailable) : Boolean(body.isAvailable !== false),
+          };
+          return res.json(updatedItem);
+        }
+
+        if (method === 'DELETE') {
+          return res.json({ success: true, removedId: menuId });
+        }
+      }
     }
 
     // Default Fallback for other /api routes

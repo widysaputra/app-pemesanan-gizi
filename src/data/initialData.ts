@@ -347,7 +347,28 @@ export function getLocalCachedMenu(): MenuItem[] {
     const raw = localStorage.getItem(LOCAL_STORAGE_MENU_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // Filter out corrupted items (e.g. invalid objects without name or id)
+        const sanitized: MenuItem[] = parsed
+          .filter((item) => item && typeof item === 'object' && item.id && item.name && typeof item.name === 'string')
+          .map((item) => ({
+            id: String(item.id),
+            name: String(item.name || 'Menu Makanan'),
+            price: Number(item.price) >= 0 ? Number(item.price) : 0,
+            category: item.category || 'makanan_utama',
+            mealTimes: Array.isArray(item.mealTimes) && item.mealTimes.length > 0 ? item.mealTimes : ['pagi', 'siang', 'malam'],
+            calories: Number(item.calories) || 100,
+            protein: Number(item.protein) || 0,
+            carbs: Number(item.carbs) || 0,
+            fat: Number(item.fat) || 0,
+            sodium: Number(item.sodium) || 0,
+            description: String(item.description || ''),
+            isAvailable: item.isAvailable !== false,
+            image: item.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+          }));
+
+        if (sanitized.length > 0) return sanitized;
+      }
     }
   } catch {
     // Ignore storage parse error
@@ -358,7 +379,24 @@ export function getLocalCachedMenu(): MenuItem[] {
 export function saveLocalCachedMenu(menu: MenuItem[]): void {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(LOCAL_STORAGE_MENU_KEY, JSON.stringify(menu));
+    const valid = (menu || [])
+      .filter((m) => m && typeof m === 'object' && m.id && m.name)
+      .map((m) => ({
+        id: String(m.id),
+        name: String(m.name),
+        price: Number(m.price) >= 0 ? Number(m.price) : 0,
+        category: m.category || 'makanan_utama',
+        mealTimes: Array.isArray(m.mealTimes) && m.mealTimes.length > 0 ? m.mealTimes : ['pagi', 'siang', 'malam'],
+        calories: Number(m.calories) || 100,
+        protein: Number(m.protein) || 0,
+        carbs: Number(m.carbs) || 0,
+        fat: Number(m.fat) || 0,
+        sodium: Number(m.sodium) || 0,
+        description: String(m.description || ''),
+        isAvailable: m.isAvailable !== false,
+        image: m.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+      }));
+    localStorage.setItem(LOCAL_STORAGE_MENU_KEY, JSON.stringify(valid));
   } catch {
     // Ignore
   }

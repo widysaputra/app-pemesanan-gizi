@@ -4,15 +4,21 @@
  */
 
 export const SQL_PESANAN_GIZI_TABLE = `-- ====================================================================
--- 1. SQL DDL POSTGRESQL: TABEL pesanan_gizi_t & rincian_pesanan_gizi_t
+-- 1. SQL DDL POSTGRESQL: TABEL go_pesanan_gizi_t (atau pesanan_gizi_t)
 -- Digunakan untuk menyimpan pesanan makanan pasien rawat inap ke SIMRS
 -- Terhubung langsung dengan No. Registrasi Pasien SIMRS
 -- ====================================================================
 
--- Tabel Utama Pesanan Gizi Pasien
-CREATE TABLE IF NOT EXISTS pesanan_gizi_t (
+-- PERINTAH CEPAT (Bila tabel go_pesanan_gizi_t sudah ada dan muncul error "column no_pesanan does not exist"):
+ALTER TABLE IF EXISTS go_pesanan_gizi_t ADD COLUMN IF NOT EXISTS no_pesanan VARCHAR(64);
+ALTER TABLE IF EXISTS go_pesanan_gizi_t ADD COLUMN IF NOT EXISTS order_number VARCHAR(64);
+CREATE INDEX IF NOT EXISTS idx_go_pesanan_gizi_no_pesanan ON go_pesanan_gizi_t (no_pesanan);
+
+-- DDL Pembuatan Tabel Baru: go_pesanan_gizi_t (atau pesanan_gizi_t)
+CREATE TABLE IF NOT EXISTS go_pesanan_gizi_t (
     id BIGSERIAL PRIMARY KEY,
-    order_number VARCHAR(50) NOT NULL UNIQUE,
+    no_pesanan VARCHAR(64) NOT NULL UNIQUE,
+    order_number VARCHAR(64),
     noregistrasi VARCHAR(64) NOT NULL,
     room_name VARCHAR(100) NOT NULL,
     patient_name VARCHAR(150),
@@ -31,16 +37,17 @@ CREATE TABLE IF NOT EXISTS pesanan_gizi_t (
 );
 
 -- Indeks Performa untuk Pencarian Cepat di SIMRS
-CREATE INDEX IF NOT EXISTS idx_pesanan_gizi_noregistrasi ON pesanan_gizi_t (noregistrasi);
-CREATE INDEX IF NOT EXISTS idx_pesanan_gizi_order_number ON pesanan_gizi_t (order_number);
-CREATE INDEX IF NOT EXISTS idx_pesanan_gizi_created_at ON pesanan_gizi_t (created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_pesanan_gizi_status ON pesanan_gizi_t (order_status);
-CREATE INDEX IF NOT EXISTS idx_pesanan_gizi_items_gin ON pesanan_gizi_t USING GIN (items_json);
+CREATE INDEX IF NOT EXISTS idx_go_pesanan_gizi_noregistrasi ON go_pesanan_gizi_t (noregistrasi);
+CREATE INDEX IF NOT EXISTS idx_go_pesanan_gizi_no_pesanan ON go_pesanan_gizi_t (no_pesanan);
+CREATE INDEX IF NOT EXISTS idx_go_pesanan_gizi_created_at ON go_pesanan_gizi_t (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_go_pesanan_gizi_status ON go_pesanan_gizi_t (order_status);
+CREATE INDEX IF NOT EXISTS idx_go_pesanan_gizi_items_gin ON go_pesanan_gizi_t USING GIN (items_json);
 
 -- (Opsional) Tabel Rincian Menu Termasuk Porsi & Kalori (Bila Dapur Gizi Membutuhkan Relasi Baris per Baris)
-CREATE TABLE IF NOT EXISTS rincian_pesanan_gizi_t (
+CREATE TABLE IF NOT EXISTS go_rincian_pesanan_gizi_t (
     id BIGSERIAL PRIMARY KEY,
-    order_number VARCHAR(50) NOT NULL REFERENCES pesanan_gizi_t(order_number) ON DELETE CASCADE,
+    no_pesanan VARCHAR(64) NOT NULL,
+    order_number VARCHAR(64),
     id_menu VARCHAR(50) NOT NULL,
     nama_menu VARCHAR(150) NOT NULL,
     kategori VARCHAR(50),
@@ -51,12 +58,13 @@ CREATE TABLE IF NOT EXISTS rincian_pesanan_gizi_t (
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_rincian_gizi_order ON rincian_pesanan_gizi_t (order_number);
-CREATE INDEX IF NOT EXISTS idx_rincian_gizi_menu ON rincian_pesanan_gizi_t (id_menu);
+CREATE INDEX IF NOT EXISTS idx_go_rincian_gizi_order ON go_rincian_pesanan_gizi_t (no_pesanan);
+CREATE INDEX IF NOT EXISTS idx_go_rincian_gizi_menu ON go_rincian_pesanan_gizi_t (id_menu);
 
-COMMENT ON TABLE pesanan_gizi_t IS 'Tabel Utama Pesanan Makanan Kamar Pasien Terhubung SIMRS';
-COMMENT ON COLUMN pesanan_gizi_t.noregistrasi IS 'Nomor Registrasi Pasien Rawat Inap SIMRS';
-COMMENT ON COLUMN pesanan_gizi_t.items_json IS 'Dokumen JSON detail menu yang dipesan';
+COMMENT ON TABLE go_pesanan_gizi_t IS 'Tabel Utama Pesanan Makanan Kamar Pasien Terhubung SIMRS';
+COMMENT ON COLUMN go_pesanan_gizi_t.noregistrasi IS 'Nomor Registrasi Pasien Rawat Inap SIMRS';
+COMMENT ON COLUMN go_pesanan_gizi_t.no_pesanan IS 'Nomor Unik Pesanan Gizi Kamar Pasien';
+COMMENT ON COLUMN go_pesanan_gizi_t.items_json IS 'Dokumen JSON detail menu yang dipesan';
 `;
 
 export const SQL_MASTER_MENU_TABLE = `-- ====================================================================
@@ -239,35 +247,68 @@ class GiziSIMRSController extends Controller
 
         DB::beginTransaction();
         try {
-            $orderNumber = $orderData['orderNumber'] ?? ('GZ-' . date('YmdHis'));
+            // Kompatibilitas multi-format: no_pesanan, orderNumber, order_number
+            $orderNumber = $orderData['no_pesanan'] 
+                ?? $orderData['orderNumber'] 
+                ?? $orderData['order_number'] 
+                ?? $request->input('no_pesanan') 
+                ?? ('GZ-' . date('YmdHis'));
 
-            // 1. Simpan data header pesanan ke pesanan_gizi_t (Idempotent: updateOrInsert)
-            DB::table('pesanan_gizi_t')->updateOrInsert(
-                ['order_number' => $orderNumber],
+            // Nama tabel otomatis dideteksi: 'rego_pesanan_gizi_t', 'go_pesanan_gizi_t', atau 'pesanan_gizi_t'
+            $tableName = 'rego_pesanan_gizi_t';
+            if (!\\Illuminate\\Support\\Facades\\Schema::hasTable($tableName)) {
+                $tableName = \\Illuminate\\Support\\Facades\\Schema::hasTable('go_pesanan_gizi_t') 
+                    ? 'go_pesanan_gizi_t' 
+                    : 'pesanan_gizi_t';
+            }
+
+            // 1. Simpan data header pesanan (Idempotent: updateOrInsert)
+            $headerData = [
+                'noregistrasi'   => $noRegistrasi,
+                'order_number'   => $orderNumber,
+                'room_name'      => $orderData['roomName'] ?? ($orderData['nomor_kamar'] ?? 'Kamar Pasien'),
+                'patient_name'   => $orderData['patientName'] ?? ($orderData['nama_pasien'] ?? null),
+                'phone_number'   => $orderData['phoneNumber'] ?? null,
+                'meal_time'      => $orderData['mealTime'] ?? ($orderData['waktu_makan'] ?? 'siang'),
+                'total_price'    => $orderData['totalPrice'] ?? ($orderData['total_biaya'] ?? 0),
+                'total_calories' => $orderData['totalCalories'] ?? ($orderData['total_kalori'] ?? 0),
+                'patient_notes'  => $orderData['patientNotes'] ?? ($orderData['dietaryNotes'] ?? ($orderData['catatan_alergi_diet'] ?? null)),
+                'order_status'   => $orderData['status'] ?? ($orderData['order_status'] ?? 'baru'),
+                'items_json'     => json_encode($orderData['items'] ?? []),
+                'updated_at'     => date('Y-m-d H:i:s'),
+                'created_at'     => date('Y-m-d H:i:s')
+            ];
+
+            // Tambahkan kolom no_pesanan jika ada di skema
+            if (\\Illuminate\\Support\\Facades\\Schema::hasColumn($tableName, 'no_pesanan')) {
+                $headerData['no_pesanan'] = $orderNumber;
+            }
+
+            // Tambahkan kolom tgl_pesanan jika ada di skema
+            if (\\Illuminate\\Support\\Facades\\Schema::hasColumn($tableName, 'tgl_pesanan')) {
+                $headerData['tgl_pesanan'] = date('Y-m-d H:i:s');
+            }
+
+            DB::table($tableName)->updateOrInsert(
                 [
-                    'noregistrasi'   => $noRegistrasi,
-                    'room_name'      => $orderData['roomName'] ?? '',
-                    'patient_name'   => $orderData['patientName'] ?? '',
-                    'phone_number'   => $orderData['phoneNumber'] ?? '',
-                    'meal_time'      => $orderData['mealTime'] ?? 'siang',
-                    'total_price'    => $orderData['totalPrice'] ?? 0,
-                    'total_calories' => $orderData['totalCalories'] ?? 0,
-                    'patient_notes'  => $orderData['patientNotes'] ?? '',
-                    'order_status'   => $orderData['status'] ?? 'baru',
-                    'items_json'     => json_encode($orderData['items'] ?? []),
-                    'updated_at'     => date('Y-m-d H:i:s'),
-                    'created_at'     => date('Y-m-d H:i:s')
-                ]
+                    'noregistrasi' => $noRegistrasi,
+                    'order_number' => $orderNumber,
+                ],
+                $headerData
             );
 
-            // 2. (Opsional) Simpan rincian ke tabel relasional rincian_pesanan_gizi_t
-            if (!empty($orderData['items']) && is_array($orderData['items'])) {
-                DB::table('rincian_pesanan_gizi_t')->where('order_number', $orderNumber)->delete();
+            // 2. (Opsional) Simpan rincian ke tabel relasional
+            $detailTableName = \\Illuminate\\Support\\Facades\\Schema::hasTable('go_rincian_pesanan_gizi_t') 
+                ? 'go_rincian_pesanan_gizi_t' 
+                : 'rincian_pesanan_gizi_t';
+
+            if (\\Illuminate\\Support\\Facades\\Schema::hasTable($detailTableName) && !empty($orderData['items']) && is_array($orderData['items'])) {
+                DB::table($detailTableName)->where('no_pesanan', $orderNumber)->delete();
                 
                 $detailsToInsert = [];
                 foreach ($orderData['items'] as $item) {
                     $detailsToInsert[] = [
-                        'order_number' => $orderNumber,
+                        'no_pesanan'   => $orderNumber,
                         'id_menu'      => $item['menuItemId'] ?? $item['id'] ?? 'CUSTOM',
                         'nama_menu'    => $item['name'] ?? $item['nama_menu'] ?? 'Menu Makanan',
                         'kategori'     => $item['category'] ?? $item['kategori'] ?? 'makanan_utama',
@@ -278,7 +319,7 @@ class GiziSIMRSController extends Controller
                     ];
                 }
                 if (!empty($detailsToInsert)) {
-                    DB::table('rincian_pesanan_gizi_t')->insert($detailsToInsert);
+                    DB::table($detailTableName)->insert($detailsToInsert);
                 }
             }
 

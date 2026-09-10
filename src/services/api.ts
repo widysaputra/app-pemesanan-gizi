@@ -325,11 +325,30 @@ export class HospitalRealtimeService {
       });
       if (res.ok) {
         const newItem = await res.json();
-        this.notifyListeners('menu_update', { item: newItem, action: 'create' });
-        this.broadcastLocal('menu_update', { item: newItem, action: 'create' });
-        const currentMenu = getLocalCachedMenu();
-        saveLocalCachedMenu([newItem, ...currentMenu.filter(m => m.id !== newItem.id)]);
-        return newItem;
+        // Validasi bahwa respon adalah objek menu sungguhan, bukan pesan fallback serverless
+        if (newItem && typeof newItem === 'object' && newItem.id && newItem.name) {
+          const sanitizedItem: MenuItem = {
+            id: String(newItem.id),
+            name: String(newItem.name),
+            price: Number(newItem.price) >= 0 ? Number(newItem.price) : 0,
+            category: newItem.category || 'makanan_utama',
+            mealTimes: Array.isArray(newItem.mealTimes) && newItem.mealTimes.length > 0 ? newItem.mealTimes : ['pagi', 'siang', 'malam'],
+            calories: Number(newItem.calories) || 100,
+            protein: Number(newItem.protein) || 0,
+            carbs: Number(newItem.carbs) || 0,
+            fat: Number(newItem.fat) || 0,
+            sodium: Number(newItem.sodium) || 0,
+            description: String(newItem.description || ''),
+            isAvailable: newItem.isAvailable !== false,
+            image: newItem.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+          };
+
+          this.notifyListeners('menu_update', { item: sanitizedItem, action: 'create' });
+          this.broadcastLocal('menu_update', { item: sanitizedItem, action: 'create' });
+          const currentMenu = getLocalCachedMenu();
+          saveLocalCachedMenu([sanitizedItem, ...currentMenu.filter(m => m.id !== sanitizedItem.id)]);
+          return sanitizedItem;
+        }
       }
     } catch {
       // Fallback to local mode
@@ -338,21 +357,21 @@ export class HospitalRealtimeService {
     // Local fallback
     const newItem: MenuItem = {
       id: 'menu-' + Date.now(),
-      name: item.name || 'Menu Baru',
-      price: item.price || 10000,
+      name: item.name ? String(item.name).trim() : 'Menu Baru',
+      price: Number(item.price) >= 0 ? Number(item.price) : 10000,
       category: item.category || 'makanan_utama',
-      mealTimes: item.mealTimes || ['pagi', 'siang', 'malam'],
-      calories: item.calories || 150,
-      protein: item.protein || 5,
-      carbs: item.carbs || 20,
-      fat: item.fat || 3,
-      sodium: item.sodium || 20,
-      description: item.description || '',
+      mealTimes: Array.isArray(item.mealTimes) && item.mealTimes.length > 0 ? item.mealTimes : ['pagi', 'siang', 'malam'],
+      calories: Number(item.calories) || 150,
+      protein: Number(item.protein) || 5,
+      carbs: Number(item.carbs) || 20,
+      fat: Number(item.fat) || 3,
+      sodium: Number(item.sodium) || 20,
+      description: String(item.description || ''),
       isAvailable: item.isAvailable !== false,
       image: item.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
     };
     const currentMenu = getLocalCachedMenu();
-    const updated = [newItem, ...currentMenu];
+    const updated = [newItem, ...currentMenu.filter(m => m.id !== newItem.id)];
     saveLocalCachedMenu(updated);
     this.notifyListeners('menu_update', { item: newItem, action: 'create' });
     this.broadcastLocal('menu_update', { item: newItem, action: 'create' });
@@ -368,11 +387,29 @@ export class HospitalRealtimeService {
       });
       if (res.ok) {
         const item = await res.json();
-        this.notifyListeners('menu_update', { item, action: 'update' });
-        this.broadcastLocal('menu_update', { item, action: 'update' });
-        const currentMenu = getLocalCachedMenu();
-        saveLocalCachedMenu(currentMenu.map(m => m.id === menuId ? item : m));
-        return item;
+        if (item && typeof item === 'object' && item.id && item.name) {
+          const sanitizedItem: MenuItem = {
+            id: String(item.id),
+            name: String(item.name),
+            price: Number(item.price) >= 0 ? Number(item.price) : 0,
+            category: item.category || 'makanan_utama',
+            mealTimes: Array.isArray(item.mealTimes) && item.mealTimes.length > 0 ? item.mealTimes : ['pagi', 'siang', 'malam'],
+            calories: Number(item.calories) || 100,
+            protein: Number(item.protein) || 0,
+            carbs: Number(item.carbs) || 0,
+            fat: Number(item.fat) || 0,
+            sodium: Number(item.sodium) || 0,
+            description: String(item.description || ''),
+            isAvailable: item.isAvailable !== false,
+            image: item.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+          };
+
+          this.notifyListeners('menu_update', { item: sanitizedItem, action: 'update' });
+          this.broadcastLocal('menu_update', { item: sanitizedItem, action: 'update' });
+          const currentMenu = getLocalCachedMenu();
+          saveLocalCachedMenu(currentMenu.map(m => m.id === menuId ? sanitizedItem : m));
+          return sanitizedItem;
+        }
       }
     } catch {
       // Fallback to local
@@ -382,11 +419,22 @@ export class HospitalRealtimeService {
     let updatedItem: MenuItem | null = null;
     const updatedMenu = currentMenu.map(m => {
       if (m.id === menuId) {
-        updatedItem = { ...m, ...updates };
+        updatedItem = {
+          ...m,
+          ...updates,
+          id: m.id,
+          name: updates.name !== undefined ? String(updates.name) : m.name,
+          price: updates.price !== undefined ? Math.max(0, Number(updates.price)) : m.price,
+          description: updates.description !== undefined ? String(updates.description) : m.description,
+          category: updates.category || m.category,
+          mealTimes: updates.mealTimes || m.mealTimes,
+          isAvailable: updates.isAvailable !== undefined ? Boolean(updates.isAvailable) : m.isAvailable,
+        };
         return updatedItem;
       }
       return m;
     });
+
     if (updatedItem) {
       saveLocalCachedMenu(updatedMenu);
       this.notifyListeners('menu_update', { item: updatedItem, action: 'update' });
@@ -745,15 +793,62 @@ export class HospitalRealtimeService {
 
     // 2. Uji langsung dari browser ke endpoint Laravel SIMRS (Mode Mandiri / Vercel)
     const testRegistrationNo = 'TEST-' + Date.now().toString().slice(-6);
+    const testOrderNo = 'GZ-UJI-' + Date.now().toString().slice(-6);
     const samplePayload = {
       noregistrasi: testRegistrationNo,
+      no_pesanan: testOrderNo,
+      order_number: testOrderNo,
+      orderNumber: testOrderNo,
+      orderId: testOrderNo,
       hasil_json: {
-        orderNumber: 'GZ-UJI-KONEKSI',
+        // ID & Nomor Pesanan Multi-format
+        orderId: testOrderNo,
+        no_pesanan: testOrderNo,
+        order_number: testOrderNo,
+        orderNumber: testOrderNo,
+        noregistrasi: testRegistrationNo,
+        registrationNo: testRegistrationNo,
+
+        // Data Pasien & Kamar Multi-format
+        roomName: 'Kamar Melati 101',
+        roomNumber: 'Kamar Melati 101',
+        nomor_kamar: 'Kamar Melati 101',
         patientName: 'Uji Coba Integrasi SIMRS',
-        roomName: 'Kamar Bedah / Tes',
+        nama_pasien: 'Uji Coba Integrasi SIMRS',
+        patientInfo: {
+          roomNumber: 'Kamar Melati 101',
+          roomName: 'Kamar Melati 101',
+          patientName: 'Uji Coba Integrasi SIMRS',
+        },
+
+        // Waktu & Rincian
         mealTime: 'siang',
+        waktu_makan: 'siang',
         totalPrice: 28000,
+        total_biaya: 28000,
+        totalCalories: 180,
+        total_kalori: 180,
         patientNotes: 'Uji coba komunikasi endpoint Laravel PostgreSQL dengan header X-AUTH-TOKEN',
+        dietaryNotes: 'Uji coba komunikasi endpoint Laravel PostgreSQL dengan header X-AUTH-TOKEN',
+        catatan_alergi_diet: 'Uji coba komunikasi endpoint Laravel PostgreSQL dengan header X-AUTH-TOKEN',
+        status: 'baru',
+        status_pesanan: 'baru',
+        items: [
+          {
+            name: 'Sup Ayam Sayur Bening',
+            portion: 1,
+            price: 18000,
+            category: 'makanan_utama',
+            calories: 120,
+          },
+          {
+            name: 'Puding Buah Segar Rendah Gula',
+            portion: 1,
+            price: 10000,
+            category: 'snack',
+            calories: 60,
+          },
+        ],
         timestamp: new Date().toISOString(),
       },
     };
@@ -863,11 +958,30 @@ export class HospitalRealtimeService {
 
     const payload = {
       noregistrasi: order.registrationNo,
+      no_pesanan: order.orderNumber,
+      order_number: order.orderNumber,
+      orderNumber: order.orderNumber,
+      orderId: order.orderNumber,
       hasil_json: {
+        orderId: order.orderNumber,
+        no_pesanan: order.orderNumber,
+        order_number: order.orderNumber,
         orderNumber: order.orderNumber,
+        noregistrasi: order.registrationNo,
+        registrationNo: order.registrationNo,
         patientName: order.patientName,
+        nama_pasien: order.patientName,
         roomName: order.roomName,
+        roomNumber: order.roomName,
+        nomor_kamar: order.roomName,
+        patientInfo: {
+          roomNumber: order.roomName,
+          roomName: order.roomName,
+          patientName: order.patientName,
+        },
         mealTime: order.mealTime,
+        waktu_makan: order.mealTime,
+        phoneNumber: order.phoneNumber,
         items: order.items.map(i => ({
           name: i.name,
           portion: i.portion,
@@ -876,8 +990,15 @@ export class HospitalRealtimeService {
           calories: i.calories,
         })),
         totalPrice: order.totalPrice,
+        total_biaya: order.totalPrice,
         totalCalories: order.totalCalories,
+        total_kalori: order.totalCalories,
         patientNotes: order.patientNotes || '',
+        dietaryNotes: order.patientNotes || '',
+        catatan_alergi_diet: order.patientNotes || '',
+        status: order.status,
+        order_status: order.status,
+        status_pesanan: order.status,
         createdAt: order.createdAt,
         timestamp: new Date().toISOString(),
       },
