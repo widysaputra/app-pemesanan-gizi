@@ -303,12 +303,13 @@ class GiziSIMRSController extends Controller
                 : 'rincian_pesanan_gizi_t';
 
             if (\\Illuminate\\Support\\Facades\\Schema::hasTable($detailTableName) && !empty($orderData['items']) && is_array($orderData['items'])) {
-                DB::table($detailTableName)->where('no_pesanan', $orderNumber)->delete();
+                $orderCol = \\Illuminate\\Support\\Facades\\Schema::hasColumn($detailTableName, 'order_number') ? 'order_number' : 'no_pesanan';
+                DB::table($detailTableName)->where($orderCol, $orderNumber)->delete();
                 
                 $detailsToInsert = [];
                 foreach ($orderData['items'] as $item) {
                     $detailsToInsert[] = [
-                        'no_pesanan'   => $orderNumber,
+                        $orderCol      => $orderNumber,
                         'id_menu'      => $item['menuItemId'] ?? $item['id'] ?? 'CUSTOM',
                         'nama_menu'    => $item['name'] ?? $item['nama_menu'] ?? 'Menu Makanan',
                         'kategori'     => $item['category'] ?? $item['kategori'] ?? 'makanan_utama',

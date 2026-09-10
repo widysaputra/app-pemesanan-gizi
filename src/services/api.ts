@@ -543,11 +543,13 @@ export class HospitalRealtimeService {
       });
       if (res.ok) {
         const result = await res.json();
-        this.notifyListeners('new_order', { order: result.order });
-        this.broadcastLocal('new_order', { order: result.order });
-        const currentOrders = getLocalCachedOrders();
-        saveLocalCachedOrders([result.order, ...currentOrders.filter(o => o.id !== result.order.id)]);
-        return result;
+        if (result && result.order && result.order.id) {
+          this.notifyListeners('new_order', { order: result.order });
+          this.broadcastLocal('new_order', { order: result.order });
+          const currentOrders = getLocalCachedOrders();
+          saveLocalCachedOrders([result.order, ...currentOrders.filter(o => o.id !== result.order.id)]);
+          return result;
+        }
       }
     } catch {
       // Fallback
@@ -585,7 +587,7 @@ export class HospitalRealtimeService {
       },
       simrsSync: {
         synced: false,
-        statusText: 'Siap dikirim ke SIMRS Laravel/PostgreSQL'
+        statusText: 'Menghubungkan ke SIMRS...'
       }
     };
 
@@ -594,13 +596,27 @@ export class HospitalRealtimeService {
     this.notifyListeners('new_order', { order: newOrder });
     this.broadcastLocal('new_order', { order: newOrder });
 
+    // Auto-sync order directly to SIMRS if URL configured
+    let simrsSynced = false;
+    let simrsStatusText = 'Tersimpan di browser';
+    const simrsConfig = getLocalSimrsConfig();
+    if (simrsConfig.autoSyncOnOrder && simrsConfig.apiUrl && simrsConfig.apiUrl.trim()) {
+      try {
+        const syncResult = await this.syncOrderToSimrs(newOrder.id);
+        simrsSynced = syncResult.order?.simrsSync?.synced || false;
+        simrsStatusText = syncResult.order?.simrsSync?.statusText || syncResult.message;
+      } catch (err: any) {
+        simrsStatusText = `Gagal auto-sync SIMRS: ${err.message || 'Error'}`;
+      }
+    }
+
     return {
       order: newOrder,
       waMessage: newOrder.whatsappNotification?.message || '',
       waSent: true,
       waStatusText: 'Pesanan tersimpan lokal',
-      simrsSynced: false,
-      simrsStatusText: 'Tersimpan di browser'
+      simrsSynced,
+      simrsStatusText
     };
   }
 
@@ -1015,28 +1031,41 @@ export class HospitalRealtimeService {
     }
 
     let syncResponse: any = null;
+    let isSynced = false;
+    let statusText = '';
+
     try {
       const res = await fetch(simrsConfig.apiUrl, {
         method: 'POST',
         headers,
         body: JSON.stringify(payload),
       });
-      syncResponse = await res.json().catch(() => ({ status: res.ok ? 'success' : 'failed' }));
+      syncResponse = await res.json().catch(() => null);
+      if (res.ok && syncResponse?.status !== 'error') {
+        isSynced = true;
+        statusText = 'Tersimpan di SIMRS (PostgreSQL & X-AUTH-TOKEN)';
+      } else {
+        isSynced = false;
+        statusText = `Gagal kirim SIMRS (${res.status}): ${syncResponse?.message || res.statusText || 'Error server SIMRS'}`;
+      }
     } catch (fetchErr: any) {
+      isSynced = false;
+      statusText = `Gagal terhubung ke SIMRS: ${fetchErr.message || 'CORS / Network Error'}`;
       syncResponse = {
-        status: 'dispatched',
-        note: fetchErr.message || 'Payload pesanan dikirim dari browser',
+        status: 'error',
+        note: fetchErr.message || 'Koneksi ke endpoint SIMRS gagal',
       };
     }
 
     const updatedOrder: HospitalOrder = {
       ...order,
       simrsSync: {
-        synced: true,
-        statusText: 'Tersimpan di SIMRS (X-AUTH-TOKEN)',
+        synced: isSynced,
+        statusText,
         timestamp: new Date().toISOString(),
         targetUrl: simrsConfig.apiUrl,
         response: syncResponse,
+        error: isSynced ? undefined : statusText,
       },
     };
 
@@ -1046,8 +1075,10 @@ export class HospitalRealtimeService {
     this.broadcastLocal('status_update', { order: updatedOrder });
 
     return {
-      success: true,
-      message: 'Pesanan berhasil disinkronkan ke SIMRS dengan header X-AUTH-TOKEN!',
+      success: isSynced,
+      message: isSynced 
+        ? 'Pesanan berhasil disinkronkan ke SIMRS dengan header X-AUTH-TOKEN!' 
+        : statusText,
       order: updatedOrder,
     };
   }

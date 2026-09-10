@@ -284,7 +284,7 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
     }
 
     // 4. Simulator Endpoints (Local Testing)
-    if (parsedPath.endsWith('/api/save-pesanan-gizi') && method === 'POST') {
+    if (parsedPath.endsWith('/emr/save-pesanan-gizi') && method === 'POST') {
       const authHeader = (req.headers['x-auth-token'] || req.headers['authorization'] || '') as string;
       return res.json({
         status: 'success',
@@ -294,7 +294,7 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
       });
     }
 
-    if (parsedPath.endsWith('/api/sync-batch-menu') && method === 'POST') {
+    if (parsedPath.endsWith('/emr/sync-batch-menu') && method === 'POST') {
       const items = Array.isArray(body?.menu_items) ? body.menu_items : [];
       return res.json({
         status: 'success',
@@ -358,6 +358,135 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
           return res.json({ success: true, removedId: menuId });
         }
       }
+    }
+
+    // 6. Orders API (/api/orders)
+    if (parsedPath === '/api/orders' && method === 'POST') {
+      const { roomName, patientName, phoneNumber, registrationNo, mealTime, items, patientNotes } = body;
+      const formattedItems = Array.isArray(items) ? items : [];
+      let totalPrice = 0;
+      let totalCalories = 0;
+      const parsedItems = formattedItems.map((it: any) => {
+        const p = Number(it.price) || 0;
+        const portion = Number(it.portion) || 1;
+        const cal = Number(it.calories) || 0;
+        totalPrice += p * portion;
+        totalCalories += cal * portion;
+        return {
+          menuItemId: it.menuItemId || it.id || 'item',
+          name: it.name || 'Menu',
+          portion,
+          price: p,
+          category: it.category || 'makanan_utama',
+          calories: cal,
+        };
+      });
+
+      const now = new Date();
+      const orderNumber = `GZ-${now.toISOString().slice(0, 10).replace(/-/g, '')}-${String(Math.floor(10 + Math.random() * 90))}`;
+      const cleanRegNo = (registrationNo && String(registrationNo).trim()) || `REG-${Date.now().toString().slice(-6)}`;
+
+      const newOrder = {
+        id: `ord-${Date.now()}`,
+        orderNumber,
+        registrationNo: cleanRegNo,
+        createdAt: now.toISOString(),
+        roomName: roomName ? String(roomName).trim() : 'Kamar Pasien',
+        patientName: patientName ? String(patientName).trim() : 'Pasien Rawat Inap',
+        phoneNumber: phoneNumber ? String(phoneNumber).trim() : '',
+        mealTime: mealTime || 'siang',
+        items: parsedItems,
+        totalPrice,
+        totalCalories,
+        patientNotes: patientNotes ? String(patientNotes).trim() : '',
+        status: 'baru',
+        statusHistory: [
+          { status: 'baru', timestamp: now.toISOString(), note: 'Pesanan dibuat di sistem' }
+        ],
+        whatsappNotification: {
+          sent: false,
+          targetNumber: phoneNumber || '',
+          statusText: 'Format notifikasi WhatsApp siap disalin',
+          timestamp: now.toISOString(),
+          message: `Pesanan Gizi ${orderNumber} atas nama ${patientName || 'Pasien'} berhasil direkam.`
+        },
+        simrsSync: {
+          synced: false,
+          statusText: simrsConfigState.apiUrl ? 'Menghubungkan ke SIMRS...' : 'Endpoint SIMRS belum disetel',
+        }
+      };
+
+      // Auto sync to SIMRS if configured
+      if (simrsConfigState.apiUrl && simrsConfigState.autoSyncOnOrder) {
+        try {
+          const payload = {
+            noregistrasi: cleanRegNo,
+            order_number: orderNumber,
+            no_pesanan: orderNumber,
+            orderNumber,
+            orderId: orderNumber,
+            hasil_json: {
+              orderId: orderNumber,
+              order_number: orderNumber,
+              no_pesanan: orderNumber,
+              noregistrasi: cleanRegNo,
+              roomName: newOrder.roomName,
+              patientName: newOrder.patientName,
+              phoneNumber: newOrder.phoneNumber,
+              mealTime: newOrder.mealTime,
+              totalPrice,
+              totalCalories,
+              patientNotes: newOrder.patientNotes,
+              status: 'baru',
+              items: parsedItems,
+              createdAt: now.toISOString(),
+            }
+          };
+
+          const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          };
+          if (simrsConfigState.apiKey) {
+            const raw = simrsConfigState.apiKey.replace(/^Bearer\s+/i, '').trim();
+            headers['X-AUTH-TOKEN'] = raw;
+            headers['Authorization'] = `Bearer ${raw}`;
+          }
+
+          const simrsRes = await fetch(simrsConfigState.apiUrl, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(payload),
+          });
+          const resData = await simrsRes.json().catch(() => null);
+
+          if (simrsRes.ok && resData?.status !== 'error') {
+            newOrder.simrsSync = {
+              synced: true,
+              statusText: 'Tersimpan di SIMRS (PostgreSQL & X-AUTH-TOKEN)',
+            };
+          } else {
+            newOrder.simrsSync = {
+              synced: false,
+              statusText: `Gagal kirim SIMRS: ${resData?.message || simrsRes.statusText || 'Error'}`,
+            };
+          }
+        } catch (simrsErr: any) {
+          newOrder.simrsSync = {
+            synced: false,
+            statusText: `Gagal kirim SIMRS: ${simrsErr.message || 'Network Error'}`,
+          };
+        }
+      }
+
+      return res.status(201).json({
+        order: newOrder,
+        waMessage: newOrder.whatsappNotification.message,
+        waSent: newOrder.whatsappNotification.sent,
+        waStatusText: newOrder.whatsappNotification.statusText,
+        simrsSynced: newOrder.simrsSync.synced,
+        simrsStatusText: newOrder.simrsSync.statusText,
+      });
     }
 
     // Default Fallback for other /api routes
