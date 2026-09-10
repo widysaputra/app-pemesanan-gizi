@@ -34,24 +34,44 @@ export default function App() {
   const [showHelpModal, setShowHelpModal] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<{ title: string; desc: string } | null>(null);
 
-  // Fetch initial data
+  // Fetch initial data with safe fallback and guaranteed loading unlock
   const loadData = useCallback(async () => {
     try {
       const [fetchedMenu, fetchedOrders] = await Promise.all([
-        realtimeService.getMenu(),
-        realtimeService.getOrders(),
+        realtimeService.getMenu().catch(() => realtimeService.getLocalMenu()),
+        realtimeService.getOrders().catch(() => realtimeService.getLocalOrders()),
       ]);
 
-      setMenuItems(fetchedMenu);
-      setOrders(fetchedOrders);
-      setIsLoaded(true);
+      const validMenu = fetchedMenu && fetchedMenu.length > 0 ? fetchedMenu : realtimeService.getLocalMenu();
+      const validOrders = fetchedOrders && Array.isArray(fetchedOrders) ? fetchedOrders : realtimeService.getLocalOrders();
+
+      setMenuItems(validMenu);
+      setOrders(validOrders);
     } catch (err) {
-      console.error('Failed to load initial data:', err);
+      console.warn('Network load fallback triggered:', err);
+      setMenuItems(realtimeService.getLocalMenu());
+      setOrders(realtimeService.getLocalOrders());
+    } finally {
+      setIsLoaded(true); // Guaranteed to unlock loading screen!
     }
   }, []);
 
   useEffect(() => {
     loadData();
+
+    // Failsafe timer: after 2000ms, guarantee loading screen dismissal
+    const failsafeTimer = setTimeout(() => {
+      setIsLoaded((current) => {
+        if (!current) {
+          setMenuItems((m) => (m.length > 0 ? m : realtimeService.getLocalMenu()));
+          setOrders((o) => (o.length > 0 ? o : realtimeService.getLocalOrders()));
+          return true;
+        }
+        return current;
+      });
+    }, 2000);
+
+    return () => clearTimeout(failsafeTimer);
   }, [loadData]);
 
   // Subscribe to real-time events (SSE & BroadcastChannel)
