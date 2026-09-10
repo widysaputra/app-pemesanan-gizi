@@ -23,6 +23,38 @@ try {
 const SIMRS_CONFIG_KEY = 'nutri_hospital_simrs_config';
 const FONNTE_CONFIG_KEY = 'nutri_hospital_fonnte_config';
 
+export function resolveSimrsOrderUrl(baseUrl?: string): string {
+  const defaultUrl = 'https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi';
+  if (!baseUrl || !baseUrl.trim()) return defaultUrl;
+  let u = baseUrl.trim();
+  if (u.includes('/save-pesanan-gizi')) return u;
+  u = u.replace(/\/save-(master-menu|data-mmpi)\/?$/, '');
+  u = u.replace(/\/sync-batch-menu\/?$/, '');
+  u = u.replace(/\/$/, '');
+  return `${u}/save-pesanan-gizi`;
+}
+
+export function resolveSimrsBatchMenuUrl(baseUrl?: string): string {
+  const defaultUrl = 'https://rsbsaonline.com/service/medifirst2000/emr/sync-batch-menu';
+  if (!baseUrl || !baseUrl.trim()) return defaultUrl;
+  let u = baseUrl.trim();
+  if (u.includes('/sync-batch-menu')) return u;
+  u = u.replace(/\/save-(pesanan-gizi|data-mmpi|master-menu)\/?$/, '');
+  u = u.replace(/\/$/, '');
+  return `${u}/sync-batch-menu`;
+}
+
+export function resolveSimrsSingleMenuUrl(baseUrl?: string): string {
+  const defaultUrl = 'https://rsbsaonline.com/service/medifirst2000/emr/save-master-menu';
+  if (!baseUrl || !baseUrl.trim()) return defaultUrl;
+  let u = baseUrl.trim();
+  if (u.includes('/save-master-menu')) return u;
+  u = u.replace(/\/save-(pesanan-gizi|data-mmpi)\/?$/, '');
+  u = u.replace(/\/sync-batch-menu\/?$/, '');
+  u = u.replace(/\/$/, '');
+  return `${u}/save-master-menu`;
+}
+
 export function getLocalSimrsConfig(): {
   apiUrl: string;
   apiKey: string;
@@ -35,7 +67,11 @@ export function getLocalSimrsConfig(): {
     const raw = typeof window !== 'undefined' ? localStorage.getItem(SIMRS_CONFIG_KEY) : null;
     if (raw) {
       const parsed = JSON.parse(raw);
-      const apiUrl = parsed.apiUrl || 'http://localhost:8000/api/save-pesanan-gizi';
+      const rawApiUrl = parsed.apiUrl || '';
+      // Migrasi jika masih menggunakan URL default lama localhost:8000
+      const apiUrl = (!rawApiUrl || rawApiUrl.includes('localhost:8000'))
+        ? 'https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi'
+        : rawApiUrl;
       const apiKey = parsed.apiKey || '';
       return {
         apiUrl,
@@ -50,12 +86,12 @@ export function getLocalSimrsConfig(): {
     console.warn('Gagal membaca konfigurasi SIMRS dari localStorage:', e);
   }
   return {
-    apiUrl: 'http://localhost:8000/api/save-pesanan-gizi',
+    apiUrl: 'https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi',
     apiKey: '',
     apiKeyMasked: '',
     authHeaderType: 'X-AUTH-TOKEN',
     autoSyncOnOrder: true,
-    isConfigured: false,
+    isConfigured: true,
   };
 }
 
@@ -535,15 +571,34 @@ export class HospitalRealtimeService {
     items: { menuItemId: string; name: string; portion: number; price: number; category: string; calories: number }[];
     patientNotes?: string;
   }): Promise<{ order: HospitalOrder; waMessage: string; waSent: boolean; waStatusText: string; simrsSynced?: boolean; simrsStatusText?: string }> {
+    const simrsConfig = getLocalSimrsConfig();
+
     try {
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          ...payload,
+          simrsConfig,
+        }),
       });
       if (res.ok) {
         const result = await res.json();
         if (result && result.order && result.order.id) {
+          // Jika backend belum tersinkronisasi ke SIMRS, jalankan sync sekarang
+          if (!result.order.simrsSync?.synced && simrsConfig.autoSyncOnOrder && simrsConfig.apiUrl) {
+            try {
+              const syncRes = await this.syncOrderToSimrs(result.order.id);
+              if (syncRes && syncRes.order) {
+                result.order = syncRes.order;
+                result.simrsSynced = syncRes.order.simrsSync?.synced;
+                result.simrsStatusText = syncRes.order.simrsSync?.statusText;
+              }
+            } catch (err: any) {
+              console.warn('Auto-sync fallback error:', err);
+            }
+          }
+
           this.notifyListeners('new_order', { order: result.order });
           this.broadcastLocal('new_order', { order: result.order });
           const currentOrders = getLocalCachedOrders();
@@ -599,7 +654,6 @@ export class HospitalRealtimeService {
     // Auto-sync order directly to SIMRS if URL configured
     let simrsSynced = false;
     let simrsStatusText = 'Tersimpan di browser';
-    const simrsConfig = getLocalSimrsConfig();
     if (simrsConfig.autoSyncOnOrder && simrsConfig.apiUrl && simrsConfig.apiUrl.trim()) {
       try {
         const syncResult = await this.syncOrderToSimrs(newOrder.id);
@@ -1013,21 +1067,41 @@ export class HospitalRealtimeService {
     }
   }
 
-  async syncOrderToSimrs(orderId: string): Promise<{
+  async syncOrderToSimrs(
+    orderId: string,
+    configOverride?: { apiUrl?: string; apiKey?: string }
+  ): Promise<{
     success: boolean;
     message: string;
     order: HospitalOrder;
   }> {
     // 1. Coba sinkronisasi via backend server
+    const simrsConfig = getLocalSimrsConfig();
+    const effectiveApiUrl = configOverride?.apiUrl || simrsConfig.apiUrl;
+    const effectiveApiKey = configOverride?.apiKey !== undefined ? configOverride.apiKey : simrsConfig.apiKey;
+    const targetOrderUrl = resolveSimrsOrderUrl(effectiveApiUrl);
+
     try {
       const res = await fetch(`/api/orders/${orderId}/sync-simrs`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          apiUrl: targetOrderUrl,
+          apiKey: effectiveApiKey,
+          simrsConfig: {
+            ...simrsConfig,
+            apiUrl: effectiveApiUrl,
+            apiKey: effectiveApiKey,
+          },
+        }),
       });
       const contentType = res.headers.get('content-type') || '';
       if (res.ok && contentType.includes('application/json')) {
         const data = await res.json();
         this.notifyListeners('status_update', { order: data.order });
         this.broadcastLocal('status_update', { order: data.order });
+        const currentOrders = getLocalCachedOrders();
+        saveLocalCachedOrders(currentOrders.map(o => o.id === orderId ? data.order : o));
         return data;
       }
     } catch {
@@ -1042,9 +1116,8 @@ export class HospitalRealtimeService {
     }
 
     const order = currentOrders[orderIndex];
-    const simrsConfig = getLocalSimrsConfig();
 
-    if (!simrsConfig.apiUrl) {
+    if (!targetOrderUrl) {
       throw new Error('Endpoint API SIMRS belum disetel di pengaturan SIMRS');
     }
 
@@ -1145,7 +1218,7 @@ export class HospitalRealtimeService {
     let statusText = '';
 
     try {
-      const res = await fetch(simrsConfig.apiUrl, {
+      const res = await fetch(targetOrderUrl, {
         method: 'POST',
         headers,
         body: JSON.stringify(payload),
@@ -1201,21 +1274,6 @@ export class HospitalRealtimeService {
     data?: any;
     error?: string;
   }> {
-    // 1. Coba sinkronisasi via backend server
-    try {
-      const res = await fetch('/api/simrs/sync-menu', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiUrl, apiKey }),
-      });
-      const contentType = res.headers.get('content-type') || '';
-      if (res.ok && contentType.includes('application/json')) {
-        return await res.json();
-      }
-    } catch {
-      // Backend offline / Vercel
-    }
-
     // 2. Sinkronisasi master menu langsung dari browser
     const items = getLocalCachedMenu();
     const config = getLocalSimrsConfig();
@@ -1228,14 +1286,23 @@ export class HospitalRealtimeService {
 
     // Cek apakah endpoint diarahkan khusus ke save-master-menu (menyimpan 1 menu per request)
     const isSingleMenuEndpoint = targetUrl.includes('save-master-menu');
+    const syncUrl = isSingleMenuEndpoint 
+      ? resolveSimrsSingleMenuUrl(targetUrl) 
+      : resolveSimrsBatchMenuUrl(targetUrl);
 
-    let syncUrl = targetUrl;
-    if (!isSingleMenuEndpoint) {
-      if (syncUrl.includes('/save-pesanan-gizi')) {
-        syncUrl = syncUrl.replace('/save-pesanan-gizi', '/sync-batch-menu');
-      } else if (!syncUrl.includes('/sync-batch-menu')) {
-        syncUrl = syncUrl.replace(/\/$/, '') + '/sync-batch-menu';
+    // 1. Coba sinkronisasi via backend server terlebih dahulu
+    try {
+      const res = await fetch('/api/simrs/sync-menu', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiUrl: syncUrl, apiKey: targetToken, isSingle: isSingleMenuEndpoint }),
+      });
+      const contentType = res.headers.get('content-type') || '';
+      if (res.ok && contentType.includes('application/json')) {
+        return await res.json();
       }
+    } catch {
+      // Backend offline / Vercel
     }
 
     const headers: Record<string, string> = {

@@ -381,11 +381,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setSyncingOrderId(orderId);
     setOrderSyncNotice(null);
     try {
-      const res = await realtimeService.syncOrderToSimrs(orderId);
+      const res = await realtimeService.syncOrderToSimrs(orderId, {
+        apiUrl: simrsApiUrl.trim(),
+        apiKey: simrsApiKey.trim() || undefined,
+      });
       setOrderSyncNotice({
         id: orderId,
         success: true,
-        text: 'Pesanan berhasil disinkronkan ke SIMRS (PostgreSQL)!',
+        text: res.message || 'Pesanan berhasil disinkronkan ke SIMRS (save-pesanan-gizi)!',
       });
     } catch (err: any) {
       setOrderSyncNotice({
@@ -402,12 +405,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setIsSyncingMenu(true);
     setMenuSyncNotice(null);
     try {
-      // Determine menu sync URL
-      let targetUrl = simrsApiUrl.trim();
-      if (targetUrl.includes('save-pesanan-gizi') || targetUrl.includes('save-data-mmpi')) {
-        targetUrl = targetUrl.replace(/save-(pesanan-gizi|data-mmpi)/, 'sync-batch-menu');
-      }
-      const res = await realtimeService.syncAllMenuToSimrs(targetUrl, simrsApiKey.trim() || undefined);
+      const res = await realtimeService.syncAllMenuToSimrs(
+        simrsApiUrl.trim(),
+        simrsApiKey.trim() || undefined
+      );
       setMenuSyncNotice({
         success: true,
         text: res.message || `Berhasil menyinkronkan ${menuItems.length} item master menu ke database SIMRS!`,
@@ -897,19 +898,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                       {/* SIMRS PostgreSQL Sync Status Badge */}
                       <div className="pt-1.5 border-t border-slate-200 text-xs flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 text-indigo-900">
+                        <div className="flex items-center gap-1.5 text-indigo-900 min-w-0">
                           <Database className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-                          <span className="text-[11px] font-semibold truncate">
-                            {order.simrsSync?.synced ? 'Tersimpan di SIMRS (PostgreSQL)' : (order.simrsSync?.statusText || 'SIMRS: Belum disinkron')}
+                          <span className="text-[11px] font-semibold truncate" title={order.simrsSync?.statusText}>
+                            {order.simrsSync?.synced ? 'Tersimpan di SIMRS (save-pesanan-gizi)' : (order.simrsSync?.statusText || 'SIMRS: Belum disinkron')}
                           </span>
                         </div>
                         <button
                           type="button"
                           onClick={() => handleSyncSingleOrder(order.id)}
                           disabled={syncingOrderId === order.id}
-                          className="text-[11px] font-bold text-indigo-700 hover:text-indigo-900 hover:underline shrink-0 cursor-pointer disabled:opacity-50"
+                          className="text-[11px] font-bold text-indigo-700 hover:text-indigo-900 hover:underline shrink-0 cursor-pointer disabled:opacity-50 ml-2"
                         >
-                          {syncingOrderId === order.id ? 'Menyimpan...' : (order.simrsSync?.synced ? 'Sync Ulang' : 'Kirim ke SIMRS &rarr;')}
+                          {syncingOrderId === order.id ? 'Menyimpan...' : (order.simrsSync?.synced ? 'Sync Ulang SIMRS' : 'Kirim ke SIMRS (save-pesanan-gizi) &rarr;')}
                         </button>
                       </div>
 
@@ -1447,35 +1448,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     
                     {/* Quick Preset Buttons */}
                     <div className="mt-2 flex flex-wrap gap-1.5 items-center">
-                      <span className="text-[10px] text-slate-400 font-semibold">Preset Cepat:</span>
+                      <span className="text-[10px] text-slate-400 font-semibold">Preset URL SIMRS:</span>
                       <button
                         type="button"
-                        onClick={() => setSimrsApiUrl('http://localhost:8000/api/save-pesanan-gizi')}
-                        className="px-2 py-0.5 text-[10px] font-mono bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-md border border-indigo-200 transition-colors cursor-pointer"
-                        title="Endpoint untuk data transaksi pesanan makanan pasien rawat inap"
+                        onClick={() => setSimrsApiUrl('https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi')}
+                        className="px-2.5 py-1 text-[11px] font-mono bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-lg border border-indigo-200 transition-colors cursor-pointer flex items-center gap-1"
+                        title="Endpoint resmi RSBSA untuk data pesanan makanan pasien rawat inap"
                       >
-                        Pesanan Gizi
+                        <UtensilsCrossed className="w-3 h-3" />
+                        <span>save-pesanan-gizi</span>
                       </button>
                       <button
                         type="button"
-                        onClick={() => setSimrsApiUrl('http://localhost:8000/api/save-master-menu')}
-                        className="px-2 py-0.5 text-[10px] font-mono bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-md border border-emerald-200 transition-colors cursor-pointer"
-                        title="Endpoint untuk menyimpan master 1 menu gizi (memerlukan id & name)"
+                        onClick={() => setSimrsApiUrl('https://rsbsaonline.com/service/medifirst2000/emr/sync-batch-menu')}
+                        className="px-2.5 py-1 text-[11px] font-mono bg-teal-50 hover:bg-teal-100 text-teal-700 font-bold rounded-lg border border-teal-200 transition-colors cursor-pointer flex items-center gap-1"
+                        title="Endpoint resmi RSBSA untuk sinkronisasi batch seluruh menu gizi"
                       >
-                        Save Master Menu
+                        <RefreshCw className="w-3 h-3" />
+                        <span>sync-batch-menu</span>
                       </button>
                       <button
                         type="button"
-                        onClick={() => setSimrsApiUrl('http://localhost:8000/api/sync-batch-menu')}
-                        className="px-2 py-0.5 text-[10px] font-mono bg-teal-50 hover:bg-teal-100 text-teal-700 rounded-md border border-teal-200 transition-colors cursor-pointer"
-                        title="Endpoint untuk sinkronisasi batch banyak menu sekaligus"
+                        onClick={() => setSimrsApiUrl('https://rsbsaonline.com/service/medifirst2000/emr/save-master-menu')}
+                        className="px-2.5 py-1 text-[11px] font-mono bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-lg border border-emerald-200 transition-colors cursor-pointer flex items-center gap-1"
+                        title="Endpoint resmi RSBSA untuk menyimpan master 1 menu gizi (id & name)"
                       >
-                        Batch Menu
+                        <BookOpen className="w-3 h-3" />
+                        <span>save-master-menu</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => setSimrsApiUrl('http://localhost:3000/api/save-pesanan-gizi')}
                         className="px-2 py-0.5 text-[10px] font-mono bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md border border-slate-300 transition-colors cursor-pointer"
+                        title="Simulator endpoint internal untuk testing offline"
                       >
                         Simulator Lokal
                       </button>

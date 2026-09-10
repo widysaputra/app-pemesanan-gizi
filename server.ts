@@ -441,13 +441,46 @@ let fonnteSettings: FonnteSettings = {
   isConfigured: Boolean(process.env.FONNTE_TOKEN),
 };
 
+// URL Resolvers for Hospital SIMRS endpoints (RSBSA Online Medifirst2000)
+function resolveSimrsOrderUrl(inputUrl?: string): string {
+  const defaultUrl = 'https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi';
+  if (!inputUrl || !inputUrl.trim()) return defaultUrl;
+  let u = inputUrl.trim();
+  if (u.includes('/save-pesanan-gizi')) return u;
+  u = u.replace(/\/save-(master-menu|data-mmpi)\/?$/, '');
+  u = u.replace(/\/sync-batch-menu\/?$/, '');
+  u = u.replace(/\/$/, '');
+  return `${u}/save-pesanan-gizi`;
+}
+
+function resolveSimrsBatchMenuUrl(inputUrl?: string): string {
+  const defaultUrl = 'https://rsbsaonline.com/service/medifirst2000/emr/sync-batch-menu';
+  if (!inputUrl || !inputUrl.trim()) return defaultUrl;
+  let u = inputUrl.trim();
+  if (u.includes('/sync-batch-menu')) return u;
+  u = u.replace(/\/save-(pesanan-gizi|data-mmpi|master-menu)\/?$/, '');
+  u = u.replace(/\/$/, '');
+  return `${u}/sync-batch-menu`;
+}
+
+function resolveSimrsSingleMenuUrl(inputUrl?: string): string {
+  const defaultUrl = 'https://rsbsaonline.com/service/medifirst2000/emr/save-master-menu';
+  if (!inputUrl || !inputUrl.trim()) return defaultUrl;
+  let u = inputUrl.trim();
+  if (u.includes('/save-master-menu')) return u;
+  u = u.replace(/\/save-(pesanan-gizi|data-mmpi)\/?$/, '');
+  u = u.replace(/\/sync-batch-menu\/?$/, '');
+  u = u.replace(/\/$/, '');
+  return `${u}/save-master-menu`;
+}
+
 // SIMRS Laravel & PostgreSQL Integration Configuration State
 let simrsSettings: SimrsSettings = {
-  apiUrl: process.env.SIMRS_API_URL || '',
+  apiUrl: process.env.SIMRS_API_URL || 'https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi',
   apiKey: process.env.SIMRS_TOKEN || process.env.SIMRS_API_KEY || '',
   authHeaderType: 'X-AUTH-TOKEN',
   autoSyncOnOrder: true,
-  isConfigured: Boolean(process.env.SIMRS_API_URL),
+  isConfigured: true,
 };
 
 // Connected SSE clients for real-time broadcasts
@@ -553,8 +586,9 @@ async function syncOrderToSimrs(
   overrideUrl?: string,
   overrideToken?: string,
   overrideAuthHeaderType?: 'X-AUTH-TOKEN' | 'Bearer' | 'Both'
-): Promise<{ success: boolean; data?: any; error?: string }> {
-  const url = (overrideUrl || simrsSettings.apiUrl || '').trim();
+): Promise<{ success: boolean; data?: any; error?: string; targetUrl?: string }> {
+  const rawUrl = (overrideUrl || simrsSettings.apiUrl || 'https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi').trim();
+  const url = resolveSimrsOrderUrl(rawUrl);
   const token = (overrideToken !== undefined ? overrideToken : simrsSettings.apiKey || '').trim();
   const headerType = overrideAuthHeaderType || simrsSettings.authHeaderType || 'X-AUTH-TOKEN';
 
@@ -562,6 +596,7 @@ async function syncOrderToSimrs(
     return {
       success: false,
       error: 'URL Endpoint API SIMRS belum disetel.',
+      targetUrl: url,
     };
   }
 
@@ -721,8 +756,10 @@ async function syncMenuToSimrs(
   overrideUrl?: string,
   overrideToken?: string,
   overrideAuthHeaderType?: 'X-AUTH-TOKEN' | 'Bearer' | 'Both'
-): Promise<{ success: boolean; data?: any; error?: string; totalSynced?: number }> {
-  const url = (overrideUrl || simrsSettings.apiUrl || '').trim();
+): Promise<{ success: boolean; data?: any; error?: string; totalSynced?: number; targetUrl?: string }> {
+  const rawUrl = (overrideUrl || simrsSettings.apiUrl || 'https://rsbsaonline.com/service/medifirst2000/emr/sync-batch-menu').trim();
+  const isSingle = rawUrl.includes('save-master-menu');
+  const url = isSingle ? resolveSimrsSingleMenuUrl(rawUrl) : resolveSimrsBatchMenuUrl(rawUrl);
   const token = (overrideToken !== undefined ? overrideToken : simrsSettings.apiKey || '').trim();
   const headerType = overrideAuthHeaderType || simrsSettings.authHeaderType || 'X-AUTH-TOKEN';
 
@@ -730,6 +767,7 @@ async function syncMenuToSimrs(
     return {
       success: false,
       error: 'URL Endpoint API SIMRS belum disetel.',
+      targetUrl: url,
     };
   }
 
@@ -1091,20 +1129,53 @@ async function startServer() {
   // Test live connection to Laravel SIMRS endpoint
   app.post('/api/simrs/test', async (req, res) => {
     const { apiUrl, apiKey, authHeaderType } = req.body;
-    const targetUrl = apiUrl || simrsSettings.apiUrl;
+    const rawTargetUrl = (apiUrl || simrsSettings.apiUrl || 'https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi').trim();
     const targetToken = apiKey !== undefined ? apiKey : simrsSettings.apiKey;
     const targetHeaderType = authHeaderType || simrsSettings.authHeaderType || 'X-AUTH-TOKEN';
 
-    if (!targetUrl || targetUrl.trim() === '') {
+    if (!rawTargetUrl || rawTargetUrl.trim() === '') {
       return res.status(400).json({ error: 'URL Endpoint API Laravel SIMRS wajib diisi' });
     }
 
+    // Jika target pengujian diarahkan ke sync-batch-menu atau save-master-menu
+    if (rawTargetUrl.includes('sync-batch-menu') || rawTargetUrl.includes('save-master-menu')) {
+      const startTime = Date.now();
+      const isSingle = rawTargetUrl.includes('save-master-menu');
+      const testItems = menuItems.slice(0, isSingle ? 1 : 5);
+      const menuResult = await syncMenuToSimrs(testItems, rawTargetUrl, targetToken, targetHeaderType);
+      const latency = Date.now() - startTime;
+
+      if (menuResult.success) {
+        return res.json({
+          success: true,
+          message: isSingle
+            ? 'Koneksi ke endpoint Master Menu SIMRS (save-master-menu) berhasil! Parameter id & name menu terverifikasi.'
+            : `Koneksi ke endpoint Batch Menu SIMRS (sync-batch-menu) berhasil (${testItems.length} menu terkirim)!`,
+          latency: `${latency}ms`,
+          authHeader: 'X-AUTH-TOKEN',
+          targetUrl: menuResult.targetUrl || rawTargetUrl,
+          data: menuResult.data,
+        });
+      } else {
+        return res.status(400).json({
+          success: false,
+          error: menuResult.error,
+          latency: `${latency}ms`,
+          authHeader: 'X-AUTH-TOKEN',
+          targetUrl: menuResult.targetUrl || rawTargetUrl,
+          data: menuResult.data,
+        });
+      }
+    }
+
+    // Default: Pengujian Pesanan Pasien Gizi (save-pesanan-gizi)
+    const targetOrderUrl = resolveSimrsOrderUrl(rawTargetUrl);
     const testOrder: HospitalOrder = {
       id: `test-${Date.now()}`,
-      orderNumber: `TEST-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-01`,
-      registrationNo: 'REG-TEST-999',
+      orderNumber: `GZ-UJI-${String(Date.now()).slice(-6)}`,
+      registrationNo: `TEST-${String(Date.now()).slice(-6)}`,
       createdAt: new Date().toISOString(),
-      roomName: 'Kamar Mawar 201 - Bed 01',
+      roomName: 'Kamar Melati 101',
       patientName: 'Uji Coba Integrasi SIMRS',
       phoneNumber: '081298765432',
       mealTime: 'siang',
@@ -1120,22 +1191,41 @@ async function startServer() {
     };
 
     const startTime = Date.now();
-    const result = await syncOrderToSimrs(testOrder, targetUrl, targetToken, targetHeaderType);
+    const result = await syncOrderToSimrs(testOrder, targetOrderUrl, targetToken, targetHeaderType);
     const latency = Date.now() - startTime;
 
     if (result.success) {
       res.json({
         success: true,
-        message: 'Koneksi ke endpoint Laravel SIMRS berhasil (HTTP 200 OK)! Header X-AUTH-TOKEN terkirim dengan sukses.',
+        message: 'Koneksi ke endpoint Pesanan Gizi SIMRS (save-pesanan-gizi) berhasil (HTTP 200 OK)! Header X-AUTH-TOKEN terkirim dengan sukses.',
         latency: `${latency}ms`,
         authHeader: 'X-AUTH-TOKEN',
+        targetUrl: result.targetUrl || targetOrderUrl,
         data: result.data,
         sentPayload: {
           noregistrasi: testOrder.registrationNo,
+          no_pesanan: testOrder.orderNumber,
+          order_number: testOrder.orderNumber,
+          orderNumber: testOrder.orderNumber,
+          orderId: testOrder.orderNumber,
           hasil_json: {
+            orderId: testOrder.orderNumber,
+            no_pesanan: testOrder.orderNumber,
+            order_number: testOrder.orderNumber,
             orderNumber: testOrder.orderNumber,
-            roomName: testOrder.roomName,
+            noregistrasi: testOrder.registrationNo,
+            registrationNo: testOrder.registrationNo,
             patientName: testOrder.patientName,
+            nama_pasien: testOrder.patientName,
+            roomName: testOrder.roomName,
+            roomNumber: testOrder.roomName,
+            nomor_kamar: testOrder.roomName,
+            patientInfo: {
+              roomNumber: testOrder.roomName,
+              roomName: testOrder.roomName,
+              patientName: testOrder.patientName,
+            },
+            mealTime: testOrder.mealTime,
             items: testOrder.items,
             totalPrice: testOrder.totalPrice,
           },
@@ -1147,9 +1237,12 @@ async function startServer() {
         error: result.error,
         latency: `${latency}ms`,
         authHeader: 'X-AUTH-TOKEN',
+        targetUrl: result.targetUrl || targetOrderUrl,
         data: result.data,
         sentPayload: {
           noregistrasi: testOrder.registrationNo,
+          no_pesanan: testOrder.orderNumber,
+          order_number: testOrder.orderNumber,
           hasil_json: {
             orderNumber: testOrder.orderNumber,
             roomName: testOrder.roomName,
@@ -1163,29 +1256,33 @@ async function startServer() {
   // Sync All Master Menus to Laravel SIMRS API endpoint
   app.post('/api/simrs/sync-menu', async (req, res) => {
     const { apiUrl, apiKey } = req.body;
-    const targetUrl = apiUrl || simrsSettings.apiUrl;
+    const rawTargetUrl = (apiUrl || simrsSettings.apiUrl || 'https://rsbsaonline.com/service/medifirst2000/emr/sync-batch-menu').trim();
     const targetToken = apiKey !== undefined ? apiKey : simrsSettings.apiKey;
 
-    if (!targetUrl || targetUrl.trim() === '') {
+    if (!rawTargetUrl || rawTargetUrl.trim() === '') {
       return res.status(400).json({ error: 'URL Endpoint API Laravel SIMRS wajib diisi' });
     }
 
     const startTime = Date.now();
-    const result = await syncMenuToSimrs(menuItems, targetUrl, targetToken);
+    const result = await syncMenuToSimrs(menuItems, rawTargetUrl, targetToken);
     const latency = Date.now() - startTime;
 
     if (result.success) {
       res.json({
         success: true,
-        message: `Berhasil menyinkronkan ${menuItems.length} item master menu ke endpoint Laravel SIMRS!`,
+        message: result.totalSynced 
+          ? `Berhasil menyinkronkan ${result.totalSynced} item master menu ke endpoint SIMRS (${result.targetUrl})!`
+          : 'Berhasil menyinkronkan master menu ke SIMRS!',
         latency: `${latency}ms`,
-        totalSynced: menuItems.length,
+        targetUrl: result.targetUrl,
+        totalSynced: result.totalSynced || menuItems.length,
         data: result.data,
       });
     } else {
       res.status(400).json({
         success: false,
         error: result.error,
+        targetUrl: result.targetUrl,
         latency: `${latency}ms`,
         data: result.data,
       });
@@ -1251,7 +1348,7 @@ async function startServer() {
 
   // Create Order (From Patient Dashboard) + AUTOMATIC WHATSAPP NOTIFICATION VIA FONNTE + AUTO SYNC SIMRS
   app.post('/api/orders', async (req, res) => {
-    const { roomName, patientName, phoneNumber, registrationNo, mealTime, items, patientNotes } = req.body;
+    const { roomName, patientName, phoneNumber, registrationNo, mealTime, items, patientNotes, simrsConfig } = req.body;
 
     if (!roomName || roomName.trim() === '') {
       return res.status(400).json({ error: 'Nama kamar / nomor kamar wajib diisi' });
@@ -1357,19 +1454,24 @@ async function startServer() {
     };
 
     // Auto-Sync to Hospital SIMRS (PostgreSQL & Laravel API)
+    // Pastikan URL pesanan selalu mengarah ke https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi
+    const effectiveUrl = simrsConfig?.apiUrl || simrsSettings.apiUrl || 'https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi';
+    const effectiveToken = (simrsConfig?.apiKey !== undefined ? simrsConfig.apiKey : simrsSettings.apiKey) || '';
+    const targetOrderUrl = resolveSimrsOrderUrl(effectiveUrl);
+
     let simrsSyncData: HospitalOrder['simrsSync'] = {
       synced: false,
-      statusText: simrsSettings.apiUrl ? 'Menunggu sinkronisasi...' : 'SIMRS belum disetel',
+      statusText: 'Menunggu sinkronisasi SIMRS...',
     };
 
-    if (simrsSettings.apiUrl && simrsSettings.autoSyncOnOrder) {
-      const simrsRes = await syncOrderToSimrs(newOrder);
+    if (effectiveUrl && simrsSettings.autoSyncOnOrder) {
+      const simrsRes = await syncOrderToSimrs(newOrder, targetOrderUrl, effectiveToken);
       if (simrsRes.success) {
         simrsSyncData = {
           synced: true,
-          statusText: 'Tersimpan di SIMRS (PostgreSQL)',
+          statusText: 'Tersimpan di SIMRS (PostgreSQL & X-AUTH-TOKEN)',
           timestamp: new Date().toISOString(),
-          targetUrl: simrsSettings.apiUrl,
+          targetUrl: targetOrderUrl,
           response: simrsRes.data,
         };
       } else {
@@ -1377,7 +1479,7 @@ async function startServer() {
           synced: false,
           statusText: `Gagal kirim SIMRS: ${simrsRes.error}`,
           timestamp: new Date().toISOString(),
-          targetUrl: simrsSettings.apiUrl,
+          targetUrl: targetOrderUrl,
           error: simrsRes.error,
         };
       }
@@ -1402,18 +1504,23 @@ async function startServer() {
   // Manual Trigger: Sync specific order to SIMRS
   app.post('/api/orders/:id/sync-simrs', async (req, res) => {
     const { id } = req.params;
+    const { apiUrl, apiKey, simrsConfig } = req.body || {};
     const order = orders.find(o => o.id === id);
     if (!order) {
       return res.status(404).json({ error: 'Pesanan tidak ditemukan' });
     }
 
-    const simrsRes = await syncOrderToSimrs(order);
+    const effectiveUrl = apiUrl || simrsConfig?.apiUrl || simrsSettings.apiUrl || 'https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi';
+    const effectiveToken = apiKey !== undefined ? apiKey : (simrsConfig?.apiKey || simrsSettings.apiKey || '');
+    const targetOrderUrl = resolveSimrsOrderUrl(effectiveUrl);
+
+    const simrsRes = await syncOrderToSimrs(order, targetOrderUrl, effectiveToken);
     if (simrsRes.success) {
       order.simrsSync = {
         synced: true,
-        statusText: 'Tersimpan di SIMRS (PostgreSQL)',
+        statusText: 'Tersimpan di SIMRS (PostgreSQL & X-AUTH-TOKEN)',
         timestamp: new Date().toISOString(),
-        targetUrl: simrsSettings.apiUrl,
+        targetUrl: targetOrderUrl,
         response: simrsRes.data,
       };
       broadcastEvent('status_update', { order });
@@ -1423,7 +1530,7 @@ async function startServer() {
         synced: false,
         statusText: `Gagal kirim SIMRS: ${simrsRes.error}`,
         timestamp: new Date().toISOString(),
-        targetUrl: simrsSettings.apiUrl,
+        targetUrl: targetOrderUrl,
         error: simrsRes.error,
       };
       broadcastEvent('status_update', { order });

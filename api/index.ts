@@ -16,13 +16,46 @@ interface ExtendedResponse extends ServerResponse {
   send: (body: any) => void;
 }
 
+// URL Resolvers for Hospital SIMRS endpoints (RSBSA Online Medifirst2000)
+function resolveSimrsOrderUrl(inputUrl?: string): string {
+  const defaultUrl = 'https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi';
+  if (!inputUrl || !inputUrl.trim()) return defaultUrl;
+  let u = inputUrl.trim();
+  if (u.includes('/save-pesanan-gizi')) return u;
+  u = u.replace(/\/save-(master-menu|data-mmpi)\/?$/, '');
+  u = u.replace(/\/sync-batch-menu\/?$/, '');
+  u = u.replace(/\/$/, '');
+  return `${u}/save-pesanan-gizi`;
+}
+
+function resolveSimrsBatchMenuUrl(inputUrl?: string): string {
+  const defaultUrl = 'https://rsbsaonline.com/service/medifirst2000/emr/sync-batch-menu';
+  if (!inputUrl || !inputUrl.trim()) return defaultUrl;
+  let u = inputUrl.trim();
+  if (u.includes('/sync-batch-menu')) return u;
+  u = u.replace(/\/save-(pesanan-gizi|data-mmpi|master-menu)\/?$/, '');
+  u = u.replace(/\/$/, '');
+  return `${u}/sync-batch-menu`;
+}
+
+function resolveSimrsSingleMenuUrl(inputUrl?: string): string {
+  const defaultUrl = 'https://rsbsaonline.com/service/medifirst2000/emr/save-master-menu';
+  if (!inputUrl || !inputUrl.trim()) return defaultUrl;
+  let u = inputUrl.trim();
+  if (u.includes('/save-master-menu')) return u;
+  u = u.replace(/\/save-(pesanan-gizi|data-mmpi)\/?$/, '');
+  u = u.replace(/\/sync-batch-menu\/?$/, '');
+  u = u.replace(/\/$/, '');
+  return `${u}/save-master-menu`;
+}
+
 // In-memory runtime storage for Vercel serverless instance
 let simrsConfigState = {
-  apiUrl: process.env.SIMRS_API_URL || 'http://localhost:8000/api/save-pesanan-gizi',
+  apiUrl: process.env.SIMRS_API_URL || 'https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi',
   apiKey: process.env.SIMRS_TOKEN || process.env.SIMRS_API_KEY || '',
   authHeaderType: 'X-AUTH-TOKEN' as 'X-AUTH-TOKEN' | 'Bearer' | 'Both',
   autoSyncOnOrder: true,
-  isConfigured: Boolean(process.env.SIMRS_API_URL),
+  isConfigured: true,
 };
 
 let fonnteConfigState = {
@@ -476,8 +509,12 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
       };
 
       // Auto sync to SIMRS if configured
-      if (simrsConfigState.apiUrl && simrsConfigState.autoSyncOnOrder) {
+      const effectiveUrl = body.simrsConfig?.apiUrl || simrsConfigState.apiUrl;
+      const effectiveToken = body.simrsConfig?.apiKey !== undefined ? body.simrsConfig.apiKey : simrsConfigState.apiKey;
+
+      if (effectiveUrl && simrsConfigState.autoSyncOnOrder) {
         try {
+          const targetUrl = resolveSimrsOrderUrl(effectiveUrl);
           const payload = {
             noregistrasi: cleanRegNo,
             order_number: orderNumber,
@@ -531,13 +568,13 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
             'Content-Type': 'application/json',
             Accept: 'application/json',
           };
-          if (simrsConfigState.apiKey) {
-            const raw = simrsConfigState.apiKey.replace(/^Bearer\s+/i, '').trim();
+          if (effectiveToken) {
+            const raw = effectiveToken.replace(/^Bearer\s+/i, '').trim();
             headers['X-AUTH-TOKEN'] = raw;
             headers['Authorization'] = `Bearer ${raw}`;
           }
 
-          const simrsRes = await fetch(simrsConfigState.apiUrl, {
+          const simrsRes = await fetch(targetUrl, {
             method: 'POST',
             headers,
             body: JSON.stringify(payload),
@@ -552,13 +589,13 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
           } else {
             newOrder.simrsSync = {
               synced: false,
-              statusText: `Gagal kirim SIMRS: ${resData?.message || simrsRes.statusText || 'Error'}`,
+              statusText: `Gagal kirim SIMRS: ${resData?.message || simrsRes.statusText || 'Error server'}`,
             };
           }
-        } catch (simrsErr: any) {
+        } catch (e: any) {
           newOrder.simrsSync = {
             synced: false,
-            statusText: `Gagal kirim SIMRS: ${simrsErr.message || 'Network Error'}`,
+            statusText: `Gagal simpan ke SIMRS: ${e.message}`,
           };
         }
       }
