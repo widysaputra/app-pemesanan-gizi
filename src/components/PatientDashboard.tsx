@@ -633,28 +633,43 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
 
       {/* Floating Mobile Cart / Tray Bar (Muncul di layar HP saat ada menu yang dipilih) */}
       {trayItems.length > 0 && (
-        <div className="lg:hidden fixed bottom-3 inset-x-3 z-40 bg-slate-900/95 text-white backdrop-blur-md p-3 rounded-2xl shadow-2xl flex items-center justify-between border border-slate-700/60 animate-in slide-in-from-bottom-5 duration-200">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-emerald-600 flex items-center justify-center font-black text-xs text-white shrink-0">
-              {trayItems.length}
+        <div 
+          id="floating-mobile-cart"
+          className="lg:hidden fixed bottom-3 inset-x-3 z-40 bg-slate-900/95 text-white backdrop-blur-md px-3 py-2.5 rounded-2xl shadow-2xl flex items-center justify-between gap-2 border border-slate-700/60 animate-in slide-in-from-bottom-5 duration-200 max-w-lg mx-auto"
+        >
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <div className="w-7 h-7 rounded-xl bg-emerald-600 flex items-center justify-center font-black text-xs text-white shrink-0 shadow-sm">
+              {trayItems.reduce((acc, curr) => acc + curr.qty, 0)}
             </div>
-            <div>
-              <div className="text-[10px] text-slate-300 font-medium">{trayItems.reduce((acc, curr) => acc + curr.qty, 0)} Porsi Dipilih</div>
-              <div className="text-xs font-black text-emerald-400">Rp {totalPrice.toLocaleString('id-ID')}</div>
+            <div className="min-w-0 truncate">
+              <div className="text-[10px] text-slate-300 font-medium truncate">
+                {trayItems.length} menu dipilih
+              </div>
+              <div className="text-xs font-black text-emerald-400 whitespace-nowrap">
+                Rp {totalPrice.toLocaleString('id-ID')}
+              </div>
             </div>
           </div>
           <button
             type="button"
+            id="btn-floating-order-checkout"
             onClick={() => {
               const formEl = document.getElementById('order-form-container');
               if (formEl) {
                 formEl.scrollIntoView({ behavior: 'smooth' });
+                setTimeout(() => {
+                  const roomInput = document.getElementById('roomName');
+                  if (roomInput && !roomName) {
+                    roomInput.focus();
+                  }
+                }, 300);
               }
             }}
-            className="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-extrabold text-xs rounded-xl flex items-center gap-1.5 cursor-pointer shadow-sm transition-all"
+            className="shrink-0 px-3 py-2 bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-black text-xs rounded-xl flex items-center gap-1 cursor-pointer shadow-md transition-all whitespace-nowrap"
           >
-            <span>Isi Kamar &amp; Pesan</span>
-            <ChevronRight className="w-3.5 h-3.5" />
+            <span className="inline sm:hidden">Lanjut Pesan</span>
+            <span className="hidden sm:inline">Isi Kamar &amp; Pesan</span>
+            <ChevronRight className="w-3.5 h-3.5 shrink-0" />
           </button>
         </div>
       )}
