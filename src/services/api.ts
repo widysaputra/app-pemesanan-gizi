@@ -490,6 +490,7 @@ export class HospitalRealtimeService {
   async getSimrsConfig(): Promise<{
     apiUrl: string;
     apiKeyMasked: string;
+    authHeaderType?: 'X-AUTH-TOKEN' | 'Bearer' | 'Both';
     autoSyncOnOrder: boolean;
     isConfigured: boolean;
   }> {
@@ -501,6 +502,7 @@ export class HospitalRealtimeService {
   async saveSimrsConfig(settings: {
     apiUrl?: string;
     apiKey?: string;
+    authHeaderType?: 'X-AUTH-TOKEN' | 'Bearer' | 'Both';
     autoSyncOnOrder?: boolean;
   }): Promise<any> {
     const res = await fetch('/api/simrs/config', {
@@ -512,10 +514,11 @@ export class HospitalRealtimeService {
     return res.json();
   }
 
-  async testSimrsConnection(apiUrl: string, apiKey?: string): Promise<{
+  async testSimrsConnection(apiUrl: string, apiKey?: string, authHeaderType?: 'X-AUTH-TOKEN' | 'Bearer' | 'Both'): Promise<{
     success: boolean;
     message: string;
     latency?: string;
+    authHeader?: string;
     data?: any;
     error?: string;
     sentPayload?: any;
@@ -523,7 +526,7 @@ export class HospitalRealtimeService {
     const res = await fetch('/api/simrs/test', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ apiUrl, apiKey }),
+      body: JSON.stringify({ apiUrl, apiKey, authHeaderType }),
     });
     const data = await res.json();
     if (!res.ok) {

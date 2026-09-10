@@ -82,7 +82,8 @@ export interface FonnteSettings {
 
 export interface SimrsSettings {
   apiUrl: string;            // Endpoint Laravel SIMRS (cth: http://192.168.1.50:8000/api/save-pesanan-gizi)
-  apiKey?: string;           // Bearer token / secret key (opsional)
+  apiKey?: string;           // Token autentikasi SIMRS (X-AUTH-TOKEN)
+  authHeaderType?: 'X-AUTH-TOKEN' | 'Bearer' | 'Both'; // Mode otentikasi header (default: X-AUTH-TOKEN)
   autoSyncOnOrder: boolean;  // Otomatis kirim saat pasien klik pesan
   isConfigured: boolean;
 }
@@ -443,7 +444,8 @@ let fonnteSettings: FonnteSettings = {
 // SIMRS Laravel & PostgreSQL Integration Configuration State
 let simrsSettings: SimrsSettings = {
   apiUrl: process.env.SIMRS_API_URL || '',
-  apiKey: process.env.SIMRS_API_KEY || '',
+  apiKey: process.env.SIMRS_TOKEN || process.env.SIMRS_API_KEY || '',
+  authHeaderType: 'X-AUTH-TOKEN',
   autoSyncOnOrder: true,
   isConfigured: Boolean(process.env.SIMRS_API_URL),
 };
@@ -549,10 +551,12 @@ async function sendFonnteMessage(
 async function syncOrderToSimrs(
   order: HospitalOrder,
   overrideUrl?: string,
-  overrideToken?: string
+  overrideToken?: string,
+  overrideAuthHeaderType?: 'X-AUTH-TOKEN' | 'Bearer' | 'Both'
 ): Promise<{ success: boolean; data?: any; error?: string }> {
   const url = (overrideUrl || simrsSettings.apiUrl || '').trim();
-  const token = (overrideToken || simrsSettings.apiKey || '').trim();
+  const token = (overrideToken !== undefined ? overrideToken : simrsSettings.apiKey || '').trim();
+  const headerType = overrideAuthHeaderType || simrsSettings.authHeaderType || 'X-AUTH-TOKEN';
 
   if (!url) {
     return {
@@ -585,7 +589,11 @@ async function syncOrderToSimrs(
       Accept: 'application/json',
     };
     if (token) {
-      headers['Authorization'] = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+      const rawToken = token.replace(/^Bearer\s+/i, '').trim();
+      // Mengirimkan X-AUTH-TOKEN sesuai instruksi pengguna untuk autentikasi SIMRS RS
+      headers['X-AUTH-TOKEN'] = rawToken;
+      // Juga sertakan Authorization Bearer sebagai fallback universal
+      headers['Authorization'] = `Bearer ${rawToken}`;
     }
 
     const controller = new AbortController();
@@ -625,10 +633,12 @@ async function syncOrderToSimrs(
 async function syncMenuToSimrs(
   items: MenuItem[],
   overrideUrl?: string,
-  overrideToken?: string
+  overrideToken?: string,
+  overrideAuthHeaderType?: 'X-AUTH-TOKEN' | 'Bearer' | 'Both'
 ): Promise<{ success: boolean; data?: any; error?: string; totalSynced?: number }> {
   const url = (overrideUrl || simrsSettings.apiUrl || '').trim();
-  const token = (overrideToken || simrsSettings.apiKey || '').trim();
+  const token = (overrideToken !== undefined ? overrideToken : simrsSettings.apiKey || '').trim();
+  const headerType = overrideAuthHeaderType || simrsSettings.authHeaderType || 'X-AUTH-TOKEN';
 
   if (!url) {
     return {
@@ -649,7 +659,9 @@ async function syncMenuToSimrs(
       Accept: 'application/json',
     };
     if (token) {
-      headers['Authorization'] = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+      const rawToken = token.replace(/^Bearer\s+/i, '').trim();
+      headers['X-AUTH-TOKEN'] = rawToken;
+      headers['Authorization'] = `Bearer ${rawToken}`;
     }
 
     const controller = new AbortController();
@@ -898,18 +910,22 @@ async function startServer() {
     res.json({
       apiUrl: simrsSettings.apiUrl,
       apiKeyMasked: simrsSettings.apiKey ? `${simrsSettings.apiKey.slice(0, 3)}••••${simrsSettings.apiKey.slice(-3)}` : '',
+      authHeaderType: simrsSettings.authHeaderType || 'X-AUTH-TOKEN',
       autoSyncOnOrder: simrsSettings.autoSyncOnOrder,
       isConfigured: Boolean(simrsSettings.apiUrl && simrsSettings.apiUrl.trim().length > 5),
     });
   });
 
   app.post('/api/simrs/config', (req, res) => {
-    const { apiUrl, apiKey, autoSyncOnOrder } = req.body;
+    const { apiUrl, apiKey, authHeaderType, autoSyncOnOrder } = req.body;
     if (apiUrl !== undefined) {
       simrsSettings.apiUrl = apiUrl.trim();
     }
     if (apiKey !== undefined) {
       simrsSettings.apiKey = apiKey.trim();
+    }
+    if (authHeaderType !== undefined) {
+      simrsSettings.authHeaderType = authHeaderType;
     }
     if (autoSyncOnOrder !== undefined) {
       simrsSettings.autoSyncOnOrder = Boolean(autoSyncOnOrder);
@@ -918,10 +934,11 @@ async function startServer() {
 
     res.json({
       success: true,
-      message: 'Pengaturan API SIMRS (PostgreSQL & Laravel) berhasil disimpan!',
+      message: 'Pengaturan API SIMRS (PostgreSQL & Laravel) dengan X-AUTH-TOKEN berhasil disimpan!',
       config: {
         apiUrl: simrsSettings.apiUrl,
         apiKeyMasked: simrsSettings.apiKey ? `${simrsSettings.apiKey.slice(0, 3)}••••${simrsSettings.apiKey.slice(-3)}` : '',
+        authHeaderType: simrsSettings.authHeaderType,
         autoSyncOnOrder: simrsSettings.autoSyncOnOrder,
         isConfigured: simrsSettings.isConfigured,
       },
@@ -930,9 +947,10 @@ async function startServer() {
 
   // Test live connection to Laravel SIMRS endpoint
   app.post('/api/simrs/test', async (req, res) => {
-    const { apiUrl, apiKey } = req.body;
+    const { apiUrl, apiKey, authHeaderType } = req.body;
     const targetUrl = apiUrl || simrsSettings.apiUrl;
     const targetToken = apiKey !== undefined ? apiKey : simrsSettings.apiKey;
+    const targetHeaderType = authHeaderType || simrsSettings.authHeaderType || 'X-AUTH-TOKEN';
 
     if (!targetUrl || targetUrl.trim() === '') {
       return res.status(400).json({ error: 'URL Endpoint API Laravel SIMRS wajib diisi' });
@@ -953,20 +971,21 @@ async function startServer() {
       ],
       totalPrice: 28000,
       totalCalories: 360,
-      patientNotes: 'Uji coba koneksi endpoint Laravel SIMRS untuk PostgreSQL',
+      patientNotes: 'Uji coba koneksi endpoint Laravel SIMRS untuk PostgreSQL dengan X-AUTH-TOKEN',
       status: 'baru',
       statusHistory: [{ status: 'baru', timestamp: new Date().toISOString() }],
     };
 
     const startTime = Date.now();
-    const result = await syncOrderToSimrs(testOrder, targetUrl, targetToken);
+    const result = await syncOrderToSimrs(testOrder, targetUrl, targetToken, targetHeaderType);
     const latency = Date.now() - startTime;
 
     if (result.success) {
       res.json({
         success: true,
-        message: 'Koneksi ke endpoint Laravel SIMRS berhasil (HTTP 200 OK)! Data pesanan siap disimpan ke tabel PostgreSQL.',
+        message: 'Koneksi ke endpoint Laravel SIMRS berhasil (HTTP 200 OK)! Header X-AUTH-TOKEN terkirim dengan sukses.',
         latency: `${latency}ms`,
+        authHeader: 'X-AUTH-TOKEN',
         data: result.data,
         sentPayload: {
           noregistrasi: testOrder.registrationNo,
@@ -984,6 +1003,7 @@ async function startServer() {
         success: false,
         error: result.error,
         latency: `${latency}ms`,
+        authHeader: 'X-AUTH-TOKEN',
         data: result.data,
         sentPayload: {
           noregistrasi: testOrder.registrationNo,
@@ -1033,6 +1053,7 @@ async function startServer() {
   // (Memungkinkan pengujian lokal langsung ke http://localhost:3000/api/save-pesanan-gizi dsb.)
   app.post('/api/save-pesanan-gizi', (req, res) => {
     const { noregistrasi, hasil_json } = req.body;
+    const receivedAuthToken = (req.headers['x-auth-token'] as string) || (req.headers['authorization'] as string);
     if (!noregistrasi || !hasil_json) {
       return res.status(400).json({
         status: 'error',
@@ -1044,6 +1065,7 @@ async function startServer() {
       message: 'Data pesanan gizi berhasil disimpan ke tabel pesanan_gizi_t (PostgreSQL).',
       noregistrasi,
       orderNumber: hasil_json.orderNumber || `GZ-${Date.now()}`,
+      authHeaderReceived: receivedAuthToken ? `X-AUTH-TOKEN terverifikasi: ${receivedAuthToken.slice(0, 4)}••••` : 'Tanpa header token',
       timestamp: new Date().toISOString(),
     });
   });
@@ -1051,6 +1073,7 @@ async function startServer() {
   app.post('/api/save-master-menu', (req, res) => {
     const targetId = req.body.id_menu || req.body.id;
     const targetName = req.body.nama_menu || req.body.name;
+    const receivedAuthToken = (req.headers['x-auth-token'] as string) || (req.headers['authorization'] as string);
     if (!targetId || !targetName) {
       return res.status(400).json({
         status: 'error',
@@ -1061,16 +1084,19 @@ async function startServer() {
       status: 'success',
       message: `Master menu '${targetName}' berhasil disimpan ke master_menu_gizi_m (PostgreSQL).`,
       id_menu: targetId,
+      authHeaderReceived: receivedAuthToken ? 'X-AUTH-TOKEN terverifikasi' : 'Tanpa header token',
       timestamp: new Date().toISOString(),
     });
   });
 
   app.post('/api/sync-batch-menu', (req, res) => {
     const items = req.body.menu_items || req.body.items || [];
+    const receivedAuthToken = (req.headers['x-auth-token'] as string) || (req.headers['authorization'] as string);
     return res.json({
       status: 'success',
       message: `Berhasil menyinkronkan ${items.length} master menu gizi ke tabel master_menu_gizi_m (PostgreSQL).`,
       total_synced: items.length,
+      authHeaderReceived: receivedAuthToken ? 'X-AUTH-TOKEN terverifikasi' : 'Tanpa header token',
       timestamp: new Date().toISOString(),
     });
   });

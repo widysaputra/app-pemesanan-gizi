@@ -125,6 +125,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // SIMRS (PostgreSQL & Laravel API) Integration States
   const [simrsApiUrl, setSimrsApiUrl] = useState<string>('http://localhost:8000/api/save-pesanan-gizi');
   const [simrsApiKey, setSimrsApiKey] = useState<string>('');
+  const [simrsAuthHeaderType, setSimrsAuthHeaderType] = useState<'X-AUTH-TOKEN' | 'Bearer' | 'Both'>('X-AUTH-TOKEN');
   const [simrsAutoSync, setSimrsAutoSync] = useState<boolean>(true);
   const [isSimrsConfigured, setIsSimrsConfigured] = useState<boolean>(false);
   const [isSavingSimrs, setIsSavingSimrs] = useState<boolean>(false);
@@ -189,6 +190,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         const simrsConfig = await realtimeService.getSimrsConfig();
         if (simrsConfig) {
           if (simrsConfig.apiUrl) setSimrsApiUrl(simrsConfig.apiUrl);
+          if (simrsConfig.authHeaderType) setSimrsAuthHeaderType(simrsConfig.authHeaderType);
           setSimrsAutoSync(simrsConfig.autoSyncOnOrder !== false);
           setIsSimrsConfigured(simrsConfig.isConfigured);
         }
@@ -312,6 +314,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     try {
       const payload: any = {
         apiUrl: simrsApiUrl.trim(),
+        authHeaderType: simrsAuthHeaderType,
         autoSyncOnOrder: simrsAutoSync,
       };
       if (simrsApiKey.trim()) {
@@ -321,7 +324,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setIsSimrsConfigured(res.config?.isConfigured || Boolean(simrsApiUrl.trim()));
       setSimrsNotice({
         type: 'success',
-        text: 'Konfigurasi API SIMRS (PostgreSQL) berhasil disimpan & aktif!',
+        text: 'Konfigurasi API SIMRS dengan autentikasi X-AUTH-TOKEN berhasil disimpan & aktif!',
       });
       setSimrsApiKey('');
     } catch (err: any) {
@@ -342,11 +345,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setIsTestingSimrs(true);
     setSimrsTestResult(null);
     try {
-      const res = await realtimeService.testSimrsConnection(simrsApiUrl.trim(), simrsApiKey.trim() || undefined);
+      const res = await realtimeService.testSimrsConnection(
+        simrsApiUrl.trim(), 
+        simrsApiKey.trim() || undefined,
+        simrsAuthHeaderType
+      );
       setSimrsTestResult({
         success: true,
         message: res.message,
         latency: res.latency,
+        authHeader: res.authHeader || simrsAuthHeaderType,
         data: res.data,
         sentPayload: res.sentPayload,
       });
@@ -1287,6 +1295,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   {isSimrsConfigured ? 'Endpoint Terhubung' : 'Belum Dikonfigurasi'}
                 </span>
               </div>
+              <div className="px-3 py-1.5 rounded-xl bg-amber-500/20 backdrop-blur-xs border border-amber-400/30 text-xs flex items-center gap-2 text-amber-200 font-mono font-bold">
+                <KeyRound className="w-3.5 h-3.5 text-amber-400" />
+                <span>Header: X-AUTH-TOKEN</span>
+              </div>
               <div className="px-3 py-1.5 rounded-xl bg-white/10 backdrop-blur-xs border border-white/10 text-xs flex items-center gap-2 text-indigo-200">
                 <Table className="w-3.5 h-3.5" />
                 <span>PostgreSQL JSONB Ready</span>
@@ -1453,8 +1465,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <label className="text-xs font-bold text-slate-700">
-                        API Key / Bearer Token <span className="text-slate-400 font-normal">(Opsional)</span>
+                      <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                        <span>Token Autentikasi SIMRS</span>
+                        <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-mono font-bold">
+                          X-AUTH-TOKEN
+                        </span>
                       </label>
                       <button
                         type="button"
@@ -1469,12 +1484,71 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       type={showToken ? 'text' : 'password'}
                       value={simrsApiKey}
                       onChange={(e) => setSimrsApiKey(e.target.value)}
-                      placeholder="Kosongkan bila API lokal tidak memerlukan Bearer token"
-                      className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50"
+                      placeholder="Masukkan token autentikasi X-AUTH-TOKEN SIMRS..."
+                      className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-slate-50"
                     />
-                    <p className="text-[10px] text-slate-400 mt-0.5">
-                      Header dikirim: <code className="text-indigo-600">Authorization: Bearer &lt;token&gt;</code>.
-                    </p>
+
+                    {/* Header Protocol Selector */}
+                    <div className="mt-2.5 space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="font-bold text-slate-600">Protokol Header HTTP:</span>
+                        <span className="text-[10px] font-mono text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-bold">
+                          Aktif: {simrsAuthHeaderType}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setSimrsAuthHeaderType('X-AUTH-TOKEN')}
+                          className={`px-2 py-1.5 text-[11px] rounded-lg border font-mono font-bold text-center transition-all cursor-pointer ${
+                            simrsAuthHeaderType === 'X-AUTH-TOKEN'
+                              ? 'bg-amber-100 border-amber-400 text-amber-900 shadow-xs ring-1 ring-amber-400'
+                              : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                          }`}
+                        >
+                          X-AUTH-TOKEN
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSimrsAuthHeaderType('Both')}
+                          className={`px-2 py-1.5 text-[11px] rounded-lg border font-mono font-bold text-center transition-all cursor-pointer ${
+                            simrsAuthHeaderType === 'Both'
+                              ? 'bg-amber-100 border-amber-400 text-amber-900 shadow-xs ring-1 ring-amber-400'
+                              : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                          }`}
+                        >
+                          Both (Dual)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSimrsAuthHeaderType('Bearer')}
+                          className={`px-2 py-1.5 text-[11px] rounded-lg border font-mono font-bold text-center transition-all cursor-pointer ${
+                            simrsAuthHeaderType === 'Bearer'
+                              ? 'bg-amber-100 border-amber-400 text-amber-900 shadow-xs ring-1 ring-amber-400'
+                              : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                          }`}
+                        >
+                          Bearer Token
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="mt-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600 space-y-1">
+                      <div className="font-semibold text-slate-700 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        <span>Header yang otomatis dikirim ke backend SIMRS:</span>
+                      </div>
+                      <div className="font-mono text-[10px] text-slate-700 bg-white p-2 rounded-lg border border-slate-200 space-y-0.5">
+                        {(simrsAuthHeaderType === 'X-AUTH-TOKEN' || simrsAuthHeaderType === 'Both') && (
+                          <div className="text-amber-800 font-bold">X-AUTH-TOKEN: &lt;token_rahasia_simrs&gt;</div>
+                        )}
+                        {(simrsAuthHeaderType === 'Bearer' || simrsAuthHeaderType === 'Both') && (
+                          <div className="text-slate-600">Authorization: Bearer &lt;token_rahasia_simrs&gt;</div>
+                        )}
+                        <div>Content-Type: application/json</div>
+                        <div>Accept: application/json</div>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Auto-Sync Option */}
@@ -1539,11 +1613,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <span className="font-bold flex items-center gap-1.5">
                         {simrsTestResult.success ? '✅ Terkoneksi Sukses' : '❌ Koneksi Gagal'}
                       </span>
-                      {simrsTestResult.latency && (
-                        <span className="text-[10px] bg-white/80 px-2 py-0.5 rounded font-bold">
-                          {simrsTestResult.latency} ms
-                        </span>
-                      )}
+                      <div className="flex items-center gap-1.5">
+                        {simrsTestResult.authHeader && (
+                          <span className="text-[10px] bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded font-bold">
+                            Header: {simrsTestResult.authHeader}
+                          </span>
+                        )}
+                        {simrsTestResult.latency && (
+                          <span className="text-[10px] bg-white/80 px-2 py-0.5 rounded font-bold">
+                            {simrsTestResult.latency}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <p className="text-[11px] leading-relaxed">{simrsTestResult.message}</p>
 

@@ -78,7 +78,8 @@ export interface FonnteSettings {
 
 export interface SimrsSettings {
   apiUrl: string;            // Endpoint Laravel SIMRS (cth: http://192.168.1.50:8000/api/save-pesanan-gizi)
-  apiKey?: string;           // Bearer token / secret key (opsional)
+  apiKey?: string;           // Token autentikasi SIMRS (dikirimkan via header X-AUTH-TOKEN)
+  authHeaderType?: 'X-AUTH-TOKEN' | 'Bearer' | 'Both'; // Mode otentikasi header
   autoSyncOnOrder: boolean;  // Otomatis kirim saat pasien klik pesan
   isConfigured: boolean;
 }

@@ -194,12 +194,39 @@ use Illuminate\\Support\\Facades\\DB;
 class GiziSIMRSController extends Controller
 {
     /**
+     * Middleware / Verifikasi Token Autentikasi X-AUTH-TOKEN
+     * Aplikasi web NutriHospital mengirimkan token via header: X-AUTH-TOKEN: <token>
+     */
+    private function checkAuthToken(Request $request)
+    {
+        $expectedToken = env('SIMRS_AUTH_TOKEN', '');
+        // Jika environment token disetel, validasi header X-AUTH-TOKEN
+        if (!empty($expectedToken)) {
+            $receivedToken = $request->header('X-AUTH-TOKEN') 
+                          ?: str_replace('Bearer ', '', $request->header('Authorization', ''));
+
+            if ($receivedToken !== $expectedToken) {
+                return response()->json([
+                    'status'  => 'unauthorized',
+                    'message' => 'Token autentikasi X-AUTH-TOKEN tidak valid atau tidak disertakan.'
+                ], 401);
+            }
+        }
+        return null;
+    }
+
+    /**
      * POST /api/save-pesanan-gizi
      * Simpan / Perbarui Pesanan Makanan Kamar Pasien ke PostgreSQL
      * Menerima input: 'noregistrasi' dan 'hasil_json'
+     * Header Autentikasi: X-AUTH-TOKEN: <token_rahasia>
      */
     public function simpanPesananGizi(Request $request)
     {
+        // Validasi X-AUTH-TOKEN jika diaktifkan
+        $authError = $this->checkAuthToken($request);
+        if ($authError) return $authError;
+
         $noRegistrasi = $request->input('noregistrasi');
         $orderData    = $request->input('hasil_json');
 
@@ -412,9 +439,12 @@ class GiziSIMRSController extends Controller
 `;
 
 export const JSON_PAYLOAD_EXAMPLES = `// ====================================================================
-// 1. CONTOH JSON REQUEST: SIMPAN PESANAN GIZI PASIEN
+// 1. CONTOH REQUEST: SIMPAN PESANAN GIZI PASIEN
 // METHOD: POST /api/save-pesanan-gizi
-// HEADERS: Content-Type: application/json
+// HEADERS:
+//   Content-Type: application/json
+//   Accept: application/json
+//   X-AUTH-TOKEN: secret_token_simrs_12345
 // ====================================================================
 
 {
