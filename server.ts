@@ -89,265 +89,10 @@ export interface SimrsSettings {
 }
 
 // Initial Menu Catalog with standardized prices in Rupiah
-const INITIAL_MENU: MenuItem[] = [
-  {
-    id: 'menu-1',
-    name: 'Nasi Putih Pulen Organik',
-    price: 6000,
-    category: 'makanan_utama',
-    mealTimes: ['pagi', 'siang', 'malam'],
-    calories: 175,
-    protein: 3.5,
-    carbs: 40,
-    fat: 0.3,
-    sodium: 5,
-    description: 'Nasi putih pulen kukus matang sempurna dari beras organik pilihan.',
-    image: 'https://images.unsplash.com/photo-1516684732162-798a0062be99?auto=format&fit=crop&w=400&q=80',
-    isAvailable: true,
-  },
-  {
-    id: 'menu-2',
-    name: 'Nasi Merah Berserat Tinggi',
-    price: 8000,
-    category: 'makanan_utama',
-    mealTimes: ['pagi', 'siang', 'malam'],
-    calories: 150,
-    protein: 3.8,
-    carbs: 33,
-    fat: 1.2,
-    sodium: 4,
-    description: 'Beras merah rendah indeks glikemik, ideal untuk pasien diabetes dan jantung.',
-    image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=400&q=80',
-    isAvailable: true,
-  },
-  {
-    id: 'menu-3',
-    name: 'Bubur Saring Lembut Halus',
-    price: 6000,
-    category: 'makanan_utama',
-    mealTimes: ['pagi', 'siang', 'malam'],
-    calories: 120,
-    protein: 2.2,
-    carbs: 26,
-    fat: 0.2,
-    sodium: 3,
-    description: 'Bubur beras disaring lembut, mudah dicerna untuk lambung sensitif & pemulihan bedah.',
-    image: 'https://images.unsplash.com/photo-1541832676-9b763b0239ab?auto=format&fit=crop&w=400&q=80',
-    isAvailable: true,
-  },
-  {
-    id: 'menu-4',
-    name: 'Mashed Potato Gurih Rendah Garam',
-    price: 10000,
-    category: 'makanan_utama',
-    mealTimes: ['siang', 'malam'],
-    calories: 140,
-    protein: 2.8,
-    carbs: 30,
-    fat: 1.5,
-    sodium: 15,
-    description: 'Kentang tumbuk lembut dengan susu rendah lemak tanpa garam berlebih.',
-    image: 'https://images.unsplash.com/photo-1633436375795-12b3b339712f?auto=format&fit=crop&w=400&q=80',
-    isAvailable: true,
-  },
-  {
-    id: 'menu-5',
-    name: 'Ayam Panggang Bumbu Kuning Non-MSG',
-    price: 22000,
-    category: 'lauk_hewani',
-    mealTimes: ['siang', 'malam'],
-    calories: 185,
-    protein: 24,
-    carbs: 2,
-    fat: 6,
-    sodium: 85,
-    description: 'Dada ayam fillet panggang rempah kunyit, jahe, sereh tanpa santan sintetis.',
-    image: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?auto=format&fit=crop&w=400&q=80',
-    isAvailable: true,
-  },
-  {
-    id: 'menu-6',
-    name: 'Sup Ikan Kakap Kuah Bening',
-    price: 26000,
-    category: 'lauk_hewani',
-    mealTimes: ['siang', 'malam'],
-    calories: 140,
-    protein: 22,
-    carbs: 3,
-    fat: 3,
-    sodium: 70,
-    description: 'Fillet ikan kakap segar dengan kuah kaldu rempah bening, tomat hijau segar.',
-    image: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=400&q=80',
-    isAvailable: true,
-  },
-  {
-    id: 'menu-7',
-    name: 'Rolade Daging Cincang Kukus',
-    price: 24000,
-    category: 'lauk_hewani',
-    mealTimes: ['pagi', 'siang', 'malam'],
-    calories: 165,
-    protein: 18,
-    carbs: 4,
-    fat: 7,
-    sodium: 80,
-    description: 'Daging sapi cincang segar digulung telur kukus, saus tomat asli tanpa pengawet.',
-    image: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=400&q=80',
-    isAvailable: true,
-  },
-  {
-    id: 'menu-8',
-    name: 'Telur Orak-Arik Herbal Rebus',
-    price: 9000,
-    category: 'lauk_hewani',
-    mealTimes: ['pagi', 'snack'],
-    calories: 110,
-    protein: 11,
-    carbs: 1,
-    fat: 6,
-    sodium: 65,
-    description: 'Telur ayam negeri orak-arik matang dengan daun bawang cincang tanpa minyak berlebih.',
-    image: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=400&q=80',
-    isAvailable: true,
-  },
-  {
-    id: 'menu-9',
-    name: 'Tahu Kukus Sutra Isi Sayur',
-    price: 7000,
-    category: 'lauk_nabati',
-    mealTimes: ['pagi', 'siang', 'malam'],
-    calories: 85,
-    protein: 8,
-    carbs: 5,
-    fat: 3.5,
-    sodium: 30,
-    description: 'Tahu sutra lembut diisi cincangan wortel dan jamur tiram, dikukus hangat.',
-    image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
-    isAvailable: true,
-  },
-  {
-    id: 'menu-10',
-    name: 'Tempe Bacem Rempah Rendah Gula',
-    price: 6000,
-    category: 'lauk_nabati',
-    mealTimes: ['siang', 'malam'],
-    calories: 95,
-    protein: 9,
-    carbs: 8,
-    fat: 3,
-    sodium: 40,
-    description: 'Tempe kedelai murni diungkep air kelapa dan ketumbar, rasa gurih legit alami.',
-    image: 'https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?auto=format&fit=crop&w=400&q=80',
-    isAvailable: true,
-  },
-  {
-    id: 'menu-11',
-    name: 'Sayur Bening Bayam Jagung Manis',
-    price: 9000,
-    category: 'sayuran',
-    mealTimes: ['siang', 'malam'],
-    calories: 45,
-    protein: 2.5,
-    carbs: 8,
-    fat: 0.4,
-    sodium: 35,
-    description: 'Daun bayam hijau segar dan jagung pipil manis dengan kuah temu kunci segar.',
-    image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=400&q=80',
-    isAvailable: true,
-  },
-  {
-    id: 'menu-12',
-    name: 'Tumis Labu Siam & Wortel Sehat',
-    price: 9000,
-    category: 'sayuran',
-    mealTimes: ['siang', 'malam'],
-    calories: 55,
-    protein: 1.8,
-    carbs: 9,
-    fat: 1.2,
-    sodium: 40,
-    description: 'Irisan labu siam muda dan wortel manis ditumis minyak zaitun rendah kolesterol.',
-    image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=400&q=80',
-    isAvailable: true,
-  },
-  {
-    id: 'menu-13',
-    name: 'Sup Krim Labu Kuning Lembut',
-    price: 12000,
-    category: 'sayuran',
-    mealTimes: ['pagi', 'malam', 'snack'],
-    calories: 75,
-    protein: 2,
-    carbs: 14,
-    fat: 1.5,
-    sodium: 25,
-    description: 'Puree labu kuning kukus kaya vitamin A dan serat, tekstur creamy lembut.',
-    image: 'https://images.unsplash.com/photo-1476718406336-bb5a9690ee2a?auto=format&fit=crop&w=400&q=80',
-    isAvailable: true,
-  },
-  {
-    id: 'menu-14',
-    name: 'Potongan Pepaya & Melon Manis Segar',
-    price: 8000,
-    category: 'buah_snack',
-    mealTimes: ['pagi', 'siang', 'malam', 'snack'],
-    calories: 60,
-    protein: 1,
-    carbs: 14,
-    fat: 0.1,
-    sodium: 2,
-    description: 'Potongan pepaya California matang dan melon segar dipotong higienis.',
-    image: 'https://images.unsplash.com/photo-1519996529931-28324d5a630e?auto=format&fit=crop&w=400&q=80',
-    isAvailable: true,
-  },
-  {
-    id: 'menu-15',
-    name: 'Puding Cokelat Susu Skim Rendah Kalori',
-    price: 11000,
-    category: 'buah_snack',
-    mealTimes: ['snack'],
-    calories: 90,
-    protein: 3.5,
-    carbs: 15,
-    fat: 1,
-    sodium: 20,
-    description: 'Puding agar-agar serat tinggi dengan cokelat murni dan pemanis alami.',
-    image: 'https://images.unsplash.com/photo-1551024601-bec78aea704b?auto=format&fit=crop&w=400&q=80',
-    isAvailable: true,
-  },
-  {
-    id: 'menu-16',
-    name: 'Teh Hijau Hangat Madu Murni',
-    price: 7000,
-    category: 'minuman',
-    mealTimes: ['pagi', 'snack', 'malam'],
-    calories: 35,
-    protein: 0.2,
-    carbs: 8,
-    fat: 0,
-    sodium: 1,
-    description: 'Seduhan daun teh hijau organik dengan sentuhan madu randu asli penyegar tubuh.',
-    image: 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&w=400&q=80',
-    isAvailable: true,
-  },
-  {
-    id: 'menu-17',
-    name: 'Susu Kedelai Murni Tanpa Gula Tambahan',
-    price: 8000,
-    category: 'minuman',
-    mealTimes: ['pagi', 'snack'],
-    calories: 80,
-    protein: 7,
-    carbs: 4,
-    fat: 4,
-    sodium: 10,
-    description: 'Susu sari kedelai segar tinggi protein nabati dan kalsium alami.',
-    image: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=400&q=80',
-    isAvailable: true,
-  },
-];
+// Menu Catalog starts empty as requested by hospital administrators.
+// Master menu is populated via SIMRS synchronization or manual entry in Admin Dashboard.
+const INITIAL_MENU: MenuItem[] = [];
 
-// Initial dummy orders to demonstrate WhatsApp integration & admin dashboard
 const INITIAL_ORDERS: HospitalOrder[] = [
   {
     id: 'ord-101',
@@ -429,7 +174,7 @@ const INITIAL_ORDERS: HospitalOrder[] = [
 ];
 
 // In-memory state
-let menuItems: MenuItem[] = [...INITIAL_MENU];
+let menuItems: MenuItem[] = [];
 let orders: HospitalOrder[] = [...INITIAL_ORDERS];
 
 // Fonnte Configuration State (Can be set via .env or updated from Admin Dashboard UI)
@@ -750,6 +495,110 @@ async function syncOrderToSimrs(
   }
 }
 
+// Helper: Map a MenuItem to standardized payload format for SIMRS Medifirst2000
+function mapMenuItemForSimrs(m: MenuItem) {
+  return {
+    id: m.id,
+    id_menu: m.id,
+    kd_menu: m.id,
+    name: m.name,
+    nama: m.name,
+    nama_menu: m.name,
+    category: m.category,
+    kategori: m.category,
+    price: m.price,
+    harga: m.price,
+    harga_satuan: m.price,
+    calories: m.calories,
+    kalori: m.calories,
+    protein: m.protein,
+    carbs: m.carbs,
+    karbohidrat: m.carbs,
+    fat: m.fat,
+    lemak: m.fat,
+    sodium: m.sodium,
+    natrium: m.sodium,
+    mealTimes: m.mealTimes,
+    waktu_makan: m.mealTimes,
+    description: m.description,
+    deskripsi: m.description,
+    image: m.image,
+    gambar_url: m.image,
+    isAvailable: m.isAvailable !== false,
+    is_tersedia: m.isAvailable !== false,
+    status: m.isAvailable !== false ? 1 : 0,
+  };
+}
+
+// Helper: Send single menu item to SIMRS (save-master-menu)
+async function syncSingleMenuToSimrs(
+  item: MenuItem,
+  overrideUrl?: string,
+  overrideToken?: string
+): Promise<{ success: boolean; data?: any; error?: string; targetUrl?: string }> {
+  const targetUrl = resolveSimrsSingleMenuUrl(overrideUrl || simrsSettings.apiUrl);
+  const token = (overrideToken && typeof overrideToken === 'string' && overrideToken.trim() !== '')
+    ? overrideToken.trim()
+    : (simrsSettings.apiKey || '').trim();
+
+  if (!targetUrl) {
+    return { success: false, error: 'URL Endpoint API SIMRS belum disetel.', targetUrl };
+  }
+
+  const payload = mapMenuItemForSimrs(item);
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+  };
+  if (token) {
+    const rawToken = token.replace(/^Bearer\s+/i, '').trim();
+    headers['X-AUTH-TOKEN'] = rawToken;
+    headers['Authorization'] = `Bearer ${rawToken}`;
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    const response = await fetch(targetUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    const data = await response.json().catch(() => null);
+
+    if (response.ok && (!data || data.code === undefined || data.code === 200 || data.code === 201)) {
+      return {
+        success: true,
+        targetUrl,
+        data: data || { status: 'success', message: `Menu "${item.name}" berhasil disimpan ke SIMRS.` },
+      };
+    } else {
+      let errMsg = data?.message || `HTTP ${response.status}: Server SIMRS merespons dengan kesalahan`;
+      if (response.status === 403 || data?.code === 403) {
+        errMsg = 'Token autentikasi X-AUTH-TOKEN ditolak (403 Forbidden - Token salah). Mohon periksa token di Pengaturan SIMRS.';
+      } else if (response.status === 401 || data?.code === 401) {
+        errMsg = 'Token autentikasi X-AUTH-TOKEN tidak tersedia (401 Unauthorized).';
+      }
+      return {
+        success: false,
+        targetUrl,
+        error: errMsg,
+        data,
+      };
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      targetUrl,
+      error: err.name === 'AbortError' ? 'Koneksi ke endpoint save-master-menu timeout (10 detik)' : (err.message || 'Gagal menghubungi server SIMRS'),
+    };
+  }
+}
+
 // Helper: Send / Sync Menu Items to Hospital SIMRS (Laravel API + PostgreSQL DB)
 async function syncMenuToSimrs(
   items: MenuItem[],
@@ -760,13 +609,22 @@ async function syncMenuToSimrs(
   const rawUrl = (overrideUrl || simrsSettings.apiUrl || 'https://rsbsaonline.com/service/medifirst2000/emr/sync-batch-menu').trim();
   const isSingle = rawUrl.includes('save-master-menu');
   const url = isSingle ? resolveSimrsSingleMenuUrl(rawUrl) : resolveSimrsBatchMenuUrl(rawUrl);
-  const token = (overrideToken !== undefined ? overrideToken : simrsSettings.apiKey || '').trim();
-  const headerType = overrideAuthHeaderType || simrsSettings.authHeaderType || 'X-AUTH-TOKEN';
+  const token = (overrideToken && typeof overrideToken === 'string' && overrideToken.trim() !== '')
+    ? overrideToken.trim()
+    : (simrsSettings.apiKey || '').trim();
 
   if (!url) {
     return {
       success: false,
       error: 'URL Endpoint API SIMRS belum disetel.',
+      targetUrl: url,
+    };
+  }
+
+  if (items.length === 0) {
+    return {
+      success: false,
+      error: 'Tidak ada item menu untuk disinkronkan. Tambahkan master menu terlebih dahulu.',
       targetUrl: url,
     };
   }
@@ -782,71 +640,69 @@ async function syncMenuToSimrs(
       headers['Authorization'] = `Bearer ${rawToken}`;
     }
 
-    // Jika target URL secara spesifik adalah /api/save-master-menu (menyimpan 1 menu per request)
+    const mappedItems = items.map(mapMenuItemForSimrs);
+
+    // Jika target URL secara spesifik adalah save-master-menu (menyimpan 1 menu per request)
     if (url.includes('save-master-menu')) {
       let savedCount = 0;
       let lastData: any = null;
+      let lastError: string | undefined;
       for (const item of items) {
-        const itemPayload = {
-          id: item.id,
-          id_menu: item.id,
-          name: item.name,
-          nama: item.name,
-          nama_menu: item.name,
-          category: item.category,
-          kategori: item.category,
-          price: item.price,
-          harga: item.price,
-          calories: item.calories,
-          kalori: item.calories,
-          protein: item.protein,
-          karbohidrat: item.carbs,
-          lemak: item.fat,
-          natrium: item.sodium,
-          waktu_makan: item.mealTimes,
-          deskripsi: item.description,
-          gambar_url: item.image,
-          is_tersedia: item.isAvailable,
-        };
-        const singleRes = await fetch(url, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(itemPayload),
-        });
-        if (singleRes.ok) {
+        const res = await syncSingleMenuToSimrs(item, url, token);
+        if (res.success) {
           savedCount++;
-          lastData = await singleRes.json().catch(() => null);
+          lastData = res.data;
+        } else {
+          lastError = res.error;
         }
       }
-      return {
-        success: savedCount > 0,
-        totalSynced: savedCount,
-        data: lastData || { status: 'success', message: `${savedCount} master menu berhasil disimpan ke SIMRS!` },
-      };
+      if (savedCount > 0) {
+        return {
+          success: true,
+          totalSynced: savedCount,
+          targetUrl: url,
+          data: lastData || { status: 'success', message: `${savedCount} master menu berhasil disimpan ke SIMRS!` },
+        };
+      } else {
+        return {
+          success: false,
+          totalSynced: 0,
+          targetUrl: url,
+          error: lastError || 'Gagal menyimpan menu ke SIMRS (save-master-menu)',
+        };
+      }
     }
 
-    // Batch Sync: kirim data array sekaligus, sertakan juga id & name menu pertama di root level
-    const first = items[0] || {} as any;
+    // Batch Sync: kirim data array lengkap dengan seluruh alias parameter
+    const first = mappedItems[0] || {} as any;
     const payload = {
-      id: first.id || 'menu-1',
-      id_menu: first.id || 'menu-1',
-      name: first.name || 'Menu Gizi',
-      nama: first.name || 'Menu Gizi',
-      nama_menu: first.name || 'Menu Gizi',
+      menu_items: mappedItems,
+      items: mappedItems,
+      data: mappedItems,
+      menus: mappedItems,
+      hasil_json: {
+        menu_items: mappedItems,
+        items: mappedItems,
+        total: mappedItems.length,
+      },
+      id: first.id || '1',
+      id_menu: first.id || '1',
+      name: first.name || 'Batch Menu',
+      nama: first.nama || 'Batch Menu',
+      nama_menu: first.nama_menu || 'Batch Menu',
       category: first.category || 'makanan_utama',
-      kategori: first.category || 'makanan_utama',
+      kategori: first.kategori || 'makanan_utama',
       price: first.price || 0,
-      harga: first.price || 0,
+      harga: first.harga || 0,
       calories: first.calories || 0,
-      kalori: first.calories || 0,
-      menu_items: items,
-      items: items,
-      total_count: items.length,
+      kalori: first.kalori || 0,
+      total: mappedItems.length,
+      total_count: mappedItems.length,
       synced_at: new Date().toISOString(),
     };
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000);
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
 
     const response = await fetch(url, {
       method: 'POST',
@@ -858,22 +714,62 @@ async function syncMenuToSimrs(
 
     const data = await response.json().catch(() => null);
 
-    if (response.ok) {
+    if (response.ok && (!data || data.code === undefined || data.code === 200 || data.code === 201)) {
       return {
         success: true,
         totalSynced: items.length,
+        targetUrl: url,
         data: data || { status: 'success', message: 'Master menu berhasil disimpan ke SIMRS.' },
       };
-    } else {
+    }
+
+    if (response.status === 403 || data?.code === 403) {
       return {
         success: false,
-        error: data?.message || `HTTP ${response.status}: Server SIMRS menolak request sinkronisasi menu`,
+        error: 'Token autentikasi X-AUTH-TOKEN ditolak oleh SIMRS RSBSA Online (403 Forbidden - Token salah). Mohon periksa kembali token resmi di pengaturan SIMRS.',
+        targetUrl: url,
         data,
       };
     }
+    if (response.status === 401 || data?.code === 401) {
+      return {
+        success: false,
+        error: 'Token autentikasi X-AUTH-TOKEN tidak tersedia (401 Unauthorized). Masukkan token di Pengaturan SIMRS.',
+        targetUrl: url,
+        data,
+      };
+    }
+
+    // Senior Dev Fallback: jika batch ditolak karena masalah parameter di controller Laravel, coba save-master-menu per item
+    let fallbackSavedCount = 0;
+    let fallbackLastData: any = null;
+    for (const item of items) {
+      const res = await syncSingleMenuToSimrs(item, resolveSimrsSingleMenuUrl(rawUrl), token);
+      if (res.success) {
+        fallbackSavedCount++;
+        fallbackLastData = res.data;
+      }
+    }
+
+    if (fallbackSavedCount > 0) {
+      return {
+        success: true,
+        totalSynced: fallbackSavedCount,
+        targetUrl: resolveSimrsSingleMenuUrl(rawUrl),
+        data: fallbackLastData || { status: 'success', message: `${fallbackSavedCount} master menu tersimpan ke SIMRS via save-master-menu!` },
+      };
+    }
+
+    return {
+      success: false,
+      error: data?.message || `HTTP ${response.status}: Server SIMRS menolak request sinkronisasi menu`,
+      targetUrl: url,
+      data,
+    };
   } catch (err: any) {
     return {
       success: false,
+      targetUrl: url,
       error: err.name === 'AbortError' ? 'Koneksi ke endpoint SIMRS timeout' : (err.message || 'Gagal menghubungi server SIMRS'),
     };
   }
@@ -935,9 +831,9 @@ async function startServer() {
     res.json(menuItems);
   });
 
-  // Admin: Create Menu Item
-  app.post('/api/menu', (req, res) => {
-    const { name, price, category, mealTimes, calories, protein, carbs, fat, sodium, description, image, isAvailable } = req.body;
+  // Admin: Create Menu Item & automatically sync to SIMRS (save-master-menu)
+  app.post('/api/menu', async (req, res) => {
+    const { name, price, category, mealTimes, calories, protein, carbs, fat, sodium, description, image, isAvailable, simrsApiUrl, simrsApiKey } = req.body;
 
     if (!name || name.trim() === '') {
       return res.status(400).json({ error: 'Nama menu wajib diisi' });
@@ -961,18 +857,41 @@ async function startServer() {
 
     menuItems.unshift(newItem);
     broadcastEvent('menu_update', { item: newItem, action: 'create' });
-    res.status(201).json(newItem);
+
+    // Otomatis simpan master menu ke SIMRS (save-master-menu)
+    const targetUrl = resolveSimrsSingleMenuUrl(simrsApiUrl || simrsSettings.apiUrl);
+    const targetToken = (simrsApiKey && typeof simrsApiKey === 'string' && simrsApiKey.trim() !== '')
+      ? simrsApiKey.trim()
+      : (simrsSettings.apiKey || '').trim();
+
+    const simrsResult = await syncSingleMenuToSimrs(newItem, targetUrl, targetToken);
+
+    const responsePayload = {
+      ...newItem,
+      simrsSync: {
+        synced: simrsResult.success,
+        statusText: simrsResult.success 
+          ? 'Tersimpan di SIMRS (save-master-menu)' 
+          : (simrsResult.error || 'Gagal tersimpan di SIMRS'),
+        timestamp: new Date().toISOString(),
+        targetUrl: simrsResult.targetUrl || targetUrl,
+        response: simrsResult.data,
+        error: simrsResult.error,
+      },
+    };
+
+    res.status(201).json(responsePayload);
   });
 
   // Admin: Update Menu Item (Price, Name, Availability, Description, Photo, etc.)
-  app.patch('/api/menu/:id', (req, res) => {
+  app.patch('/api/menu/:id', async (req, res) => {
     const { id } = req.params;
     const item = menuItems.find(m => m.id === id);
     if (!item) {
       return res.status(404).json({ error: 'Menu tidak ditemukan' });
     }
 
-    const { name, price, category, mealTimes, calories, protein, carbs, fat, sodium, description, image, isAvailable } = req.body;
+    const { name, price, category, mealTimes, calories, protein, carbs, fat, sodium, description, image, isAvailable, simrsApiUrl, simrsApiKey } = req.body;
     if (name !== undefined) item.name = name.trim();
     if (price !== undefined) item.price = Math.max(0, Number(price));
     if (category !== undefined) item.category = category;
@@ -987,7 +906,28 @@ async function startServer() {
     if (isAvailable !== undefined) item.isAvailable = Boolean(isAvailable);
 
     broadcastEvent('menu_update', { item, action: 'update' });
-    res.json(item);
+
+    // Otomatis sinkronisasi pembaruan ke SIMRS (save-master-menu)
+    const targetUrl = resolveSimrsSingleMenuUrl(simrsApiUrl || simrsSettings.apiUrl);
+    const targetToken = (simrsApiKey && typeof simrsApiKey === 'string' && simrsApiKey.trim() !== '')
+      ? simrsApiKey.trim()
+      : (simrsSettings.apiKey || '').trim();
+
+    const simrsResult = await syncSingleMenuToSimrs(item, targetUrl, targetToken);
+
+    res.json({
+      ...item,
+      simrsSync: {
+        synced: simrsResult.success,
+        statusText: simrsResult.success 
+          ? 'Tersimpan di SIMRS (save-master-menu)' 
+          : (simrsResult.error || 'Gagal tersimpan di SIMRS'),
+        timestamp: new Date().toISOString(),
+        targetUrl: simrsResult.targetUrl || targetUrl,
+        response: simrsResult.data,
+        error: simrsResult.error,
+      },
+    });
   });
 
   // Admin: Toggle Availability
@@ -1012,6 +952,13 @@ async function startServer() {
     const removed = menuItems.splice(index, 1)[0];
     broadcastEvent('menu_update', { item: removed, action: 'delete' });
     res.json({ success: true, removedId: id });
+  });
+
+  // Admin: Reset / Kosongkan Seluruh Menu
+  app.delete('/api/menu/reset/all', (req, res) => {
+    menuItems = [];
+    broadcastEvent('menu_reset', {});
+    res.json({ success: true, message: 'Seluruh menu katalog telah berhasil dikosongkan.' });
   });
 
   // 3. Fonnte Configuration & WhatsApp Gateway APIs
@@ -1102,7 +1049,7 @@ async function startServer() {
     if (apiUrl !== undefined) {
       simrsSettings.apiUrl = apiUrl.trim();
     }
-    if (apiKey !== undefined) {
+    if (apiKey !== undefined && apiKey.trim() !== '') {
       simrsSettings.apiKey = apiKey.trim();
     }
     if (authHeaderType !== undefined) {
@@ -1255,12 +1202,18 @@ async function startServer() {
 
   // Sync All Master Menus to Laravel SIMRS API endpoint
   app.post('/api/simrs/sync-menu', async (req, res) => {
-    const { apiUrl, apiKey } = req.body;
+    const { apiUrl, apiKey, menuItems: clientItems } = req.body;
     const rawTargetUrl = (apiUrl || simrsSettings.apiUrl || 'https://rsbsaonline.com/service/medifirst2000/emr/sync-batch-menu').trim();
-    const targetToken = apiKey !== undefined ? apiKey : simrsSettings.apiKey;
+    const targetToken = (apiKey && typeof apiKey === 'string' && apiKey.trim() !== '')
+      ? apiKey.trim()
+      : (simrsSettings.apiKey || '').trim();
 
     if (!rawTargetUrl || rawTargetUrl.trim() === '') {
       return res.status(400).json({ error: 'URL Endpoint API Laravel SIMRS wajib diisi' });
+    }
+
+    if (Array.isArray(clientItems) && clientItems.length > 0) {
+      menuItems = clientItems;
     }
 
     const startTime = Date.now();

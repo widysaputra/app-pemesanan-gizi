@@ -18,6 +18,14 @@ export interface MenuItem {
   description: string;
   isAvailable: boolean;
   image?: string;
+  simrsSync?: {
+    synced: boolean;
+    statusText: string;
+    timestamp?: string;
+    targetUrl?: string;
+    response?: any;
+    error?: string;
+  };
 }
 
 export interface OrderItem {

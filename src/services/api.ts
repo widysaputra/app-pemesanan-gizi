@@ -353,11 +353,16 @@ export class HospitalRealtimeService {
   }
 
   async addMenuItem(item: Partial<MenuItem>): Promise<MenuItem> {
+    const simrsConfig = getLocalSimrsConfig();
     try {
       const res = await fetch('/api/menu', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(item),
+        body: JSON.stringify({
+          ...item,
+          simrsApiUrl: simrsConfig.apiUrl,
+          simrsApiKey: simrsConfig.apiKey,
+        }),
       });
       if (res.ok) {
         const newItem = await res.json();
@@ -377,6 +382,7 @@ export class HospitalRealtimeService {
             description: String(newItem.description || ''),
             isAvailable: newItem.isAvailable !== false,
             image: newItem.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+            simrsSync: newItem.simrsSync,
           };
 
           this.notifyListeners('menu_update', { item: sanitizedItem, action: 'create' });
@@ -415,11 +421,16 @@ export class HospitalRealtimeService {
   }
 
   async updateMenuItem(menuId: string, updates: Partial<MenuItem>): Promise<MenuItem> {
+    const simrsConfig = getLocalSimrsConfig();
     try {
       const res = await fetch(`/api/menu/${menuId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
+        body: JSON.stringify({
+          ...updates,
+          simrsApiUrl: simrsConfig.apiUrl,
+          simrsApiKey: simrsConfig.apiKey,
+        }),
       });
       if (res.ok) {
         const item = await res.json();
@@ -438,6 +449,7 @@ export class HospitalRealtimeService {
             description: String(item.description || ''),
             isAvailable: item.isAvailable !== false,
             image: item.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+            simrsSync: item.simrsSync,
           };
 
           this.notifyListeners('menu_update', { item: sanitizedItem, action: 'update' });
@@ -535,6 +547,17 @@ export class HospitalRealtimeService {
     saveLocalCachedMenu(currentMenu.filter(m => m.id !== menuId));
     this.notifyListeners('menu_update', { item: { id: menuId }, action: 'delete' });
     this.broadcastLocal('menu_update', { item: { id: menuId }, action: 'delete' });
+  }
+
+  async resetAllMenuItems(): Promise<void> {
+    try {
+      await fetch('/api/menu/reset/all', { method: 'DELETE' });
+    } catch {
+      // Fallback
+    }
+    saveLocalCachedMenu([]);
+    this.notifyListeners('menu_update', { action: 'reset' });
+    this.broadcastLocal('menu_update', { action: 'reset' });
   }
 
   // --- ORDERS APIS ---
@@ -1295,11 +1318,27 @@ export class HospitalRealtimeService {
       const res = await fetch('/api/simrs/sync-menu', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiUrl: syncUrl, apiKey: targetToken, isSingle: isSingleMenuEndpoint }),
+        body: JSON.stringify({ 
+          apiUrl: syncUrl, 
+          apiKey: targetToken, 
+          isSingle: isSingleMenuEndpoint,
+          menuItems: items,
+          items: items,
+        }),
       });
       const contentType = res.headers.get('content-type') || '';
-      if (res.ok && contentType.includes('application/json')) {
-        return await res.json();
+      if (contentType.includes('application/json')) {
+        const result = await res.json();
+        if (result && (result.success !== undefined || result.message || result.error)) {
+          return {
+            success: Boolean(result.success),
+            message: result.message || (result.success ? 'Berhasil sinkronisasi master menu ke SIMRS!' : (result.error || 'Gagal sinkronisasi menu')),
+            totalSynced: result.totalSynced || (result.success ? items.length : 0),
+            latency: result.latency,
+            data: result.data,
+            error: result.error,
+          };
+        }
       }
     } catch {
       // Backend offline / Vercel
@@ -1425,11 +1464,15 @@ export class HospitalRealtimeService {
         };
       }
     } catch (err: any) {
+      const isCors = err.message?.includes('Failed to fetch') || err.name === 'TypeError';
+      const errorMsg = isCors
+        ? `Gagal terhubung langsung ke SIMRS dari browser (CORS). Pastikan backend aktif atau server Laravel SIMRS mengizinkan CORS header.`
+        : `Gagal menyinkronkan master menu ke SIMRS: ${err.message}`;
       return {
-        success: true,
-        totalSynced: items.length,
-        message: `${items.length} master menu gizi siap disinkronkan ke SIMRS.`,
-        error: err.message,
+        success: false,
+        totalSynced: 0,
+        message: errorMsg,
+        error: errorMsg,
       };
     }
   }

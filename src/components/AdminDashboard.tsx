@@ -243,12 +243,45 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   const handleSaveMenuItem = async (itemData: Partial<MenuItem>) => {
-    if (editingMenuItem) {
-      await realtimeService.updateMenuItem(editingMenuItem.id, itemData);
-    } else {
-      await realtimeService.addMenuItem(itemData);
+    try {
+      if (editingMenuItem) {
+        const updated = await realtimeService.updateMenuItem(editingMenuItem.id, itemData);
+        if (updated.simrsSync) {
+          setMenuSyncNotice({
+            success: updated.simrsSync.synced,
+            text: updated.simrsSync.synced
+              ? `Menu "${updated.name}" berhasil diupdate & tersimpan ke SIMRS (save-master-menu)!`
+              : `Menu "${updated.name}" tersimpan di aplikasi, status SIMRS: ${updated.simrsSync.statusText}`,
+          });
+        }
+      } else {
+        const created = await realtimeService.addMenuItem(itemData);
+        if (created.simrsSync) {
+          setMenuSyncNotice({
+            success: created.simrsSync.synced,
+            text: created.simrsSync.synced
+              ? `Master menu "${created.name}" berhasil ditambahkan & tersimpan ke SIMRS (save-master-menu)!`
+              : `Master menu "${created.name}" tersimpan di aplikasi, status SIMRS: ${created.simrsSync.statusText}`,
+          });
+        }
+      }
+    } catch (err: any) {
+      setMenuSyncNotice({
+        success: false,
+        text: err.message || 'Gagal menyimpan menu.',
+      });
     }
     setEditingMenuItem(null);
+  };
+
+  const handleResetAllMenu = async () => {
+    if (confirm('Apakah Anda yakin ingin mengosongkan seluruh menu di katalog?')) {
+      await realtimeService.resetAllMenuItems();
+      setMenuSyncNotice({
+        success: true,
+        text: 'Seluruh menu katalog telah berhasil dikosongkan. Anda dapat menambah master menu baru.',
+      });
+    }
   };
 
   const handleDeleteMenuItem = async (id: string, name: string) => {
@@ -409,12 +442,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         simrsApiUrl.trim(),
         simrsApiKey.trim() || undefined
       );
-      setMenuSyncNotice({
-        success: true,
-        text: res.message || `Berhasil menyinkronkan ${menuItems.length} item master menu ke database SIMRS!`,
-        count: res.totalSynced || menuItems.length,
-        latency: res.latency,
-      });
+      if (res.success) {
+        setMenuSyncNotice({
+          success: true,
+          text: res.message || `Berhasil menyinkronkan ${res.totalSynced || menuItems.length} item master menu ke database SIMRS!`,
+          count: res.totalSynced || menuItems.length,
+          latency: res.latency,
+        });
+      } else {
+        setMenuSyncNotice({
+          success: false,
+          text: res.error || res.message || 'Gagal menyinkronkan master menu ke SIMRS.',
+        });
+      }
     } catch (err: any) {
       setMenuSyncNotice({
         success: false,
@@ -527,6 +567,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {activeTab === 'menu' && (
         <div className="space-y-4">
           
+          {/* Menu Sync Notification Banner */}
+          {menuSyncNotice && (
+            <div
+              className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 text-xs font-medium ${
+                menuSyncNotice.success
+                  ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
+                  : 'bg-rose-50 text-rose-900 border-rose-200'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Database className={`w-4 h-4 shrink-0 ${menuSyncNotice.success ? 'text-emerald-600' : 'text-rose-600'}`} />
+                <span>{menuSyncNotice.text}</span>
+                {menuSyncNotice.latency && (
+                  <span className="px-1.5 py-0.5 rounded bg-white/70 text-[10px] font-mono border">
+                    {menuSyncNotice.latency}
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => setMenuSyncNotice(null)}
+                className="text-slate-400 hover:text-slate-600 cursor-pointer font-bold px-1.5"
+                title="Tutup notifikasi"
+              >
+                &times;
+              </button>
+            </div>
+          )}
+
           {/* Menu Action Bar */}
           <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex flex-col md:flex-row items-center justify-between gap-3">
             
@@ -559,14 +627,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               ))}
             </div>
 
-            {/* Add New Menu Button */}
-            <button
-              onClick={handleOpenAddMenu}
-              className="w-full md:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Tambah Menu Baru</span>
-            </button>
+            {/* Actions: Sync SIMRS, Reset, & Add Menu */}
+            <div className="flex items-center gap-2 w-full md:w-auto justify-end flex-wrap">
+              {menuItems.length > 0 && (
+                <button
+                  onClick={handleResetAllMenu}
+                  type="button"
+                  className="px-3 py-2 bg-slate-100 hover:bg-rose-50 hover:text-rose-700 text-slate-600 text-xs font-semibold rounded-xl border border-slate-200 transition-colors cursor-pointer shrink-0"
+                  title="Kosongkan seluruh menu katalog"
+                >
+                  Kosongkan Menu
+                </button>
+              )}
+
+              <button
+                onClick={handleSyncAllMenuToSimrs}
+                disabled={isSyncingMenu || menuItems.length === 0}
+                type="button"
+                className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl border border-indigo-200 shadow-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+                title="Kirim seluruh daftar master menu ke API SIMRS"
+              >
+                <Database className="w-3.5 h-3.5" />
+                <span>{isSyncingMenu ? 'Menyinkronkan...' : `Sync ke SIMRS (${menuItems.length})`}</span>
+              </button>
+
+              <button
+                onClick={handleOpenAddMenu}
+                type="button"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Tambah Master Menu</span>
+              </button>
+            </div>
           </div>
 
           {/* Menu Cards Grid - 2 Kolom di HP agar tidak terlalu ke bawah */}
@@ -708,10 +801,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
 
           {filteredMenuItems.length === 0 && (
-            <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-2">
-              <Utensils className="w-8 h-8 text-slate-300 mx-auto" />
-              <h4 className="font-bold text-slate-700 text-sm">Tidak ada menu yang sesuai</h4>
-              <p className="text-xs text-slate-500">Coba ubah kata kunci pencarian atau kategori filter.</p>
+            <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-3">
+              <Utensils className="w-10 h-10 text-slate-300 mx-auto" />
+              {menuItems.length === 0 ? (
+                <>
+                  <h4 className="font-bold text-slate-800 text-sm">Katalog Master Menu Masih Kosong</h4>
+                  <p className="text-xs text-slate-500 max-w-md mx-auto">
+                    Data menu default telah dibersihkan sesuai instruksi. Klik tombol di bawah untuk menambahkan master menu gizi baru, yang akan langsung otomatis tersimpan ke endpoint SIMRS (<code className="bg-slate-100 px-1 py-0.5 rounded text-indigo-700">save-master-menu</code>).
+                  </p>
+                  <button
+                    onClick={handleOpenAddMenu}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Tambah Master Menu Pertama</span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <h4 className="font-bold text-slate-700 text-sm">Tidak ada menu yang sesuai</h4>
+                  <p className="text-xs text-slate-500">Coba ubah kata kunci pencarian atau kategori filter.</p>
+                </>
+              )}
             </div>
           )}
 
