@@ -1,12 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MenuItem, MenuCategory, MealTime } from '../types';
-import { X, Save, DollarSign, Image as ImageIcon, Flame, Tag, AlertCircle } from 'lucide-react';
+import { X, Save, DollarSign, Image as ImageIcon, Flame, Tag, AlertCircle, Upload, Link as LinkIcon, Trash2, Camera, Check, Search, Sparkles, RefreshCw } from 'lucide-react';
 
 interface MenuEditModalProps {
   item: MenuItem | null; // null if adding new item
   isOpen: boolean;
   onClose: () => void;
   onSave: (itemData: Partial<MenuItem>) => Promise<void>;
+}
+
+interface CustomImageItem {
+  id: string;
+  name: string;
+  url: string;
+  category?: string;
+  dateAdded: number;
 }
 
 const CATEGORY_LABELS: Record<MenuCategory, string> = {
@@ -18,16 +26,104 @@ const CATEGORY_LABELS: Record<MenuCategory, string> = {
   minuman: 'Minuman Sehat',
 };
 
-const SAMPLE_FOOD_IMAGES = [
-  { name: 'Nasi Organik', url: 'https://images.unsplash.com/photo-1516684732162-798a0062be99?auto=format&fit=crop&w=400&q=80' },
-  { name: 'Ayam Panggang', url: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?auto=format&fit=crop&w=400&q=80' },
-  { name: 'Sup Ikan Bening', url: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=400&q=80' },
-  { name: 'Rolade Sapi', url: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=400&q=80' },
-  { name: 'Tahu Kukus', url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80' },
-  { name: 'Sayur Bayam', url: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=400&q=80' },
-  { name: 'Buah Potong', url: 'https://images.unsplash.com/photo-1519996529931-28324d5a630e?auto=format&fit=crop&w=400&q=80' },
-  { name: 'Puding Rendah Gula', url: 'https://images.unsplash.com/photo-1551024601-bec78aea704b?auto=format&fit=crop&w=400&q=80' },
+const SAMPLE_FOOD_IMAGES: Array<{ name: string; category: string; url: string }> = [
+  // 1. Sarapan Spesial (Matching user uploaded images)
+  {
+    name: 'Roti Bakar & Telur Mata Sapi + Teh',
+    category: 'sarapan',
+    url: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    name: 'Bubur Ayam Suwir Komplit Kerupuk',
+    category: 'sarapan',
+    url: 'https://images.unsplash.com/photo-1588166524941-3bf61a9c41db?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    name: 'Nasi Kuning Komplit Telur & Tempe',
+    category: 'sarapan',
+    url: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    name: 'Nasi Tim Ayam Jamur Lembut',
+    category: 'sarapan',
+    url: 'https://images.unsplash.com/photo-1541832676-9b763b0239ab?auto=format&fit=crop&w=600&q=80',
+  },
+
+  // 2. Makanan Pokok & Utama
+  {
+    name: 'Nasi Putih Pulen Organik',
+    category: 'makanan_utama',
+    url: 'https://images.unsplash.com/photo-1516684732162-798a0062be99?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    name: 'Nasi Merah Rendah Glikemik',
+    category: 'makanan_utama',
+    url: 'https://images.unsplash.com/photo-1536304993881-ff6e9eefa2a6?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    name: 'Kentang Tumbuk (Mashed Potato)',
+    category: 'makanan_utama',
+    url: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=600&q=80',
+  },
+
+  // 3. Lauk Hewani & Nabati
+  {
+    name: 'Ayam Panggang Kecap / Madu',
+    category: 'lauk_hewani',
+    url: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    name: 'Sup Ikan Gurame Bening',
+    category: 'lauk_hewani',
+    url: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    name: 'Rolade Daging Sapi Saus Gurih',
+    category: 'lauk_hewani',
+    url: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    name: 'Tahu & Tempe Bacem Kukus',
+    category: 'lauk_nabati',
+    url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
+  },
+
+  // 4. Sayuran Sehat
+  {
+    name: 'Sayur Bening Bayam & Jagung',
+    category: 'sayuran',
+    url: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    name: 'Capcay Kuah Segar Sayur Campur',
+    category: 'sayuran',
+    url: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&q=80',
+  },
+
+  // 5. Buah, Snack & Minuman
+  {
+    name: 'Buah Potong Segar (Pepaya & Melon)',
+    category: 'buah_snack',
+    url: 'https://images.unsplash.com/photo-1519996529931-28324d5a630e?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    name: 'Puding Gizi Rendah Gula',
+    category: 'buah_snack',
+    url: 'https://images.unsplash.com/photo-1551024601-bec78aea704b?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    name: 'Teh Manis Hangat / Melati',
+    category: 'minuman',
+    url: 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    name: 'Jus Jeruk Segar Tinggi Vitamin C',
+    category: 'minuman',
+    url: 'https://images.unsplash.com/photo-1613478223719-2ab802602423?auto=format&fit=crop&w=600&q=80',
+  },
 ];
+
+const CUSTOM_GALLERY_KEY = 'siapmakan_custom_gallery_images';
 
 export const MenuEditModal: React.FC<MenuEditModalProps> = ({
   item,
@@ -46,9 +142,147 @@ export const MenuEditModal: React.FC<MenuEditModalProps> = ({
   const [sodium, setSodium] = useState<number>(20);
   const [description, setDescription] = useState('');
   const [image, setImage] = useState('');
+  const [imageInputMode, setImageInputMode] = useState<'presets' | 'upload' | 'url'>('presets');
+  const [galleryCategoryFilter, setGalleryCategoryFilter] = useState<string>('all');
+  const [gallerySearch, setGallerySearch] = useState<string>('');
+  const [customGallery, setCustomGallery] = useState<CustomImageItem[]>([]);
+  const [uploadTitle, setUploadTitle] = useState<string>('');
+  const [isDragging, setIsDragging] = useState(false);
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isAvailable, setIsAvailable] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Load custom gallery from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(CUSTOM_GALLERY_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          setCustomGallery(parsed);
+        }
+      }
+    } catch {}
+  }, []);
+
+  const saveCustomGallery = (newList: CustomImageItem[]) => {
+    setCustomGallery(newList);
+    try {
+      localStorage.setItem(CUSTOM_GALLERY_KEY, JSON.stringify(newList));
+    } catch {}
+  };
+
+  const processImageFile = (file: File) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setErrorMsg('Format file harus berupa gambar (JPG, PNG, WEBP, GIF).');
+      return;
+    }
+    
+    setIsProcessingImage(true);
+    const defaultName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ') || 'Foto Menu Baru';
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      if (result) {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            const maxDim = 800; // Optimal resolution for fast hospital loading
+            let width = img.width;
+            let height = img.height;
+            if (width > height && width > maxDim) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else if (height > maxDim) {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(img, 0, 0, width, height);
+              const compressed = canvas.toDataURL('image/jpeg', 0.85);
+              setImage(compressed);
+
+              // Auto-save to custom gallery
+              const newItem: CustomImageItem = {
+                id: `img-${Date.now()}`,
+                name: uploadTitle.trim() || name.trim() || defaultName,
+                url: compressed,
+                category: category,
+                dateAdded: Date.now(),
+              };
+              const updated = [newItem, ...customGallery.filter((g) => g.url !== compressed)];
+              saveCustomGallery(updated.slice(0, 30));
+            } else {
+              setImage(result);
+            }
+          } catch {
+            setImage(result);
+          } finally {
+            setIsProcessingImage(false);
+          }
+        };
+        img.onerror = () => {
+          setImage(result);
+          setIsProcessingImage(false);
+        };
+        img.src = result;
+      } else {
+        setIsProcessingImage(false);
+      }
+    };
+    reader.onerror = () => {
+      setErrorMsg('Gagal membaca file gambar.');
+      setIsProcessingImage(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveFromCustomGallery = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    const updated = customGallery.filter((item) => item.id !== id);
+    saveCustomGallery(updated);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      processImageFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  // Filtered lists for the preset gallery tab
+  const filteredCustom = customGallery.filter((c) => {
+    const matchesSearch = c.name.toLowerCase().includes(gallerySearch.toLowerCase());
+    const matchesCat = galleryCategoryFilter === 'all' || galleryCategoryFilter === 'custom' || c.category === galleryCategoryFilter;
+    return matchesSearch && matchesCat;
+  });
+
+  const filteredPresets = SAMPLE_FOOD_IMAGES.filter((p) => {
+    const matchesSearch = p.name.toLowerCase().includes(gallerySearch.toLowerCase());
+    const matchesCat = galleryCategoryFilter === 'all' || p.category === galleryCategoryFilter;
+    return matchesSearch && matchesCat;
+  });
 
   useEffect(() => {
     if (item) {
@@ -326,39 +560,310 @@ export const MenuEditModal: React.FC<MenuEditModalProps> = ({
             </div>
           </div>
 
-          {/* Row 5: Photo URL with Quick Presets */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">
-              URL Foto / Gambar Menu
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="url"
-                value={image}
-                onChange={(e) => setImage(e.target.value)}
-                placeholder="https://images.unsplash.com/..."
-                className="flex-1 px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-              {image && (
-                <div className="w-10 h-10 rounded-xl border border-slate-200 overflow-hidden shrink-0 bg-slate-100">
-                  <img src={image} alt="Preview" className="w-full h-full object-cover" />
-                </div>
-              )}
-            </div>
-            {/* Quick Presets */}
-            <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
-              <span className="text-[10px] font-medium text-slate-400">Pilihan cepat:</span>
-              {SAMPLE_FOOD_IMAGES.slice(0, 5).map((preset) => (
+          {/* Row 5: Photo Selector (Presets Gallery / File Upload / Custom URL) */}
+          <div className="bg-slate-50/90 p-4 rounded-2xl border border-slate-200 space-y-3.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                <ImageIcon className="w-4 h-4 text-emerald-600" />
+                <span>Pilih / Upload Foto Makanan</span>
+              </label>
+
+              {/* Source Switcher Tabs */}
+              <div className="flex items-center bg-slate-200/80 p-0.5 rounded-xl text-[11px] font-semibold">
                 <button
-                  key={preset.name}
                   type="button"
-                  onClick={() => setImage(preset.url)}
-                  className="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-0.5 rounded cursor-pointer transition-colors"
+                  onClick={() => setImageInputMode('presets')}
+                  className={`px-3 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                    imageInputMode === 'presets'
+                      ? 'bg-white text-slate-900 shadow-xs font-bold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
                 >
-                  {preset.name}
+                  <Sparkles className="w-3 h-3 text-amber-500" />
+                  <span>Galeri Pilihan</span>
+                  {customGallery.length > 0 && (
+                    <span className="px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-bold">
+                      {customGallery.length + SAMPLE_FOOD_IMAGES.length}
+                    </span>
+                  )}
                 </button>
-              ))}
+                <button
+                  type="button"
+                  onClick={() => setImageInputMode('upload')}
+                  className={`px-3 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                    imageInputMode === 'upload'
+                      ? 'bg-white text-slate-900 shadow-xs font-bold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Upload className="w-3 h-3 text-emerald-600" />
+                  <span>Upload Foto Baru</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImageInputMode('url')}
+                  className={`px-3 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                    imageInputMode === 'url'
+                      ? 'bg-white text-slate-900 shadow-xs font-bold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <LinkIcon className="w-3 h-3" />
+                  <span>URL / Link</span>
+                </button>
+              </div>
             </div>
+
+            {/* TAB 1: PRESETS & SAVED GALLERY PHOTOS */}
+            {imageInputMode === 'presets' && (
+              <div className="space-y-3">
+                {/* Search & Category Filter */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+                  <div className="relative flex-1">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                    <input
+                      type="text"
+                      value={gallerySearch}
+                      onChange={(e) => setGallerySearch(e.target.value)}
+                      placeholder="Cari foto: Roti, Bubur, Nasi Kuning, Sup, Ayam..."
+                      className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+
+                  {/* Category Pills */}
+                  <div className="flex items-center gap-1 overflow-x-auto pb-1 text-[10px]">
+                    {[
+                      { key: 'all', label: 'Semua' },
+                      { key: 'custom', label: `Foto Saya (${customGallery.length})` },
+                      { key: 'sarapan', label: 'Sarapan' },
+                      { key: 'makanan_utama', label: 'Makanan Pokok' },
+                      { key: 'lauk_hewani', label: 'Lauk Hewani' },
+                      { key: 'sayuran', label: 'Sayuran' },
+                      { key: 'buah_snack', label: 'Snack/Buah' },
+                      { key: 'minuman', label: 'Minuman' },
+                    ].map((tab) => (
+                      <button
+                        key={tab.key}
+                        type="button"
+                        onClick={() => setGalleryCategoryFilter(tab.key)}
+                        className={`px-2.5 py-1 rounded-lg font-bold whitespace-nowrap transition-colors cursor-pointer ${
+                          galleryCategoryFilter === tab.key
+                            ? 'bg-slate-900 text-white'
+                            : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Section: Custom Uploaded Photos (If any) */}
+                {(galleryCategoryFilter === 'all' || galleryCategoryFilter === 'custom') && customGallery.length > 0 && (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-black text-emerald-800 uppercase tracking-wider flex items-center gap-1">
+                        <Camera className="w-3 h-3 text-emerald-600" />
+                        <span>Foto Unggahan Anda Sendiri</span>
+                      </span>
+                      <span className="text-[10px] text-slate-400">Tersimpan di Galeri</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {filteredCustom.map((cust) => {
+                        const isSelected = image === cust.url;
+                        return (
+                          <div
+                            key={cust.id}
+                            onClick={() => setImage(cust.url)}
+                            className={`group relative p-1.5 rounded-xl border text-left flex items-center gap-2 transition-all cursor-pointer overflow-hidden ${
+                              isSelected
+                                ? 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-300 shadow-xs'
+                                : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-xs'
+                            }`}
+                          >
+                            <img src={cust.url} alt={cust.name} className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <span className="text-[11px] font-bold text-slate-900 block truncate" title={cust.name}>
+                                {cust.name}
+                              </span>
+                              <span className="text-[9px] text-emerald-600 font-semibold block">Foto Saya</span>
+                            </div>
+                            
+                            {isSelected ? (
+                              <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={(e) => handleRemoveFromCustomGallery(e, cust.id)}
+                                className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-600 rounded transition-opacity"
+                                title="Hapus dari galeri saya"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Section: Standard Hospital Photos */}
+                {galleryCategoryFilter !== 'custom' && (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        Koleksi Standar Menu Rumah Sakit ({filteredPresets.length})
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-56 overflow-y-auto pr-1">
+                      {filteredPresets.map((preset) => {
+                        const isSelected = image === preset.url;
+                        return (
+                          <button
+                            key={preset.name}
+                            type="button"
+                            onClick={() => setImage(preset.url)}
+                            className={`p-1.5 rounded-xl border text-left flex items-center gap-2 transition-all cursor-pointer ${
+                              isSelected
+                                ? 'border-emerald-500 bg-emerald-50/90 ring-2 ring-emerald-200 shadow-xs'
+                                : 'border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300'
+                            }`}
+                          >
+                            <img src={preset.url} alt={preset.name} className="w-9 h-9 rounded-lg object-cover shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <span className="text-[11px] font-bold text-slate-800 block truncate" title={preset.name}>
+                                {preset.name}
+                              </span>
+                              <span className="text-[9px] text-slate-400 capitalize block truncate">
+                                {preset.category.replace('_', ' ')}
+                              </span>
+                            </div>
+                            {isSelected && <Check className="w-4 h-4 text-emerald-600 shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB 2: UPLOAD NEW PHOTO FILE */}
+            {imageInputMode === 'upload' && (
+              <div className="space-y-3">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      processImageFile(e.target.files[0]);
+                    }
+                  }}
+                  className="hidden"
+                />
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    Nama / Label Foto (Opsional, untuk disimpan di Galeri Saya)
+                  </label>
+                  <input
+                    type="text"
+                    value={uploadTitle}
+                    onChange={(e) => setUploadTitle(e.target.value)}
+                    placeholder="Contoh: Roti Bakar Telur, Bubur Pasien..."
+                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+
+                <div
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`border-2 border-dashed rounded-2xl p-5 text-center cursor-pointer transition-all ${
+                    isDragging
+                      ? 'border-emerald-500 bg-emerald-50/80 scale-[0.99]'
+                      : 'border-slate-300 hover:border-emerald-500 bg-white hover:bg-slate-50/80'
+                  }`}
+                >
+                  <div className="flex flex-col items-center justify-center gap-1.5">
+                    <div className="w-11 h-11 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shadow-xs">
+                      {isProcessingImage ? (
+                        <RefreshCw className="w-5 h-5 animate-spin text-emerald-600" />
+                      ) : (
+                        <Upload className="w-5 h-5" />
+                      )}
+                    </div>
+                    <div className="text-xs font-extrabold text-slate-900">
+                      {isProcessingImage ? 'Mengompresi Gambar...' : 'Pilih Foto dari Galeri / Kamera / Komputer'}
+                    </div>
+                    <p className="text-[11px] text-slate-500 max-w-sm mx-auto leading-relaxed">
+                      Klik atau geser file gambar ke sini (JPG, PNG, WEBP). Foto otomatis disimpan ke <strong>Galeri Saya</strong> untuk digunakan kapan saja.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: CUSTOM URL / LINK */}
+            {imageInputMode === 'url' && (
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-bold text-slate-700">
+                  URL / Direct Link Gambar
+                </label>
+                <input
+                  type="url"
+                  value={image}
+                  onChange={(e) => setImage(e.target.value)}
+                  placeholder="https://contoh-domain.com/foto-makanan.jpg"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                />
+                <p className="text-[10px] text-slate-400">
+                  Masukkan link gambar HTTPS langsung dari server rumah sakit atau hosting gambar publik.
+                </p>
+              </div>
+            )}
+
+            {/* Live Preview & Clear Button */}
+            {image && (
+              <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200 shadow-xs">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-12 h-12 rounded-lg border border-slate-200 overflow-hidden shrink-0 bg-slate-100 shadow-xs">
+                    <img src={image} alt="Preview Foto Menu" className="w-full h-full object-cover" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 block">
+                      Foto Terpilih Aktif
+                    </span>
+                    <span className="text-xs font-semibold text-slate-700 truncate block max-w-xs">
+                      {image.startsWith('data:') ? 'Foto Unggahan Lokal (Tersimpan di Galeri)' : image}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setImageInputMode('presets')}
+                    className="px-2.5 py-1 text-[11px] font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg cursor-pointer transition-colors"
+                  >
+                    Ganti Foto
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImage('')}
+                    className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg cursor-pointer transition-colors"
+                    title="Hapus Foto"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Row 6: Description */}
