@@ -1570,26 +1570,45 @@ app.post('/api/simrs/fetch-menu', async (req, res) => {
          menus = [];
       }
 
-      // Transform SIMRS format back to MenuItem
-      const transformedMenus: MenuItem[] = menus.map((m: any) => ({
-        id: String(m.id_menu || m.id || `menu-${Date.now()}-${Math.floor(Math.random()*1000)}`),
-        name: String(m.nama_menu || m.name || 'Menu SIMRS').trim(),
-        price: Number(m.harga || m.price) || 0,
-        category: (m.kategori || m.category || 'makanan_utama') as MenuCategory,
-        mealTimes: Array.isArray(m.waktu_makan || m.mealTimes) 
-          ? (m.waktu_makan || m.mealTimes) 
-          : (typeof (m.waktu_makan || m.mealTimes) === 'string' 
-             ? (m.waktu_makan || m.mealTimes).split(',').map((s:string) => s.trim().toLowerCase()) 
-             : ['pagi', 'siang', 'malam']),
-        calories: Number(m.kalori || m.calories) || 0,
-        protein: Number(m.protein) || 0,
-        carbs: Number(m.karbohidrat || m.carbs) || 0,
-        fat: Number(m.lemak || m.fat) || 0,
-        sodium: Number(m.natrium || m.sodium) || 0,
-        description: String(m.deskripsi || m.description || ''),
-        image: m.gambar || m.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
-        isAvailable: m.tersedia !== undefined ? Boolean(m.tersedia) : (m.isAvailable !== undefined ? Boolean(m.isAvailable) : true)
-      }));
+      // Transform SIMRS format from rego_master_menu_gizi_m back to MenuItem
+      const transformedMenus: MenuItem[] = menus.map((m: any) => {
+        // Parse meal times from string, array, or 'semua'
+        let parsedMealTimes: ('pagi' | 'siang' | 'malam' | 'snack')[] = ['pagi', 'siang', 'malam'];
+        const rawTimes = m.waktu_makan || m.mealTimes || m.meal_time;
+        if (Array.isArray(rawTimes)) {
+          parsedMealTimes = rawTimes;
+        } else if (typeof rawTimes === 'string') {
+          if (rawTimes.toLowerCase() === 'semua' || rawTimes.toLowerCase() === 'all') {
+            parsedMealTimes = ['pagi', 'siang', 'malam'];
+          } else {
+            try {
+              const decoded = JSON.parse(rawTimes);
+              if (Array.isArray(decoded)) parsedMealTimes = decoded;
+              else parsedMealTimes = rawTimes.split(',').map((s: string) => s.trim().toLowerCase()) as any;
+            } catch {
+              parsedMealTimes = rawTimes.split(',').map((s: string) => s.trim().toLowerCase()) as any;
+            }
+          }
+        }
+
+        return {
+          id: String(m.menu_id || m.id_menu || m.id || `menu-${Date.now()}-${Math.floor(Math.random() * 1000)}`),
+          name: String(m.nama_menu || m.name || 'Menu SIMRS').trim(),
+          price: Number(m.harga || m.price) || 0,
+          category: (m.kategori || m.category || 'makanan_utama') as MenuCategory,
+          mealTimes: parsedMealTimes,
+          calories: Number(m.kalori || m.calories) || 0,
+          protein: Number(m.protein_gram ?? m.protein) || 0,
+          carbs: Number(m.karbohidrat_gram ?? m.karbohidrat ?? m.carbs) || 0,
+          fat: Number(m.lemak_gram ?? m.lemak ?? m.fat) || 0,
+          sodium: Number(m.natrium_mg ?? m.natrium ?? m.sodium) || 0,
+          description: String(m.deskripsi || m.description || ''),
+          image: m.foto_url || m.gambar || m.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+          isAvailable: m.tersedia !== undefined 
+            ? (m.tersedia === 1 || m.tersedia === true || m.tersedia === '1' || m.tersedia === 'true')
+            : (m.isAvailable !== undefined ? Boolean(m.isAvailable) : true)
+        };
+      });
 
       // Update in-memory menu items (merge or replace based on ID)
       transformedMenus.forEach(newMenu => {

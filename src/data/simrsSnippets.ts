@@ -175,14 +175,15 @@ Route::prefix('api')->group(function () {
     // ==========================================
     // 2. API MASTER DATA MENU GIZI RS
     // ==========================================
+    // Ambil daftar menu gizi aktif untuk aplikasi pemesanan pasien & admin
+    Route::get('/master-menu-gizi', [GiziSIMRSController::class, 'getMasterMenuGizi']);
+    Route::get('/master-menu', [GiziSIMRSController::class, 'getMasterMenuGizi']);
+    
     // Simpan / update 1 item menu makanan
     Route::post('/save-master-menu', [GiziSIMRSController::class, 'simpanMasterMenu']);
     
     // Sinkronisasi massal (bulk sync) seluruh menu makanan
     Route::post('/sync-batch-menu', [GiziSIMRSController::class, 'syncBatchMenu']);
-    
-    // Ambil daftar menu gizi aktif untuk aplikasi pemesanan pasien
-    Route::get('/master-menu', [GiziSIMRSController::class, 'getMasterMenu']);
 
     // ==========================================
     // 3. API HASIL TEST MMPI-2 (EMR)
@@ -458,24 +459,108 @@ class GiziSIMRSController extends Controller
     }
 
     /**
-     * GET /api/master-menu
-     * Mengambil daftar master menu aktif dari database SIMRS
+     * GET /api/master-menu-gizi (atau /api/master-menu)
+     * Mengambil daftar master menu aktif dari tabel 'rego_master_menu_gizi_m' (DB SIMRS)
+     * untuk ditampilkan langsung di aplikasi pemesanan pasien & admin
      */
-    public function getMasterMenu(Request $request)
+    public function getMasterMenuGizi(Request $request)
     {
-        $kategori = $request->query('kategori');
-        $query = DB::table('master_menu_gizi_m')->where('is_tersedia', true);
+        // Validasi X-AUTH-TOKEN jika diaktifkan
+        $authError = $this->checkAuthToken($request);
+        if ($authError) return $authError;
 
-        if ($kategori && $kategori !== 'all') {
-            $query->where('kategori', $kategori);
+        try {
+            $tableName = 'rego_master_menu_gizi_m';
+            if (!DB::getSchemaBuilder()->hasTable($tableName)) {
+                $tableName = DB::getSchemaBuilder()->hasTable('master_menu_gizi_m') ? 'master_menu_gizi_m' : 'rego_master_menu_gizi_m';
+            }
+
+            $query = DB::table($tableName);
+
+            // Filter ketersediaan: jika untuk pasien, ambil yang tersedia (tersedia = true / 1)
+            if (!$request->has('include_all')) {
+                $query->where(function($q) {
+                    $q->where('tersedia', true)
+                      ->orWhere('tersedia', 1)
+                      ->orWhereNull('tersedia');
+                });
+            }
+
+            // Filter kategori opsional jika dikirim oleh client
+            if ($request->filled('kategori') && $request->input('kategori') !== 'all') {
+                $query->where('kategori', $request->input('kategori'));
+            }
+
+            // Filter waktu makan opsional (pagi, siang, malam, snack)
+            if ($request->filled('waktu_makan') && $request->input('waktu_makan') !== 'all') {
+                $waktu = strtolower($request->input('waktu_makan'));
+                $query->where(function($q) use ($waktu) {
+                    $q->where('waktu_makan', 'like', "%{$waktu}%")
+                      ->orWhere('waktu_makan', 'semua')
+                      ->orWhere('waktu_makan', 'all')
+                      ->orWhereNull('waktu_makan');
+                });
+            }
+
+            $rawMenus = $query->orderBy('kategori', 'asc')->orderBy('nama_menu', 'asc')->get();
+
+            // Transformasi data agar sesuai dengan struktur objek MenuItem di aplikasi frontend pasien & admin
+            $formattedMenus = $rawMenus->map(function ($item) {
+                // Parsing waktu makan
+                $mealTimes = ['pagi', 'siang', 'malam'];
+                if (!empty($item->waktu_makan)) {
+                    if (strtolower($item->waktu_makan) === 'semua' || strtolower($item->waktu_makan) === 'all') {
+                        $mealTimes = ['pagi', 'siang', 'malam'];
+                    } else {
+                        $decoded = json_decode($item->waktu_makan, true);
+                        if (is_array($decoded)) {
+                            $mealTimes = $decoded;
+                        } else {
+                            $mealTimes = array_map('trim', explode(',', $item->waktu_makan));
+                        }
+                    }
+                }
+
+                // Parsing tags diet khusus
+                $dietaryTags = [];
+                if (!empty($item->tags_diet)) {
+                    $decodedTags = json_decode($item->tags_diet, true);
+                    if (is_array($decodedTags)) {
+                        $dietaryTags = $decodedTags;
+                    }
+                }
+
+                return [
+                    'id'          => (string)($item->menu_id ?? $item->id ?? $item->id_menu),
+                    'name'        => (string)($item->nama_menu ?? $item->name ?? 'Menu Gizi'),
+                    'description' => (string)($item->deskripsi ?? $item->description ?? ''),
+                    'category'    => (string)($item->kategori ?? $item->category ?? 'makanan_utama'),
+                    'price'       => (int)($item->harga ?? $item->price ?? 0),
+                    'calories'    => (int)($item->kalori ?? $item->calories ?? 0),
+                    'protein'     => (float)($item->protein_gram ?? $item->protein ?? 0),
+                    'carbs'       => (float)($item->karbohidrat_gram ?? $item->karbohidrat ?? $item->carbs ?? 0),
+                    'fat'         => (float)($item->lemak_gram ?? $item->lemak ?? $item->fat ?? 0),
+                    'sodium'      => (float)($item->natrium_mg ?? $item->natrium ?? $item->sodium ?? 0),
+                    'mealTimes'   => $mealTimes,
+                    'dietaryTags' => $dietaryTags,
+                    'isAvailable' => (bool)($item->tersedia ?? $item->is_tersedia ?? true),
+                    'image'       => $item->foto_url ?? $item->gambar_url ?? $item->image ?? 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+                ];
+            });
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Data master menu gizi berhasil diambil dari database SIMRS.',
+                'total'   => count($formattedMenus),
+                'data'    => $formattedMenus
+            ], 200);
+
+        } catch (\\Exception $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Gagal mengambil master menu: ' . $e->getMessage()
+            ], 500);
         }
-
-        $menus = $query->orderBy('kategori')->orderBy('nama_menu')->get();
-
-        return response()->json([
-            'status' => 'success',
-            'data'   => $menus
-        ], 200);
     }
 }
 `;
