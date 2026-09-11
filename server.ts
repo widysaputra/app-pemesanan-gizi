@@ -318,6 +318,111 @@ function resolveSimrsFetchMenuUrl(inputUrl?: string): string {
   return `${u}/master-menu-gizi`;
 }
 
+export const parsePgNumber = (val: any, defaultVal = 0): number => {
+  if (val === undefined || val === null) return defaultVal;
+  if (typeof val === 'number') return isNaN(val) ? defaultVal : val;
+  const str = String(val).replace(',', '.').replace(/[^0-9.-]/g, '');
+  const parsed = parseFloat(str);
+  return isNaN(parsed) ? defaultVal : parsed;
+};
+
+export const parsePgBoolean = (val: any): boolean => {
+  if (val === undefined || val === null) return true;
+  if (typeof val === 'boolean') return val;
+  const str = String(val).toLowerCase().trim();
+  return str === 't' || str === 'true' || str === '1' || str === 'y';
+};
+
+export async function autoFetchSimrsMenuFromServer(): Promise<MenuItem[]> {
+  const rawTargetUrl = simrsSettings.apiUrl || 'https://rsbsaonline.com/service/medifirst2000/emr/master-menu-gizi';
+  const targetUrl = resolveSimrsFetchMenuUrl(rawTargetUrl);
+  const targetToken = (simrsSettings.apiKey || '').trim();
+
+  // Jika token belum diatur, lewati sinkronisasi remote dan tetap gunakan menu yang ada
+  if (!targetToken) {
+    return menuItems;
+  }
+
+  try {
+    const headers: Record<string, string> = {
+      'Accept': 'application/json',
+    };
+    const rawToken = targetToken.replace(/^Bearer\s+/i, '').trim();
+    headers['X-AUTH-TOKEN'] = rawToken;
+    headers['Authorization'] = `Bearer ${rawToken}`;
+
+    const response = await fetch(targetUrl, {
+      method: 'GET',
+      headers,
+    });
+
+    if (!response.ok) {
+      return menuItems;
+    }
+
+    const parsedData = await response.json().catch(() => null);
+    if (!parsedData) return menuItems;
+
+    let menus = Array.isArray(parsedData) ? parsedData : (Array.isArray(parsedData?.data) ? parsedData.data : []);
+    if (!Array.isArray(menus) || menus.length === 0) {
+      return menuItems;
+    }
+
+    const transformedMenus: MenuItem[] = menus.map((m: any) => {
+      let parsedMealTimes: ('pagi' | 'siang' | 'malam' | 'snack')[] = ['pagi', 'siang', 'malam'];
+      const rawTimes = m.waktu_makan || m.mealTimes || m.meal_time;
+      if (Array.isArray(rawTimes)) {
+        parsedMealTimes = rawTimes;
+      } else if (typeof rawTimes === 'string') {
+        if (rawTimes.toLowerCase() === 'semua' || rawTimes.toLowerCase() === 'all') {
+          parsedMealTimes = ['pagi', 'siang', 'malam'];
+        } else {
+          try {
+            const decoded = JSON.parse(rawTimes);
+            if (Array.isArray(decoded)) parsedMealTimes = decoded;
+            else parsedMealTimes = rawTimes.split(',').map((s: string) => s.trim().toLowerCase()) as any;
+          } catch {
+            parsedMealTimes = rawTimes.split(',').map((s: string) => s.trim().toLowerCase()) as any;
+          }
+        }
+      }
+
+      return {
+        id: String(m.menu_id || m.id_menu || m.id || `menu-${Date.now()}-${Math.floor(Math.random() * 1000)}`),
+        name: String(m.nama_menu || m.name || 'Menu SIMRS').trim(),
+        price: parsePgNumber(m.harga ?? m.price, 0),
+        category: (m.kategori || m.category || 'makanan_utama') as any,
+        mealTimes: parsedMealTimes,
+        calories: parsePgNumber(m.kalori ?? m.calories, 0),
+        protein: parsePgNumber(m.protein_gram ?? m.protein, 0),
+        carbs: parsePgNumber(m.karbohidrat_gram ?? m.karbohidrat ?? m.carbs, 0),
+        fat: parsePgNumber(m.lemak_gram ?? m.lemak ?? m.fat, 0),
+        sodium: parsePgNumber(m.natrium_mg ?? m.natrium ?? m.sodium, 0),
+        description: String(m.deskripsi || m.description || 'Penyajian higienis instalasi gizi rumah sakit.'),
+        image: m.foto_url || m.gambar || m.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+        isAvailable: parsePgBoolean(m.tersedia ?? m.isAvailable ?? true),
+      };
+    });
+
+    if (transformedMenus.length > 0) {
+      transformedMenus.forEach(newMenu => {
+        const existingIdx = menuItems.findIndex(m => m.id === newMenu.id || m.name.toLowerCase() === newMenu.name.toLowerCase());
+        if (existingIdx !== -1) {
+          menuItems[existingIdx] = { ...menuItems[existingIdx], ...newMenu, id: menuItems[existingIdx].id };
+        } else {
+          menuItems.push(newMenu);
+        }
+      });
+      savePersistentMenuItems(menuItems);
+      broadcastEvent('init', { orders, menuItems });
+    }
+    return menuItems;
+  } catch (e) {
+    console.warn('[Auto-Sync SIMRS] Gagal auto-tarik master menu di background:', e);
+    return menuItems;
+  }
+}
+
 function resolveSimrsSingleMenuUrl(inputUrl?: string): string {
   const defaultUrl = 'https://rsbsaonline.com/service/medifirst2000/emr/save-master-menu';
   if (!inputUrl || !inputUrl.trim()) return defaultUrl;
@@ -987,7 +1092,10 @@ async function startServer() {
   });
 
   // 2. Menu Catalog APIs (Admin & Patient)
-  app.get('/api/menu', (req, res) => {
+  app.get('/api/menu', async (req, res) => {
+    if (simrsSettings.apiUrl) {
+      autoFetchSimrsMenuFromServer().catch(() => {});
+    }
     res.json(menuItems);
   });
 
@@ -1596,7 +1704,17 @@ app.post('/api/simrs/fetch-menu', async (req, res) => {
       return res.status(400).json({ error: 'URL Endpoint API Laravel SIMRS wajib diisi' });
     }
 
+    if (!targetToken) {
+      return res.json({
+        success: false,
+        error: 'Token autentikasi X-AUTH-TOKEN belum dikonfigurasi di Pengaturan SIMRS',
+        data: menuItems,
+        totalMenu: menuItems.length
+      });
+    }
+
     const targetUrl = resolveSimrsFetchMenuUrl(rawTargetUrl);
+    const rawToken = targetToken.replace(/^Bearer\s+/i, '').trim();
 
     try {
       console.log(`[SIMRS Fetch] Mengambil data menu dari: ${targetUrl}`);
@@ -1604,8 +1722,8 @@ app.post('/api/simrs/fetch-menu', async (req, res) => {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'X-AUTH-TOKEN': targetToken,
-          'Authorization': `Bearer ${targetToken}`
+          'X-AUTH-TOKEN': rawToken,
+          'Authorization': `Bearer ${rawToken}`
         }
       });
       
@@ -2089,6 +2207,12 @@ app.post('/api/simrs/sync-menu', async (req, res) => {
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Hospital Food & WhatsApp Server running on http://localhost:${PORT}`);
+    // Auto-fetch fresh menu from SIMRS on startup
+    autoFetchSimrsMenuFromServer().catch(() => {});
+    // Auto-refresh every 30 seconds to keep in sync with SIMRS PostgreSQL
+    setInterval(() => {
+      autoFetchSimrsMenuFromServer().catch(() => {});
+    }, 30000);
   });
 }
 

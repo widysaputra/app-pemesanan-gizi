@@ -443,6 +443,11 @@ export class HospitalRealtimeService {
 
   // --- MENU APIS ---
   async getMenu(): Promise<MenuItem[]> {
+    // Otomatis tarik data menu terbaru dari SIMRS di latar belakang setiap kali menu dimuat
+    try {
+      this.fetchMenuFromSimrs().catch(() => {});
+    } catch {}
+
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000);
@@ -455,7 +460,7 @@ export class HospitalRealtimeService {
         return getLocalCachedMenu();
       }
       const data = await res.json();
-      if (Array.isArray(data)) {
+      if (Array.isArray(data) && data.length > 0) {
         saveLocalCachedMenu(data);
         return data;
       }
@@ -1531,6 +1536,15 @@ export class HospitalRealtimeService {
   async fetchMenuFromSimrs(): Promise<{ success: boolean; data?: MenuItem[]; error?: string; totalMenu?: number; latency?: string }> {
     const config = getLocalSimrsConfig();
     const startTime = Date.now();
+
+    if (!config.apiKey || config.apiKey.trim() === '') {
+      return {
+        success: false,
+        data: getLocalCachedMenu(),
+        totalMenu: getLocalCachedMenu().length,
+        error: 'Token autentikasi SIMRS belum diisi.',
+      };
+    }
 
     // 1. Coba via backend server / Vercel serverless function terlebih dahulu
     try {

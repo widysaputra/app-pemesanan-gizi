@@ -51,12 +51,22 @@ export default function App() {
   // Fetch initial data with safe fallback and guaranteed loading unlock
   const loadData = useCallback(async () => {
     try {
-      const [fetchedMenu, fetchedOrders] = await Promise.all([
+      // 1. Tampilkan cache lokal segera agar UI langsung muncul tanpa jeda
+      const localMenu = realtimeService.getLocalMenu();
+      const localOrders = realtimeService.getLocalOrders();
+      if (localMenu.length > 0) setMenuItems(localMenu);
+      if (localOrders.length > 0) setOrders(localOrders);
+
+      // 2. Tarik data realtime dari backend & otomatis sinkronkan dengan database SIMRS PostgreSQL
+      const [fetchedMenu, fetchedOrders, simrsResult] = await Promise.all([
         realtimeService.getMenu().catch(() => realtimeService.getLocalMenu()),
         realtimeService.getOrders().catch(() => realtimeService.getLocalOrders()),
+        realtimeService.fetchMenuFromSimrs().catch(() => null),
       ]);
 
-      const validMenu = Array.isArray(fetchedMenu) ? fetchedMenu : realtimeService.getLocalMenu();
+      const validMenu = (simrsResult?.success && Array.isArray(simrsResult.data) && simrsResult.data.length > 0)
+        ? realtimeService.getLocalMenu()
+        : (Array.isArray(fetchedMenu) && fetchedMenu.length > 0 ? fetchedMenu : realtimeService.getLocalMenu());
       const validOrders = Array.isArray(fetchedOrders) ? fetchedOrders : realtimeService.getLocalOrders();
 
       setMenuItems(validMenu);
@@ -73,6 +83,11 @@ export default function App() {
   useEffect(() => {
     loadData();
 
+    // Auto-sync berkala setiap 30 detik untuk memastikan menu SIMRS selalu terupdate di layar pasien & admin
+    const autoSyncInterval = setInterval(() => {
+      realtimeService.fetchMenuFromSimrs().catch(() => {});
+    }, 30000);
+
     // Failsafe timer: after 2000ms, guarantee loading screen dismissal
     const failsafeTimer = setTimeout(() => {
       setIsLoaded((current) => {
@@ -85,7 +100,10 @@ export default function App() {
       });
     }, 2000);
 
-    return () => clearTimeout(failsafeTimer);
+    return () => {
+      clearInterval(autoSyncInterval);
+      clearTimeout(failsafeTimer);
+    };
   }, [loadData]);
 
   // Subscribe to real-time events (SSE & BroadcastChannel)

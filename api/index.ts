@@ -681,11 +681,20 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
 
     // 4b. Fetch Master Menu from Laravel SIMRS API (master-menu-gizi)
     if (parsedPath.endsWith('/api/simrs/fetch-menu') && ['GET', 'POST'].includes(method)) {
-      const { apiUrl, apiKey } = body;
+      const { apiUrl, apiKey } = body || {};
       const rawTargetUrl = (apiUrl || simrsConfigState.apiUrl || 'https://rsbsaonline.com/service/medifirst2000/emr/master-menu-gizi').trim();
       const targetToken = (apiKey && typeof apiKey === 'string' && apiKey.trim() !== '')
         ? apiKey.trim()
         : (simrsConfigState.apiKey || '').trim();
+
+      if (!targetToken) {
+        return res.json({
+          success: false,
+          error: 'Token autentikasi X-AUTH-TOKEN belum dikonfigurasi di Pengaturan SIMRS',
+          data: [],
+          totalMenu: 0
+        });
+      }
 
       const targetUrl = resolveSimrsFetchMenuUrl(rawTargetUrl);
 
@@ -693,11 +702,9 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
         const headers: Record<string, string> = {
           'Accept': 'application/json',
         };
-        if (targetToken) {
-          const rawToken = targetToken.replace(/^Bearer\s+/i, '').trim();
-          headers['X-AUTH-TOKEN'] = rawToken;
-          headers['Authorization'] = `Bearer ${rawToken}`;
-        }
+        const rawToken = targetToken.replace(/^Bearer\s+/i, '').trim();
+        headers['X-AUTH-TOKEN'] = rawToken;
+        headers['Authorization'] = `Bearer ${rawToken}`;
 
         const response = await fetch(targetUrl, {
           method: 'GET',
