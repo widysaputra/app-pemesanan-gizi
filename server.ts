@@ -408,7 +408,12 @@ export async function autoFetchSimrsMenuFromServer(): Promise<MenuItem[]> {
       transformedMenus.forEach(newMenu => {
         const existingIdx = menuItems.findIndex(m => m.id === newMenu.id || m.name.toLowerCase() === newMenu.name.toLowerCase());
         if (existingIdx !== -1) {
-          menuItems[existingIdx] = { ...menuItems[existingIdx], ...newMenu, id: menuItems[existingIdx].id };
+          const existing = menuItems[existingIdx];
+          // Pertahankan foto custom base64 lokal jika data SIMRS hanya berisi foto default/placeholder
+          const preservedImage = (existing.image && existing.image.startsWith('data:image'))
+            ? existing.image
+            : (newMenu.image || existing.image);
+          menuItems[existingIdx] = { ...existing, ...newMenu, image: preservedImage, id: existing.id };
         } else {
           menuItems.push(newMenu);
         }
@@ -1044,7 +1049,8 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json());
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
   // 1. SSE Real-Time Stream
   app.get('/api/realtime/stream', (req, res) => {

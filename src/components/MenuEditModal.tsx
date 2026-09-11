@@ -219,8 +219,11 @@ export const MenuEditModal: React.FC<MenuEditModalProps> = ({
               };
               const updated = [newItem, ...customGallery.filter((g) => g.url !== compressed)];
               saveCustomGallery(updated.slice(0, 30));
+              setImageInputMode('presets');
+              setGalleryCategoryFilter('custom');
             } else {
               setImage(result);
+              setImageInputMode('presets');
             }
           } catch {
             setImage(result);
@@ -762,6 +765,7 @@ export const MenuEditModal: React.FC<MenuEditModalProps> = ({
                     if (e.target.files && e.target.files[0]) {
                       processImageFile(e.target.files[0]);
                     }
+                    e.target.value = '';
                   }}
                   className="hidden"
                 />

@@ -1663,7 +1663,13 @@ export class HospitalRealtimeService {
       const currentMenu = getLocalCachedMenu();
       const merged = [...transformedMenus];
       currentMenu.forEach(localMenu => {
-        if (!merged.find(m => m.id === localMenu.id || m.name.toLowerCase() === localMenu.name.toLowerCase())) {
+        const existingInMerged = merged.find(m => m.id === localMenu.id || m.name.toLowerCase() === localMenu.name.toLowerCase());
+        if (existingInMerged) {
+          // Jika menu lokal memiliki foto upload custom, pertahankan foto tersebut
+          if (localMenu.image && localMenu.image.startsWith('data:image')) {
+            existingInMerged.image = localMenu.image;
+          }
+        } else {
           merged.push(localMenu);
         }
       });
