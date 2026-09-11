@@ -1537,6 +1537,8 @@ export class HospitalRealtimeService {
                }
             });
             saveLocalCachedMenu(merged);
+            this.notifyListeners('init', { menuItems: merged, orders: getLocalCachedOrders() });
+            this.broadcastLocal('init', { menuItems: merged, orders: getLocalCachedOrders() });
          }
          data.latency = latency;
          return data;

@@ -1571,6 +1571,21 @@ app.post('/api/simrs/fetch-menu', async (req, res) => {
       }
 
       // Transform SIMRS format from rego_master_menu_gizi_m back to MenuItem
+      const parsePgNumber = (val: any, defaultVal = 0): number => {
+        if (val === undefined || val === null) return defaultVal;
+        if (typeof val === 'number') return isNaN(val) ? defaultVal : val;
+        const str = String(val).replace(',', '.').replace(/[^0-9.-]/g, '');
+        const parsed = parseFloat(str);
+        return isNaN(parsed) ? defaultVal : parsed;
+      };
+
+      const parsePgBoolean = (val: any): boolean => {
+        if (val === undefined || val === null) return true;
+        if (typeof val === 'boolean') return val;
+        const str = String(val).toLowerCase().trim();
+        return str === 't' || str === 'true' || str === '1' || str === 'y';
+      };
+
       const transformedMenus: MenuItem[] = menus.map((m: any) => {
         // Parse meal times from string, array, or 'semua'
         let parsedMealTimes: ('pagi' | 'siang' | 'malam' | 'snack')[] = ['pagi', 'siang', 'malam'];
@@ -1594,19 +1609,17 @@ app.post('/api/simrs/fetch-menu', async (req, res) => {
         return {
           id: String(m.menu_id || m.id_menu || m.id || `menu-${Date.now()}-${Math.floor(Math.random() * 1000)}`),
           name: String(m.nama_menu || m.name || 'Menu SIMRS').trim(),
-          price: Number(m.harga || m.price) || 0,
+          price: parsePgNumber(m.harga ?? m.price, 0),
           category: (m.kategori || m.category || 'makanan_utama') as MenuCategory,
           mealTimes: parsedMealTimes,
-          calories: Number(m.kalori || m.calories) || 0,
-          protein: Number(m.protein_gram ?? m.protein) || 0,
-          carbs: Number(m.karbohidrat_gram ?? m.karbohidrat ?? m.carbs) || 0,
-          fat: Number(m.lemak_gram ?? m.lemak ?? m.fat) || 0,
-          sodium: Number(m.natrium_mg ?? m.natrium ?? m.sodium) || 0,
+          calories: parsePgNumber(m.kalori ?? m.calories, 0),
+          protein: parsePgNumber(m.protein_gram ?? m.protein, 0),
+          carbs: parsePgNumber(m.karbohidrat_gram ?? m.karbohidrat ?? m.carbs, 0),
+          fat: parsePgNumber(m.lemak_gram ?? m.lemak ?? m.fat, 0),
+          sodium: parsePgNumber(m.natrium_mg ?? m.natrium ?? m.sodium, 0),
           description: String(m.deskripsi || m.description || ''),
           image: m.foto_url || m.gambar || m.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
-          isAvailable: m.tersedia !== undefined 
-            ? (m.tersedia === 1 || m.tersedia === true || m.tersedia === '1' || m.tersedia === 'true')
-            : (m.isAvailable !== undefined ? Boolean(m.isAvailable) : true)
+          isAvailable: parsePgBoolean(m.tersedia ?? m.isAvailable ?? true),
         };
       });
 
