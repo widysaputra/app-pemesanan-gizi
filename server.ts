@@ -1306,6 +1306,64 @@ async function startServer() {
       return res.status(400).json({ error: 'URL Endpoint API Laravel SIMRS wajib diisi' });
     }
 
+    // Jika target pengujian diarahkan ke master-menu-gizi (Endpoint GET untuk katalog menu)
+    if (rawTargetUrl.includes('master-menu-gizi') || rawTargetUrl.includes('master-menu') && !rawTargetUrl.includes('save-master-menu')) {
+      const startTime = Date.now();
+      const targetFetchUrl = resolveSimrsFetchMenuUrl(rawTargetUrl);
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+      };
+      if (targetToken) {
+        const rawToken = String(targetToken).replace(/^Bearer\s+/i, '').trim();
+        headers['X-AUTH-TOKEN'] = rawToken;
+        headers['Authorization'] = `Bearer ${rawToken}`;
+      }
+
+      try {
+        const response = await fetch(targetFetchUrl, {
+          method: 'GET',
+          headers,
+        });
+        const latency = Date.now() - startTime;
+        const responseText = await response.text();
+        let parsedData: any = null;
+        try {
+          parsedData = JSON.parse(responseText);
+        } catch {
+          parsedData = { raw: responseText.slice(0, 200) };
+        }
+
+        if (response.ok) {
+          const itemsCount = Array.isArray(parsedData) ? parsedData.length : (Array.isArray(parsedData?.data) ? parsedData.data.length : 0);
+          return res.json({
+            success: true,
+            message: `Koneksi ke endpoint Master Menu SIMRS (${targetFetchUrl}) via GET berhasil (HTTP 200 OK)! Menemukan ${itemsCount} data menu.`,
+            latency: `${latency}ms`,
+            authHeader: 'X-AUTH-TOKEN',
+            targetUrl: targetFetchUrl,
+            data: parsedData,
+          });
+        } else {
+          return res.status(400).json({
+            success: false,
+            error: `HTTP ${response.status}: ${parsedData?.message || response.statusText || 'Server SIMRS menolak request'}`,
+            latency: `${latency}ms`,
+            authHeader: 'X-AUTH-TOKEN',
+            targetUrl: targetFetchUrl,
+            data: parsedData,
+          });
+        }
+      } catch (err: any) {
+        const latency = Date.now() - startTime;
+        return res.status(500).json({
+          success: false,
+          error: err.message || 'Gagal terhubung ke endpoint master-menu-gizi',
+          latency: `${latency}ms`,
+          targetUrl: targetFetchUrl,
+        });
+      }
+    }
+
     // Jika target pengujian diarahkan ke sync-batch-menu atau save-master-menu
     if (rawTargetUrl.includes('sync-batch-menu') || rawTargetUrl.includes('save-master-menu')) {
       const startTime = Date.now();
