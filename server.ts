@@ -405,21 +405,25 @@ export async function autoFetchSimrsMenuFromServer(): Promise<MenuItem[]> {
     });
 
     if (transformedMenus.length > 0) {
+      let hasChanges = false;
       transformedMenus.forEach(newMenu => {
         const existingIdx = menuItems.findIndex(m => m.id === newMenu.id || m.name.toLowerCase() === newMenu.name.toLowerCase());
-        if (existingIdx !== -1) {
-          const existing = menuItems[existingIdx];
-          // Pertahankan foto custom base64 lokal jika data SIMRS hanya berisi foto default/placeholder
-          const preservedImage = (existing.image && existing.image.startsWith('data:image'))
-            ? existing.image
-            : (newMenu.image || existing.image);
-          menuItems[existingIdx] = { ...existing, ...newMenu, image: preservedImage, id: existing.id };
-        } else {
+        if (existingIdx === -1) {
+          // Hanya tambahkan jika belum ada di katalog lokal
           menuItems.push(newMenu);
+          hasChanges = true;
+        } else {
+          // Jika sudah ada, pertahankan data lokal yang sudah disesuaikan admin
+          const existing = menuItems[existingIdx];
+          const preservedImage = (existing.image && existing.image.trim() !== '') ? existing.image : newMenu.image;
+          const preservedPrice = existing.price !== undefined ? existing.price : newMenu.price;
+          menuItems[existingIdx] = { ...newMenu, ...existing, image: preservedImage, price: preservedPrice, id: existing.id };
         }
       });
-      savePersistentMenuItems(menuItems);
-      broadcastEvent('init', { orders, menuItems });
+      if (hasChanges) {
+        savePersistentMenuItems(menuItems);
+        broadcastEvent('init', { orders, menuItems });
+      }
     }
     return menuItems;
   } catch (e) {
@@ -1098,10 +1102,7 @@ async function startServer() {
   });
 
   // 2. Menu Catalog APIs (Admin & Patient)
-  app.get('/api/menu', async (req, res) => {
-    if (simrsSettings.apiUrl) {
-      autoFetchSimrsMenuFromServer().catch(() => {});
-    }
+  app.get('/api/menu', (req, res) => {
     res.json(menuItems);
   });
 

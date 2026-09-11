@@ -443,11 +443,6 @@ export class HospitalRealtimeService {
 
   // --- MENU APIS ---
   async getMenu(): Promise<MenuItem[]> {
-    // Otomatis tarik data menu terbaru dari SIMRS di latar belakang setiap kali menu dimuat
-    try {
-      this.fetchMenuFromSimrs().catch(() => {});
-    } catch {}
-
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000);
@@ -1661,16 +1656,22 @@ export class HospitalRealtimeService {
       });
 
       const currentMenu = getLocalCachedMenu();
-      const merged = [...transformedMenus];
-      currentMenu.forEach(localMenu => {
-        const existingInMerged = merged.find(m => m.id === localMenu.id || m.name.toLowerCase() === localMenu.name.toLowerCase());
-        if (existingInMerged) {
-          // Jika menu lokal memiliki foto upload custom, pertahankan foto tersebut
-          if (localMenu.image && localMenu.image.startsWith('data:image')) {
-            existingInMerged.image = localMenu.image;
-          }
+      const merged = [...currentMenu];
+      transformedMenus.forEach(simrsMenu => {
+        const existingIdx = merged.findIndex(m => m.id === simrsMenu.id || m.name.toLowerCase() === simrsMenu.name.toLowerCase());
+        if (existingIdx === -1) {
+          // Menu baru dari SIMRS yang belum ada di katalog lokal
+          merged.push(simrsMenu);
         } else {
-          merged.push(localMenu);
+          // Jika sudah ada di katalog lokal, prioritaskan data lokal hasil edit admin
+          const existing = merged[existingIdx];
+          merged[existingIdx] = {
+            ...simrsMenu,
+            ...existing,
+            image: (existing.image && existing.image.trim() !== '') ? existing.image : simrsMenu.image,
+            price: existing.price !== undefined ? existing.price : simrsMenu.price,
+            description: (existing.description && existing.description.trim() !== '') ? existing.description : simrsMenu.description,
+          };
         }
       });
       saveLocalCachedMenu(merged);
