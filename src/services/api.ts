@@ -457,6 +457,8 @@ export class HospitalRealtimeService {
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
         saveLocalCachedMenu(data);
+        this.notifyListeners('init', { menuItems: data, orders: getLocalCachedOrders() });
+        this.broadcastLocal('init', { menuItems: data, orders: getLocalCachedOrders() });
         return data;
       }
       return getLocalCachedMenu();
@@ -1638,6 +1640,8 @@ export class HospitalRealtimeService {
           }
         }
 
+        const rawImg = m.image || m.gambar_url || m.foto_url || m.gambar || m.foto || m.url_gambar || m.url_foto || m.photo || m.photo_url || m.img || m.image_url;
+
         return {
           id: String(m.menu_id || m.id_menu || m.id || `menu-${Date.now()}-${Math.floor(Math.random() * 1000)}`),
           name: String(m.nama_menu || m.name || 'Menu SIMRS').trim(),
@@ -1650,7 +1654,7 @@ export class HospitalRealtimeService {
           fat: parsePgNumber(m.lemak_gram ?? m.lemak ?? m.fat, 0),
           sodium: parsePgNumber(m.natrium_mg ?? m.natrium ?? m.sodium, 0),
           description: String(m.deskripsi || m.description || ''),
-          image: m.foto_url || m.gambar || m.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+          image: rawImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
           isAvailable: parsePgBoolean(m.tersedia ?? m.isAvailable ?? true),
         };
       });
@@ -1663,12 +1667,17 @@ export class HospitalRealtimeService {
           // Menu baru dari SIMRS yang belum ada di katalog lokal
           merged.push(simrsMenu);
         } else {
-          // Jika sudah ada di katalog lokal, prioritaskan data lokal hasil edit admin
+          // Update menu yang sudah ada: jika dari SIMRS terdapat base64/foto valid, terapkan ke data lokal
           const existing = merged[existingIdx];
+          const isSimrsBase64 = simrsMenu.image && simrsMenu.image.startsWith('data:image');
+          const isExistingBase64 = existing.image && existing.image.startsWith('data:image');
+          const finalImage = isSimrsBase64
+            ? simrsMenu.image
+            : (isExistingBase64 ? existing.image : (simrsMenu.image || existing.image));
           merged[existingIdx] = {
-            ...simrsMenu,
             ...existing,
-            image: (existing.image && existing.image.trim() !== '') ? existing.image : simrsMenu.image,
+            ...simrsMenu,
+            image: finalImage,
             price: existing.price !== undefined ? existing.price : simrsMenu.price,
             description: (existing.description && existing.description.trim() !== '') ? existing.description : simrsMenu.description,
           };
@@ -1779,7 +1788,16 @@ export class HospitalRealtimeService {
             natrium: m.sodium,
             waktu_makan: m.mealTimes,
             deskripsi: m.description,
+            image: m.image,
+            gambar: m.image,
             gambar_url: m.image,
+            foto: m.image,
+            foto_url: m.image,
+            image_url: m.image,
+            url_gambar: m.image,
+            url_foto: m.image,
+            photo: m.image,
+            photo_url: m.image,
             is_tersedia: m.isAvailable !== false,
           };
           const singleRes = await fetch(targetUrl, {
@@ -1820,6 +1838,9 @@ export class HospitalRealtimeService {
           price: firstItem.price || 0,
           kalori: firstItem.calories || 0,
           calories: firstItem.calories || 0,
+          image: firstItem.image,
+          gambar_url: firstItem.image,
+          foto_url: firstItem.image,
           menu_items: items.map(m => ({
             id: m.id,
             id_menu: m.id,
@@ -1835,7 +1856,18 @@ export class HospitalRealtimeService {
             karbohidrat: m.carbs,
             lemak: m.fat,
             natrium: m.sodium,
+            waktu_makan: m.mealTimes,
             deskripsi: m.description,
+            image: m.image,
+            gambar: m.image,
+            gambar_url: m.image,
+            foto: m.image,
+            foto_url: m.image,
+            image_url: m.image,
+            url_gambar: m.image,
+            url_foto: m.image,
+            photo: m.image,
+            photo_url: m.image,
             status_tersedia: m.isAvailable,
             is_tersedia: m.isAvailable,
           })),

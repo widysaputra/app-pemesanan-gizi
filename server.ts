@@ -177,14 +177,14 @@ function loadPersistentMenuItems(): MenuItem[] {
     if (fs.existsSync(MENU_DATA_FILE)) {
       const raw = fs.readFileSync(MENU_DATA_FILE, 'utf-8');
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
+      if (Array.isArray(parsed) && parsed.length > 0) {
         return parsed;
       }
     }
   } catch (err) {
     console.warn('[Storage] Gagal membaca menu_items.json:', err);
   }
-  return [];
+  return [...INITIAL_MENU];
 }
 
 function savePersistentMenuItems(items: MenuItem[]) {
@@ -797,7 +797,16 @@ function mapMenuItemForSimrs(m: MenuItem) {
     description: m.description,
     deskripsi: m.description,
     image: m.image,
+    gambar: m.image,
     gambar_url: m.image,
+    foto: m.image,
+    foto_url: m.image,
+    image_url: m.image,
+    url_gambar: m.image,
+    url_foto: m.image,
+    photo: m.image,
+    photo_url: m.image,
+    img: m.image,
     isAvailable: m.isAvailable !== false,
     is_tersedia: m.isAvailable !== false,
     status: m.isAvailable !== false ? 1 : 0,
@@ -1801,7 +1810,7 @@ app.post('/api/simrs/fetch-menu', async (req, res) => {
           fat: parsePgNumber(m.lemak_gram ?? m.lemak ?? m.fat, 0),
           sodium: parsePgNumber(m.natrium_mg ?? m.natrium ?? m.sodium, 0),
           description: String(m.deskripsi || m.description || ''),
-          image: m.foto_url || m.gambar || m.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+          image: m.image || m.gambar_url || m.foto_url || m.gambar || m.foto || m.url_gambar || m.url_foto || m.photo || m.photo_url || m.img || m.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
           isAvailable: parsePgBoolean(m.tersedia ?? m.isAvailable ?? true),
         };
       });
@@ -1810,7 +1819,11 @@ app.post('/api/simrs/fetch-menu', async (req, res) => {
       transformedMenus.forEach(newMenu => {
         const existingIdx = menuItems.findIndex(m => m.id === newMenu.id || m.name.toLowerCase() === newMenu.name.toLowerCase());
         if (existingIdx !== -1) {
-          menuItems[existingIdx] = { ...menuItems[existingIdx], ...newMenu, id: menuItems[existingIdx].id }; // preserve our ID if name matched
+          const existing = menuItems[existingIdx];
+          const isNewBase64 = newMenu.image && newMenu.image.startsWith('data:image');
+          const isExistingBase64 = existing.image && existing.image.startsWith('data:image');
+          const finalImage = isNewBase64 ? newMenu.image : (isExistingBase64 ? existing.image : (newMenu.image || existing.image));
+          menuItems[existingIdx] = { ...existing, ...newMenu, image: finalImage, id: existing.id };
         } else {
           menuItems.push(newMenu);
         }
@@ -1848,6 +1861,8 @@ app.post('/api/simrs/sync-menu', async (req, res) => {
 
     if (Array.isArray(clientItems) && clientItems.length > 0) {
       menuItems = clientItems;
+      savePersistentMenuItems(menuItems);
+      broadcastEvent('init', { orders, menuItems });
     }
 
     const startTime = Date.now();
