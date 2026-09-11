@@ -47,8 +47,34 @@ function resolveSimrsSingleMenuUrl(inputUrl?: string): string {
   if (u.includes('/save-master-menu')) return u;
   u = u.replace(/\/save-(pesanan-gizi|data-mmpi)\/?$/, '');
   u = u.replace(/\/sync-batch-menu\/?$/, '');
+  u = u.replace(/\/master-menu-gizi\/?$/, '');
+  u = u.replace(/\/riwayat-pesanan-gizi\/?$/, '');
   u = u.replace(/\/$/, '');
   return `${u}/save-master-menu`;
+}
+
+function resolveSimrsFetchMenuUrl(inputUrl?: string): string {
+  const defaultUrl = 'https://rsbsaonline.com/service/medifirst2000/emr/master-menu-gizi';
+  if (!inputUrl || !inputUrl.trim()) return defaultUrl;
+  let u = inputUrl.trim();
+  if (u.includes('/master-menu-gizi')) return u;
+  u = u.replace(/\/save-(pesanan-gizi|master-menu|data-mmpi)\/?$/, '');
+  u = u.replace(/\/sync-batch-menu\/?$/, '');
+  u = u.replace(/\/riwayat-pesanan-gizi\/?$/, '');
+  u = u.replace(/\/$/, '');
+  return `${u}/master-menu-gizi`;
+}
+
+function resolveSimrsFetchOrdersUrl(inputUrl?: string): string {
+  const defaultUrl = 'https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi';
+  if (!inputUrl || !inputUrl.trim()) return defaultUrl;
+  let u = inputUrl.trim();
+  if (u.includes('/riwayat-pesanan-gizi')) return u;
+  u = u.replace(/\/save-(pesanan-gizi|master-menu|data-mmpi)\/?$/, '');
+  u = u.replace(/\/sync-batch-menu\/?$/, '');
+  u = u.replace(/\/master-menu-gizi\/?$/, '');
+  u = u.replace(/\/$/, '');
+  return `${u}/riwayat-pesanan-gizi`;
 }
 
 // In-memory runtime storage for Vercel serverless instance
@@ -649,6 +675,185 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
         return res.status(400).json({
           success: false,
           error: `Gagal menghubungi SIMRS: ${err.message}`,
+        });
+      }
+    }
+
+    // 4b. Fetch Master Menu from Laravel SIMRS API (master-menu-gizi)
+    if (parsedPath.endsWith('/api/simrs/fetch-menu') && ['GET', 'POST'].includes(method)) {
+      const { apiUrl, apiKey } = body;
+      const rawTargetUrl = (apiUrl || simrsConfigState.apiUrl || 'https://rsbsaonline.com/service/medifirst2000/emr/master-menu-gizi').trim();
+      const targetToken = (apiKey && typeof apiKey === 'string' && apiKey.trim() !== '')
+        ? apiKey.trim()
+        : (simrsConfigState.apiKey || '').trim();
+
+      const targetUrl = resolveSimrsFetchMenuUrl(rawTargetUrl);
+
+      try {
+        const headers: Record<string, string> = {
+          'Accept': 'application/json',
+        };
+        if (targetToken) {
+          const rawToken = targetToken.replace(/^Bearer\s+/i, '').trim();
+          headers['X-AUTH-TOKEN'] = rawToken;
+          headers['Authorization'] = `Bearer ${rawToken}`;
+        }
+
+        const response = await fetch(targetUrl, {
+          method: 'GET',
+          headers,
+        });
+
+        const responseText = await response.text();
+        let parsedData: any;
+        try {
+          parsedData = JSON.parse(responseText);
+        } catch {
+          throw new Error(`SIMRS mengembalikan respon yang bukan JSON: ${responseText.slice(0, 100)}...`);
+        }
+
+        if (!response.ok) {
+          throw new Error(parsedData?.message || parsedData?.error || `HTTP Error ${response.status}`);
+        }
+
+        let menus = Array.isArray(parsedData) ? parsedData : (Array.isArray(parsedData?.data) ? parsedData.data : []);
+        if (!Array.isArray(menus)) menus = [];
+
+        const parsePgNumber = (val: any, defaultVal = 0): number => {
+          if (val === undefined || val === null) return defaultVal;
+          if (typeof val === 'number') return isNaN(val) ? defaultVal : val;
+          const str = String(val).replace(',', '.').replace(/[^0-9.-]/g, '');
+          const parsed = parseFloat(str);
+          return isNaN(parsed) ? defaultVal : parsed;
+        };
+
+        const parsePgBoolean = (val: any): boolean => {
+          if (val === undefined || val === null) return true;
+          if (typeof val === 'boolean') return val;
+          const str = String(val).toLowerCase().trim();
+          return str === 't' || str === 'true' || str === '1' || str === 'y';
+        };
+
+        const transformedMenus = menus.map((m: any) => {
+          let parsedMealTimes: ('pagi' | 'siang' | 'malam' | 'snack')[] = ['pagi', 'siang', 'malam'];
+          const rawTimes = m.waktu_makan || m.mealTimes || m.meal_time;
+          if (Array.isArray(rawTimes)) {
+            parsedMealTimes = rawTimes;
+          } else if (typeof rawTimes === 'string') {
+            if (rawTimes.toLowerCase() === 'semua' || rawTimes.toLowerCase() === 'all') {
+              parsedMealTimes = ['pagi', 'siang', 'malam'];
+            } else {
+              try {
+                const decoded = JSON.parse(rawTimes);
+                if (Array.isArray(decoded)) parsedMealTimes = decoded;
+                else parsedMealTimes = rawTimes.split(',').map((s: string) => s.trim().toLowerCase()) as any;
+              } catch {
+                parsedMealTimes = rawTimes.split(',').map((s: string) => s.trim().toLowerCase()) as any;
+              }
+            }
+          }
+
+          return {
+            id: String(m.menu_id || m.id_menu || m.id || `menu-${Date.now()}-${Math.floor(Math.random() * 1000)}`),
+            name: String(m.nama_menu || m.name || 'Menu SIMRS').trim(),
+            price: parsePgNumber(m.harga ?? m.price, 0),
+            category: m.kategori || m.category || 'makanan_utama',
+            mealTimes: parsedMealTimes,
+            calories: parsePgNumber(m.kalori ?? m.calories, 0),
+            protein: parsePgNumber(m.protein_gram ?? m.protein, 0),
+            carbs: parsePgNumber(m.karbohidrat_gram ?? m.karbohidrat ?? m.carbs, 0),
+            fat: parsePgNumber(m.lemak_gram ?? m.lemak ?? m.fat, 0),
+            sodium: parsePgNumber(m.natrium_mg ?? m.natrium ?? m.sodium, 0),
+            description: String(m.deskripsi || m.description || ''),
+            image: m.foto_url || m.gambar || m.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+            isAvailable: parsePgBoolean(m.tersedia ?? m.isAvailable ?? true),
+          };
+        });
+
+        return res.json({
+          success: true,
+          message: `Berhasil mengambil ${transformedMenus.length} menu dari SIMRS`,
+          data: transformedMenus,
+          total: transformedMenus.length,
+        });
+      } catch (err: any) {
+        return res.status(500).json({
+          success: false,
+          error: err.message || 'Gagal mengambil menu dari SIMRS',
+        });
+      }
+    }
+
+    // 4c. Fetch Riwayat Pesanan from Laravel SIMRS API (riwayat-pesanan-gizi)
+    if (parsedPath.endsWith('/api/simrs/fetch-orders') && ['GET', 'POST'].includes(method)) {
+      const { apiUrl, apiKey } = body;
+      const rawTargetUrl = (apiUrl || simrsConfigState.apiUrl || 'https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi').trim();
+      const targetToken = (apiKey && typeof apiKey === 'string' && apiKey.trim() !== '')
+        ? apiKey.trim()
+        : (simrsConfigState.apiKey || '').trim();
+
+      const targetUrl = resolveSimrsFetchOrdersUrl(rawTargetUrl);
+
+      try {
+        const headers: Record<string, string> = {
+          'Accept': 'application/json',
+        };
+        if (targetToken) {
+          const rawToken = targetToken.replace(/^Bearer\s+/i, '').trim();
+          headers['X-AUTH-TOKEN'] = rawToken;
+          headers['Authorization'] = `Bearer ${rawToken}`;
+        }
+
+        const response = await fetch(targetUrl, {
+          method: 'GET',
+          headers,
+        });
+
+        const responseText = await response.text();
+        let parsedData: any;
+        try {
+          parsedData = JSON.parse(responseText);
+        } catch {
+          throw new Error(`SIMRS mengembalikan respon yang bukan JSON: ${responseText.slice(0, 100)}...`);
+        }
+
+        if (!response.ok) {
+          throw new Error(parsedData?.message || parsedData?.error || `HTTP Error ${response.status}`);
+        }
+
+        let ordersData = Array.isArray(parsedData) ? parsedData : (Array.isArray(parsedData?.data) ? parsedData.data : []);
+        if (!Array.isArray(ordersData)) ordersData = [];
+
+        const transformedOrders = ordersData.map((o: any) => ({
+          id: String(o.id || o.no_pesanan || o.order_number || `ord-${Date.now()}`),
+          orderNumber: String(o.order_number || o.no_pesanan || `GZ-${Date.now()}`),
+          registrationNo: String(o.noregistrasi || o.registrationNo || 'REG-Unknown'),
+          createdAt: o.tgl_pesanan || o.created_at || new Date().toISOString(),
+          roomName: String(o.room_name || o.kamar || 'Kamar Rawat Inap'),
+          patientName: String(o.patient_name || o.nama_pasien || 'Pasien'),
+          phoneNumber: o.phone_number || o.telepon || '',
+          mealTime: o.meal_time || o.waktu_makan || 'siang',
+          items: (function () {
+            try {
+              if (typeof o.items_json === 'string') return JSON.parse(o.items_json);
+              if (Array.isArray(o.items)) return o.items;
+            } catch {}
+            return [];
+          })(),
+          patientNotes: o.patient_notes || o.catatan || '',
+          status: o.order_status || o.status || 'baru',
+        }));
+
+        return res.json({
+          success: true,
+          message: `Berhasil mengambil ${transformedOrders.length} riwayat pesanan dari SIMRS`,
+          data: transformedOrders,
+          total: transformedOrders.length,
+        });
+      } catch (err: any) {
+        return res.status(500).json({
+          success: false,
+          error: err.message || 'Gagal mengambil riwayat pesanan dari SIMRS',
         });
       }
     }

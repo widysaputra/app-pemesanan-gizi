@@ -51,8 +51,22 @@ export function resolveSimrsSingleMenuUrl(baseUrl?: string): string {
   if (u.includes('/save-master-menu')) return u;
   u = u.replace(/\/save-(pesanan-gizi|data-mmpi)\/?$/, '');
   u = u.replace(/\/sync-batch-menu\/?$/, '');
+  u = u.replace(/\/master-menu-gizi\/?$/, '');
+  u = u.replace(/\/riwayat-pesanan-gizi\/?$/, '');
   u = u.replace(/\/$/, '');
   return `${u}/save-master-menu`;
+}
+
+export function resolveSimrsFetchMenuUrl(baseUrl?: string): string {
+  const defaultUrl = 'https://rsbsaonline.com/service/medifirst2000/emr/master-menu-gizi';
+  if (!baseUrl || !baseUrl.trim()) return defaultUrl;
+  let u = baseUrl.trim();
+  if (u.includes('/master-menu-gizi')) return u;
+  u = u.replace(/\/save-(pesanan-gizi|master-menu|data-mmpi)\/?$/, '');
+  u = u.replace(/\/sync-batch-menu\/?$/, '');
+  u = u.replace(/\/riwayat-pesanan-gizi\/?$/, '');
+  u = u.replace(/\/$/, '');
+  return `${u}/master-menu-gizi`;
 }
 
 export function getLocalSimrsConfig(): {
@@ -1516,8 +1530,10 @@ export class HospitalRealtimeService {
 
   async fetchMenuFromSimrs(): Promise<{ success: boolean; data?: MenuItem[]; error?: string; totalMenu?: number; latency?: string }> {
     const config = getLocalSimrsConfig();
+    const startTime = Date.now();
+
+    // 1. Coba via backend server / Vercel serverless function terlebih dahulu
     try {
-      const startTime = Date.now();
       const res = await fetch('/api/simrs/fetch-menu', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1528,26 +1544,127 @@ export class HospitalRealtimeService {
       });
       const data = await res.json();
       const latency = (Date.now() - startTime) + 'ms';
-      if (res.ok && data.success) {
-         if (data.data && Array.isArray(data.data)) {
-            const currentMenu = getLocalCachedMenu();
-            // Merge logic (prioritize SIMRS data)
-            const merged = [...data.data];
-            currentMenu.forEach(localMenu => {
-               if (!merged.find(m => m.id === localMenu.id || m.name.toLowerCase() === localMenu.name.toLowerCase())) {
-                   merged.push(localMenu);
-               }
-            });
-            saveLocalCachedMenu(merged);
-            this.notifyListeners('init', { menuItems: merged, orders: getLocalCachedOrders() });
-            this.broadcastLocal('init', { menuItems: merged, orders: getLocalCachedOrders() });
-         }
-         data.latency = latency;
-         return data;
+      if (res.ok && data.success && Array.isArray(data.data)) {
+        const currentMenu = getLocalCachedMenu();
+        const merged = [...data.data];
+        currentMenu.forEach(localMenu => {
+          if (!merged.find(m => m.id === localMenu.id || m.name.toLowerCase() === localMenu.name.toLowerCase())) {
+            merged.push(localMenu);
+          }
+        });
+        saveLocalCachedMenu(merged);
+        this.notifyListeners('init', { menuItems: merged, orders: getLocalCachedOrders() });
+        this.broadcastLocal('init', { menuItems: merged, orders: getLocalCachedOrders() });
+        data.latency = latency;
+        return data;
       }
-      return { success: false, error: data.error || 'Gagal sinkronisasi menu' };
+    } catch {
+      // Backend offline atau Vercel fallback
+    }
+
+    // 2. Fallback: Tarik langsung dari browser ke endpoint SIMRS master-menu-gizi
+    try {
+      const targetUrl = resolveSimrsFetchMenuUrl(config.apiUrl);
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+      };
+      if (config.apiKey) {
+        const rawToken = config.apiKey.replace(/^Bearer\s+/i, '').trim();
+        headers['X-AUTH-TOKEN'] = rawToken;
+        headers['Authorization'] = `Bearer ${rawToken}`;
+      }
+
+      const res = await fetch(targetUrl, {
+        method: 'GET',
+        headers,
+      });
+      const latency = (Date.now() - startTime) + 'ms';
+
+      const responseText = await res.text();
+      let parsedData: any;
+      try {
+        parsedData = JSON.parse(responseText);
+      } catch {
+        throw new Error(`Server SIMRS membalas bukan JSON: ${responseText.slice(0, 80)}...`);
+      }
+
+      if (!res.ok) {
+        throw new Error(parsedData?.message || parsedData?.error || `HTTP ${res.status}`);
+      }
+
+      let menus = Array.isArray(parsedData) ? parsedData : (Array.isArray(parsedData?.data) ? parsedData.data : []);
+      if (!Array.isArray(menus)) menus = [];
+
+      const parsePgNumber = (val: any, defaultVal = 0): number => {
+        if (val === undefined || val === null) return defaultVal;
+        if (typeof val === 'number') return isNaN(val) ? defaultVal : val;
+        const str = String(val).replace(',', '.').replace(/[^0-9.-]/g, '');
+        const parsed = parseFloat(str);
+        return isNaN(parsed) ? defaultVal : parsed;
+      };
+
+      const parsePgBoolean = (val: any): boolean => {
+        if (val === undefined || val === null) return true;
+        if (typeof val === 'boolean') return val;
+        const str = String(val).toLowerCase().trim();
+        return str === 't' || str === 'true' || str === '1' || str === 'y';
+      };
+
+      const transformedMenus: MenuItem[] = menus.map((m: any) => {
+        let parsedMealTimes: ('pagi' | 'siang' | 'malam' | 'snack')[] = ['pagi', 'siang', 'malam'];
+        const rawTimes = m.waktu_makan || m.mealTimes || m.meal_time;
+        if (Array.isArray(rawTimes)) {
+          parsedMealTimes = rawTimes;
+        } else if (typeof rawTimes === 'string') {
+          if (rawTimes.toLowerCase() === 'semua' || rawTimes.toLowerCase() === 'all') {
+            parsedMealTimes = ['pagi', 'siang', 'malam'];
+          } else {
+            try {
+              const decoded = JSON.parse(rawTimes);
+              if (Array.isArray(decoded)) parsedMealTimes = decoded;
+              else parsedMealTimes = rawTimes.split(',').map((s: string) => s.trim().toLowerCase()) as any;
+            } catch {
+              parsedMealTimes = rawTimes.split(',').map((s: string) => s.trim().toLowerCase()) as any;
+            }
+          }
+        }
+
+        return {
+          id: String(m.menu_id || m.id_menu || m.id || `menu-${Date.now()}-${Math.floor(Math.random() * 1000)}`),
+          name: String(m.nama_menu || m.name || 'Menu SIMRS').trim(),
+          price: parsePgNumber(m.harga ?? m.price, 0),
+          category: (m.kategori || m.category || 'makanan_utama') as MenuItem['category'],
+          mealTimes: parsedMealTimes,
+          calories: parsePgNumber(m.kalori ?? m.calories, 0),
+          protein: parsePgNumber(m.protein_gram ?? m.protein, 0),
+          carbs: parsePgNumber(m.karbohidrat_gram ?? m.karbohidrat ?? m.carbs, 0),
+          fat: parsePgNumber(m.lemak_gram ?? m.lemak ?? m.fat, 0),
+          sodium: parsePgNumber(m.natrium_mg ?? m.natrium ?? m.sodium, 0),
+          description: String(m.deskripsi || m.description || ''),
+          image: m.foto_url || m.gambar || m.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+          isAvailable: parsePgBoolean(m.tersedia ?? m.isAvailable ?? true),
+        };
+      });
+
+      const currentMenu = getLocalCachedMenu();
+      const merged = [...transformedMenus];
+      currentMenu.forEach(localMenu => {
+        if (!merged.find(m => m.id === localMenu.id || m.name.toLowerCase() === localMenu.name.toLowerCase())) {
+          merged.push(localMenu);
+        }
+      });
+      saveLocalCachedMenu(merged);
+      this.notifyListeners('init', { menuItems: merged, orders: getLocalCachedOrders() });
+      this.broadcastLocal('init', { menuItems: merged, orders: getLocalCachedOrders() });
+
+      return {
+        success: true,
+        data: transformedMenus,
+        totalMenu: transformedMenus.length,
+        latency,
+      };
     } catch (e: any) {
-      return { success: false, error: e.message || 'Network error' };
+      return { success: false, error: e.message || 'Gagal menarik menu dari SIMRS' };
     }
   }
 
