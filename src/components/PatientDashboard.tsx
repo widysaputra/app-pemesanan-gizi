@@ -215,13 +215,13 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
         <div className="relative z-10 max-w-2xl">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-white/20 backdrop-blur-md mb-2">
             <Sparkles className="w-3.5 h-3.5 text-emerald-200" />
-            <span>Pemesanan Makanan Pasien &bull; Terhubung WhatsApp</span>
+            <span>Pemesanan Makanan Pasien &bull; Dapur Gizi RS</span>
           </div>
           <h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">
             Pesan Menu Makanan Pasien
           </h2>
           <p className="text-xs sm:text-sm text-emerald-100 mt-1 leading-relaxed">
-            Pilih menu makanan sehat sesuai selera dan kebutuhan kamar Anda. Pesanan otomatis diteruskan ke Dapur Gizi melalui WhatsApp Fonnte.
+            Pilih menu makanan sehat sesuai selera dan kebutuhan kamar Anda. Pesanan otomatis diproses dan langsung diteruskan ke Dapur Gizi.
           </p>
         </div>
       </div>
@@ -615,19 +615,19 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                 </div>
               </div>
 
-              {/* Primary Submit Button: Pesan via WhatsApp */}
+              {/* Primary Submit Button */}
               <button
                 type="submit"
                 disabled={isSubmitting || trayItems.length === 0}
                 className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-2xl shadow-lg shadow-emerald-600/20 text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <MessageCircle className="w-5 h-5 fill-white text-transparent" />
-                <span>{isSubmitting ? 'Memproses Pesanan...' : 'Pesan & Kirim ke WhatsApp'}</span>
+                <CheckCircle2 className="w-5 h-5" />
+                <span>{isSubmitting ? 'Memproses Pesanan...' : 'Kirim Pesanan Sekarang'}</span>
                 <ChevronRight className="w-4 h-4 opacity-70" />
               </button>
 
               <div className="flex items-center justify-center gap-1 text-[11px] text-slate-400 text-center">
-                <span>Notifikasi otomatis dikirim via Fonnte Gateway</span>
+                <span>Pesanan otomatis tercatat &amp; diteruskan ke Dapur Gizi</span>
               </div>
             </div>
 

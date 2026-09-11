@@ -1510,9 +1510,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
 
               <div className="p-3 bg-slate-50 rounded-xl text-[11px] text-slate-600 border border-slate-200 space-y-1">
-                <div className="font-bold text-slate-800">💡 Tips Implementasi Mudah:</div>
+                <div className="font-bold text-slate-800">💡 Tips Penggunaan:</div>
                 <p>
-                  Jika token Fonnte belum dimasukkan, sistem NutriHospital menyediakan tombol otomatis <em>"Kirim via WhatsApp (wa.me)"</em> di layar pasien sehingga pemesanan tetap berjalan mulus 100%!
+                  Setiap pesanan yang dibuat oleh pasien akan otomatis diproses dan dikirimkan langsung ke nomor WhatsApp Admin Dapur Gizi melalui integrasi gateway Fonnte.
                 </p>
               </div>
 

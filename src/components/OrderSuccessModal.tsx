@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { HospitalOrder } from '../types';
 import { getLocalFonnteConfig } from '../services/api';
-import { CheckCircle2, MessageCircle, Copy, Check, X, ExternalLink, ShieldCheck, AlertCircle } from 'lucide-react';
+import { CheckCircle2, MessageCircle, Copy, Check, X, ShieldCheck } from 'lucide-react';
 
 interface OrderSuccessModalProps {
   order: HospitalOrder | null;
@@ -26,11 +26,6 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
 
   const fonnteConfig = getLocalFonnteConfig();
   const adminPhone = order.whatsappNotification?.targetNumber || fonnteConfig.targetNumber || '081394947002';
-
-  // Format admin phone number for WhatsApp manual fallback link
-  const cleanAdminPhone = adminPhone.replace(/[^0-9]/g, '');
-  const waAdminTarget = cleanAdminPhone.startsWith('0') ? `62${cleanAdminPhone.slice(1)}` : cleanAdminPhone;
-  const adminWhatsappUrl = `https://wa.me/${waAdminTarget}?text=${encodeURIComponent(waMessage)}`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(waMessage);
@@ -57,7 +52,7 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
             </div>
             <div>
               <span className="text-xs font-bold text-emerald-200 uppercase tracking-wider">
-                Pesanan Berhasil Disimpan!
+                Pesanan Berhasil Disimpan
               </span>
               <h3 className="text-lg font-black text-white leading-tight">
                 Menu Makanan Berhasil Dipesan
@@ -72,39 +67,25 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
         {/* Modal Body */}
         <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
           
-          {/* Fonnte Automatic Delivery Status */}
-          {waSent ? (
-            <div className="p-4 rounded-2xl border border-emerald-200 bg-emerald-50/90 text-emerald-950 text-xs flex items-start gap-3 shadow-2xs">
-              <div className="p-2 rounded-xl bg-emerald-600 text-white shrink-0 mt-0.5 shadow-xs">
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="font-black text-emerald-900 text-sm flex items-center gap-2">
-                  <span>Otomatis Terkirim ke WhatsApp Admin Gizi</span>
-                  <span className="text-[10px] bg-emerald-200/90 text-emerald-800 font-extrabold px-2 py-0.5 rounded-full uppercase">
-                    Aktif
-                  </span>
-                </div>
-                <p className="mt-1 text-xs leading-relaxed text-emerald-800">
-                  Rincian pesanan ini telah <strong>otomatis terkirim langsung</strong> oleh sistem ke nomor WhatsApp Admin Dapur Gizi (<span className="font-mono font-bold">{adminPhone}</span>). Petugas dapur dapat segera menyiapkan menu.
-                </p>
-              </div>
+          {/* Automatic Delivery Status */}
+          <div className="p-4 rounded-2xl border border-emerald-200 bg-emerald-50/90 text-emerald-950 text-xs flex items-start gap-3 shadow-2xs">
+            <div className="p-2 rounded-xl bg-emerald-600 text-white shrink-0 mt-0.5 shadow-xs">
+              <ShieldCheck className="w-5 h-5" />
             </div>
-          ) : (
-            <div className="p-4 rounded-2xl border border-amber-200 bg-amber-50 text-amber-950 text-xs flex items-start gap-3">
-              <div className="p-2 rounded-xl bg-amber-500 text-white shrink-0 mt-0.5 shadow-xs">
-                <AlertCircle className="w-5 h-5" />
+            <div className="min-w-0 flex-1">
+              <div className="font-black text-emerald-900 text-sm flex items-center gap-2">
+                <span>Pesanan Tercatat di Dapur Gizi</span>
+                <span className="text-[10px] bg-emerald-200/90 text-emerald-800 font-extrabold px-2 py-0.5 rounded-full uppercase">
+                  Diterima
+                </span>
               </div>
-              <div className="min-w-0 flex-1">
-                <div className="font-bold text-amber-900 text-sm">
-                  Pengiriman Otomatis Mengalami Kendala
-                </div>
-                <p className="mt-1 text-xs leading-relaxed text-amber-800">
-                  {waStatusText || 'Gateway WhatsApp sedang offline'}. Anda dapat meneruskan pesanan ini secara manual ke WhatsApp Admin Gizi menggunakan tombol di bawah.
-                </p>
-              </div>
+              <p className="mt-1 text-xs leading-relaxed text-emerald-800">
+                {waSent
+                  ? `Pesanan telah otomatis diteruskan oleh sistem ke WhatsApp Admin Gizi (${adminPhone}). Petugas dapur gizi akan segera memproses menu pesanan Anda.`
+                  : `Pesanan telah tersimpan di sistem dapur rumah sakit dan akan segera dipersiapkan oleh petugas gizi.`}
+              </p>
             </div>
-          )}
+          </div>
 
           {/* Key Order Details Summary */}
           <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-xs space-y-2">
@@ -117,12 +98,8 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
               <span className="font-bold text-slate-900">{order.patientName}</span>
             </div>
             <div className="flex justify-between items-center pb-2 border-b border-slate-200/80">
-              <span className="text-slate-500 font-medium">No. WhatsApp Pasien:</span>
+              <span className="text-slate-500 font-medium">No. Telepon / WhatsApp:</span>
               <span className="font-bold font-mono text-slate-900">{order.phoneNumber}</span>
-            </div>
-            <div className="flex justify-between items-center pb-2 border-b border-slate-200/80">
-              <span className="text-slate-500 font-medium">Admin Gizi Tujuan:</span>
-              <span className="font-bold font-mono text-emerald-700">{adminPhone}</span>
             </div>
             <div className="flex justify-between items-center pt-1">
               <span className="text-slate-500 font-medium">Total Tagihan:</span>
@@ -137,7 +114,7 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
                 <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Format Pesan WhatsApp:</span>
+                <span>Rincian Pesanan:</span>
               </label>
               <button
                 onClick={handleCopy}
@@ -151,7 +128,7 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
                 ) : (
                   <>
                     <Copy className="w-3.5 h-3.5" />
-                    <span>Salin Pesan</span>
+                    <span>Salin Rincian</span>
                   </>
                 )}
               </button>
@@ -164,50 +141,14 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
         </div>
 
         {/* Modal Footer with Actions */}
-        <div className="p-5 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center gap-2.5">
-          {waSent ? (
-            <>
-              <button
-                onClick={onClose}
-                className="w-full sm:flex-1 py-3 px-5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Selesai (Sudah Diterima Dapur)</span>
-              </button>
-
-              <a
-                href={adminWhatsappUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full sm:w-auto py-3 px-4 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
-                title="Buka chat WhatsApp dengan Admin Gizi jika ada konfirmasi khusus"
-              >
-                <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Buka Chat Admin</span>
-                <ExternalLink className="w-3 h-3 opacity-60" />
-              </a>
-            </>
-          ) : (
-            <>
-              <a
-                href={adminWhatsappUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full sm:flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors"
-              >
-                <MessageCircle className="w-4 h-4 fill-white text-transparent" />
-                <span>Kirim Manual ke WhatsApp Admin Gizi</span>
-                <ExternalLink className="w-3.5 h-3.5 opacity-70" />
-              </a>
-
-              <button
-                onClick={onClose}
-                className="w-full sm:w-auto py-3 px-5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl font-bold text-xs transition-colors cursor-pointer"
-              >
-                Tutup
-              </button>
-            </>
-          )}
+        <div className="p-5 bg-slate-50 border-t border-slate-200 flex items-center">
+          <button
+            onClick={onClose}
+            className="w-full py-3 px-5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
+          >
+            <CheckCircle2 className="w-4 h-4" />
+            <span>Selesai (Tutup)</span>
+          </button>
         </div>
 
       </div>

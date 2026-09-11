@@ -533,8 +533,8 @@ export default function App() {
                   <ul className="list-disc pl-4 mt-0.5 space-y-0.5 text-[11px] text-slate-600">
                     <li>Isi nama kamar, nama pasien, dan nomor WhatsApp.</li>
                     <li>Pilih menu makanan beserta porsi yang diinginkan.</li>
-                    <li>Klik "Pesan &amp; Kirim ke WhatsApp" untuk mengirim notifikasi via Fonnte.</li>
-                    <li>Tersedia fallback tombol <em>wa.me</em> untuk kirim manual seketika.</li>
+                    <li>Klik "Kirim Pesanan Sekarang" untuk memesan menu.</li>
+                    <li>Pesanan otomatis diteruskan langsung ke sistem Dapur Gizi.</li>
                   </ul>
                 </div>
               </div>
