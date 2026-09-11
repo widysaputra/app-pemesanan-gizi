@@ -2209,10 +2209,10 @@ app.post('/api/simrs/sync-menu', async (req, res) => {
     console.log(`Hospital Food & WhatsApp Server running on http://localhost:${PORT}`);
     // Auto-fetch fresh menu from SIMRS on startup
     autoFetchSimrsMenuFromServer().catch(() => {});
-    // Auto-refresh every 30 seconds to keep in sync with SIMRS PostgreSQL
+    // Auto-refresh every 5 seconds to keep in sync with SIMRS PostgreSQL
     setInterval(() => {
       autoFetchSimrsMenuFromServer().catch(() => {});
-    }, 30000);
+    }, 5000);
   });
 }
 
