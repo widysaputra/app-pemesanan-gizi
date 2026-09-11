@@ -1257,12 +1257,14 @@ export class HospitalRealtimeService {
 
     const start = Date.now();
     try {
+      const isGetEndpoint = apiUrl.toLowerCase().includes('master-menu-gizi') || apiUrl.toLowerCase().includes('get-') || apiUrl.toLowerCase().endsWith('/master-menu');
       const directController = new AbortController();
       const timeout = setTimeout(() => directController.abort(), 8000);
+      
       const res = await fetch(apiUrl, {
-        method: 'POST',
+        method: isGetEndpoint ? 'GET' : 'POST',
         headers,
-        body: JSON.stringify(samplePayload),
+        body: isGetEndpoint ? undefined : JSON.stringify(samplePayload),
         signal: directController.signal,
       });
       clearTimeout(timeout);
@@ -1278,11 +1280,11 @@ export class HospitalRealtimeService {
       if (res.ok) {
         return {
           success: true,
-          message: 'Koneksi ke endpoint SIMRS berhasil (HTTP 200 OK)! Header X-AUTH-TOKEN diterima dengan baik.',
+          message: `Koneksi ke endpoint SIMRS (${isGetEndpoint ? 'GET' : 'POST'}) berhasil (HTTP 200 OK)! Header X-AUTH-TOKEN diterima dengan baik.`,
           latency,
           authHeader: 'X-AUTH-TOKEN',
           data: responseData,
-          sentPayload: samplePayload,
+          sentPayload: isGetEndpoint ? undefined : samplePayload,
         };
       } else {
         const errorMsg = `HTTP ${res.status}: ${res.statusText || 'Server SIMRS menolak request'}`;
@@ -1293,7 +1295,7 @@ export class HospitalRealtimeService {
           latency,
           authHeader: 'X-AUTH-TOKEN',
           data: responseData,
-          sentPayload: samplePayload,
+          sentPayload: isGetEndpoint ? undefined : samplePayload,
         };
       }
     } catch (err: any) {
