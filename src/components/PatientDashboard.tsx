@@ -245,10 +245,6 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
               <Sparkles className="w-3.5 h-3.5 text-emerald-200" />
               <span>Pemesanan Makanan Pasien &bull; Dapur Gizi RS</span>
             </div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-emerald-950/40 border border-emerald-400/30 text-emerald-200">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span>Sync Real-Time Aktif (Laptop &amp; HP)</span>
-            </div>
           </div>
           <h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">
             Layanan Gizi Rawat Inap
@@ -298,16 +294,6 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
             </div>
 
             {/* Quick Sync Button */}
-            <button
-              type="button"
-              onClick={handleSyncMenu}
-              disabled={isSyncingMenu}
-              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-white/20 hover:bg-white/30 text-white border border-white/20 flex items-center gap-2 cursor-pointer transition-all disabled:opacity-50"
-              title="Sinkronkan Menu dari SIMRS / Server"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isSyncingMenu ? 'animate-spin' : ''}`} />
-              <span>{isSyncingMenu ? 'Menyinkronkan...' : 'Sinkronkan SIMRS'}</span>
-            </button>
           </div>
 
           {syncStatusMsg && (

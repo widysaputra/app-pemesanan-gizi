@@ -520,7 +520,7 @@ function formatWhatsAppOrderMessage(order: HospitalOrder): string {
     `🔥 *Total Kalori*: ${order.totalCalories} kkal\n\n` +
     `📝 *Catatan Khusus*:\n${order.patientNotes ? `"${order.patientNotes}"` : '- Tidak ada catatan khusus -'}\n` +
     `━━━━━━━━━━━━━━━━━━━━━\n` +
-    `_Pesanan telah terkirim langsung ke Dapur Gizi Rumah Sakit via NutriHospital (Fonnte Gateway)_`;
+    `_Pesanan telah terkirim langsung ke Dapur Gizi Rumah Sakit via SIAPMAKAN_`;
 }
 
 // Helper: Send message using Fonnte API (https://api.fonnte.com/send)

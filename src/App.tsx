@@ -285,15 +285,11 @@ export default function App() {
             <div>
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <span className="font-black text-slate-900 tracking-tight text-sm sm:text-base">
-                  NutriHospital
-                </span>
-                <span className="text-[9px] sm:text-[10px] font-bold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded uppercase hidden sm:flex items-center gap-1">
-                  <MessageCircle className="w-2.5 h-2.5" />
-                  <span>Fonnte WA Ready</span>
+                  SiapMakan
                 </span>
               </div>
               <div className="text-[11px] text-slate-500 font-medium hidden md:block">
-                Pemesanan Makanan Pasien &bull; Admin Menu &bull; WhatsApp Gateway
+                Pemesanan Makanan Pasien
               </div>
             </div>
           </div>
