@@ -1,5 +1,6 @@
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
 
@@ -177,14 +178,56 @@ const INITIAL_ORDERS: HospitalOrder[] = [
 let menuItems: MenuItem[] = [];
 let orders: HospitalOrder[] = [...INITIAL_ORDERS];
 
-// Fonnte Configuration State (Can be set via .env or updated from Admin Dashboard UI)
-let fonnteSettings: FonnteSettings = {
-  token: process.env.FONNTE_TOKEN || '',
-  targetNumber: process.env.FONNTE_TARGET_PHONE || '081234567890',
-  sendToAdmin: true,
-  sendToPatient: true,
-  isConfigured: Boolean(process.env.FONNTE_TOKEN),
-};
+// Fonnte Configuration State with persistent disk fallback
+const FONNTE_CONFIG_FILE = path.join(process.cwd(), 'fonnte_config.json');
+
+function loadPersistentFonnteSettings(): FonnteSettings {
+  const defaultToken = (process.env.FONNTE_TOKEN || 'irrv1yX7bCHMUXWjHezr').trim();
+  const defaultTarget = (process.env.FONNTE_TARGET_PHONE || '081394947002').trim();
+
+  try {
+    if (fs.existsSync(FONNTE_CONFIG_FILE)) {
+      const raw = fs.readFileSync(FONNTE_CONFIG_FILE, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        const token = (parsed.token || defaultToken).trim();
+        const targetNumber = (parsed.targetNumber || defaultTarget).trim();
+        return {
+          token,
+          targetNumber,
+          sendToAdmin: parsed.sendToAdmin !== false,
+          sendToPatient: parsed.sendToPatient !== false,
+          isConfigured: Boolean(token && token.length > 5),
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('[Fonnte] Gagal membaca fonnte_config.json:', err);
+  }
+
+  return {
+    token: defaultToken,
+    targetNumber: defaultTarget,
+    sendToAdmin: true,
+    sendToPatient: true,
+    isConfigured: Boolean(defaultToken && defaultToken.length > 5),
+  };
+}
+
+let fonnteSettings: FonnteSettings = loadPersistentFonnteSettings();
+
+function savePersistentFonnteSettings(settings: FonnteSettings) {
+  try {
+    fs.writeFileSync(FONNTE_CONFIG_FILE, JSON.stringify(settings, null, 2), 'utf-8');
+  } catch (err) {
+    console.warn('[Fonnte] Gagal menyimpan fonnte_config.json:', err);
+  }
+}
+
+// Auto-save default if file doesn't exist
+if (!fs.existsSync(FONNTE_CONFIG_FILE)) {
+  savePersistentFonnteSettings(fonnteSettings);
+}
 
 // URL Resolvers for Hospital SIMRS endpoints (RSBSA Online Medifirst2000)
 function resolveSimrsOrderUrl(inputUrl?: string): string {
@@ -283,14 +326,20 @@ async function sendFonnteMessage(
     };
   }
 
-  // Format clean phone number (digits only)
-  const cleanTarget = targetPhone.replace(/[^0-9]/g, '');
-  if (!cleanTarget) {
+  // Format clean phone numbers (support comma-separated multi recipients)
+  const targets = targetPhone
+    .split(',')
+    .map((p) => p.replace(/[^0-9]/g, ''))
+    .filter((p) => p.length >= 6);
+
+  if (targets.length === 0) {
     return {
       success: false,
       error: 'Nomor telepon tujuan tidak valid.',
     };
   }
+
+  const cleanTarget = targets.join(',');
 
   try {
     const formData = new URLSearchParams();
@@ -310,9 +359,13 @@ async function sendFonnteMessage(
     if (data.status === true || data.status === 'true') {
       return { success: true, data };
     } else {
+      let friendlyError = data.reason || data.detail || 'Fonnte menolak pengiriman pesan (cek device status/token).';
+      if (data.reason === 'request invalid on disconnected device' || String(data.reason).includes('disconnected device')) {
+        friendlyError = 'Perangkat WhatsApp di Fonnte berstatus DISCONNECT (belum scan QR code atau sesi WhatsApp di HP terputus). Silakan buka https://md.fonnte.com > menu Device > klik Connect / Scan QR Code untuk menghubungkan WhatsApp.';
+      }
       return {
         success: false,
-        error: data.reason || data.detail || 'Fonnte menolak pengiriman pesan (cek device status/token).',
+        error: friendlyError,
         data,
       };
     }
@@ -988,6 +1041,8 @@ async function startServer() {
     }
     fonnteSettings.isConfigured = Boolean(fonnteSettings.token && fonnteSettings.token.trim().length > 5);
 
+    savePersistentFonnteSettings(fonnteSettings);
+
     res.json({
       success: true,
       message: 'Pengaturan WhatsApp Fonnte berhasil disimpan!',
@@ -1030,6 +1085,25 @@ async function startServer() {
         error: result.error,
         data: result.data,
       });
+    }
+  });
+
+  // Check Fonnte Device Status
+  app.post('/api/fonnte/device', async (req, res) => {
+    const { token } = req.body;
+    const targetToken = (token || fonnteSettings.token || '').trim();
+    if (!targetToken) {
+      return res.status(400).json({ success: false, error: 'Token Fonnte belum diatur' });
+    }
+    try {
+      const response = await fetch('https://api.fonnte.com/device', {
+        method: 'POST',
+        headers: { Authorization: targetToken },
+      });
+      const data = await response.json();
+      return res.json({ success: true, data });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message || 'Gagal menghubungi server Fonnte' });
     }
   });
 
@@ -1301,7 +1375,7 @@ async function startServer() {
 
   // Create Order (From Patient Dashboard) + AUTOMATIC WHATSAPP NOTIFICATION VIA FONNTE + AUTO SYNC SIMRS
   app.post('/api/orders', async (req, res) => {
-    const { roomName, patientName, phoneNumber, registrationNo, mealTime, items, patientNotes, simrsConfig } = req.body;
+    const { roomName, patientName, phoneNumber, registrationNo, mealTime, items, patientNotes, simrsConfig, fonnteConfig } = req.body;
 
     if (!roomName || roomName.trim() === '') {
       return res.status(400).json({ error: 'Nama kamar / nomor kamar wajib diisi' });
@@ -1313,6 +1387,18 @@ async function startServer() {
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'Pilih minimal satu menu makanan' });
+    }
+
+    // Sync in-memory fonnteSettings if client passed configured fonnteConfig
+    if (fonnteConfig && typeof fonnteConfig === 'object') {
+      if (fonnteConfig.token && (!fonnteSettings.token || fonnteSettings.token.length < 5)) {
+        fonnteSettings.token = fonnteConfig.token.trim();
+        savePersistentFonnteSettings(fonnteSettings);
+      }
+      if (fonnteConfig.targetNumber && (!fonnteSettings.targetNumber || fonnteSettings.targetNumber === '081234567890')) {
+        fonnteSettings.targetNumber = fonnteConfig.targetNumber.trim();
+        savePersistentFonnteSettings(fonnteSettings);
+      }
     }
 
     // Calculate total price and calories
@@ -1363,43 +1449,53 @@ async function startServer() {
     // Format WhatsApp Message Content
     const waMessage = formatWhatsAppOrderMessage(newOrder);
 
-    // Send WhatsApp notification via Fonnte Gateway
+    // Send WhatsApp notification via Fonnte Gateway directly to Admin Gizi
     let waSent = false;
     let waStatusText = 'Belum terkirim (Token Fonnte belum disetting)';
     let fonnteResponse: any = null;
 
-    if (fonnteSettings.token) {
-      // Determine recipient: Admin target or Patient's phone
-      const targetList = [];
-      if (fonnteSettings.sendToAdmin && fonnteSettings.targetNumber) {
-        targetList.push(fonnteSettings.targetNumber);
+    const effectiveFonnteToken = (fonnteConfig?.token || fonnteSettings.token || 'irrv1yX7bCHMUXWjHezr').trim();
+    const adminTargetPhone = (fonnteConfig?.targetNumber || fonnteSettings.targetNumber || '081394947002').trim();
+
+    if (effectiveFonnteToken) {
+      // Determine recipient list:
+      // 1. Admin Gizi ALWAYS receives the order notification
+      const targetList: string[] = [];
+      if (adminTargetPhone && fonnteSettings.sendToAdmin !== false) {
+        targetList.push(adminTargetPhone);
       }
-      if (fonnteSettings.sendToPatient && newOrder.phoneNumber) {
+
+      // 2. Patient phone gets a copy if configured and different from admin
+      const cleanPatientPhone = (newOrder.phoneNumber || '').replace(/[^0-9]/g, '');
+      const cleanAdminPhone = adminTargetPhone.replace(/[^0-9]/g, '');
+      if (fonnteSettings.sendToPatient && cleanPatientPhone && cleanPatientPhone !== cleanAdminPhone) {
         targetList.push(newOrder.phoneNumber);
       }
 
-      // If neither is toggled, default to patient number
-      if (targetList.length === 0) {
-        targetList.push(newOrder.phoneNumber);
+      // Failsafe: if empty, always send to admin target
+      if (targetList.length === 0 && adminTargetPhone) {
+        targetList.push(adminTargetPhone);
       }
 
-      // Combine comma-separated for Fonnte multi-recipient support
       const combinedTargets = targetList.join(',');
+      console.log(`[Fonnte Auto-Send] Mengirim notifikasi pesanan ${orderNumber} ke WhatsApp: ${combinedTargets}`);
 
-      const fonnteResult = await sendFonnteMessage(combinedTargets, waMessage);
+      const fonnteResult = await sendFonnteMessage(combinedTargets, waMessage, effectiveFonnteToken);
       fonnteResponse = fonnteResult.data;
 
       if (fonnteResult.success) {
         waSent = true;
-        waStatusText = `Terkirim ke WhatsApp (${combinedTargets}) via Fonnte Gateway`;
+        waStatusText = `Terkirim langsung ke WhatsApp Admin Gizi (${adminTargetPhone}) via Fonnte Gateway`;
+        console.log(`[Fonnte Auto-Send] Berhasil terkirim ke WhatsApp Admin Gizi (${adminTargetPhone})!`);
       } else {
-        waStatusText = `Gagal kirim via Fonnte: ${fonnteResult.error}`;
+        waStatusText = `Gagal kirim otomatis via Fonnte: ${fonnteResult.error}`;
+        console.warn(`[Fonnte Auto-Send] Gagal kirim ke ${combinedTargets}:`, fonnteResult.error);
       }
     }
 
     newOrder.whatsappNotification = {
       sent: waSent,
-      targetNumber: fonnteSettings.targetNumber || newOrder.phoneNumber,
+      targetNumber: adminTargetPhone || fonnteSettings.targetNumber || newOrder.phoneNumber,
       statusText: waStatusText,
       fonnteResponse,
       timestamp: new Date().toISOString(),

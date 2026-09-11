@@ -59,11 +59,11 @@ let simrsConfigState = {
 };
 
 let fonnteConfigState = {
-  token: process.env.FONNTE_TOKEN || '',
-  targetNumber: process.env.FONNTE_TARGET_PHONE || '081234567890',
+  token: (process.env.FONNTE_TOKEN || 'irrv1yX7bCHMUXWjHezr').trim(),
+  targetNumber: (process.env.FONNTE_TARGET_PHONE || '081394947002').trim(),
   sendToAdmin: true,
   sendToPatient: true,
-  isConfigured: Boolean(process.env.FONNTE_TOKEN),
+  isConfigured: true,
 };
 
 async function parseJsonBody(req: ExtendedRequest): Promise<any> {
@@ -372,6 +372,73 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
             isConfigured: fonnteConfigState.isConfigured,
           },
         });
+      }
+    }
+
+    // 3b. Fonnte Test POST
+    if (parsedPath.endsWith('/api/fonnte/test') && method === 'POST') {
+      const targetPhone = (body.targetPhone || fonnteConfigState.targetNumber || '').replace(/[^0-9]/g, '');
+      const testToken = (body.testToken || fonnteConfigState.token || '').trim();
+
+      if (!targetPhone) {
+        return res.status(400).json({ success: false, error: 'Nomor telepon tujuan wajib diisi' });
+      }
+      if (!testToken) {
+        return res.status(400).json({ success: false, error: 'Token Fonnte belum diatur' });
+      }
+
+      try {
+        const formData = new URLSearchParams();
+        formData.append('target', targetPhone);
+        formData.append('message', `🏥 *TES KONEKSI WHATSAPP FONNTE - NUTRIHOSPITAL*\n\nIntegrasi WhatsApp Gateway Fonnte dengan aplikasi NutriHospital berhasil terhubung!\nWaktu: ${new Date().toLocaleString('id-ID')}\nStatus: ✅ Siap menerima notifikasi pesanan.`);
+        formData.append('countryCode', '62');
+
+        const response = await fetch('https://api.fonnte.com/send', {
+          method: 'POST',
+          headers: { Authorization: testToken },
+          body: formData,
+        });
+        const data = await response.json();
+        if (data.status === true || data.status === 'true') {
+          return res.json({
+            success: true,
+            message: `Pesan WhatsApp uji coba berhasil dikirim ke ${targetPhone}!`,
+            data,
+          });
+        } else {
+          let friendly = data.reason || data.detail || 'Fonnte menolak pengiriman pesan.';
+          if (data.reason === 'request invalid on disconnected device' || String(data.reason).includes('disconnected device')) {
+            friendly = 'Perangkat WhatsApp di Fonnte berstatus DISCONNECT (belum scan QR code atau sesi WhatsApp di HP terputus). Silakan buka https://md.fonnte.com > menu Device > klik Connect / Scan QR Code untuk menghubungkan WhatsApp.';
+          }
+          return res.status(400).json({
+            success: false,
+            error: friendly,
+            data,
+          });
+        }
+      } catch (err: any) {
+        return res.status(500).json({
+          success: false,
+          error: err.message || 'Gagal menghubungi server Fonnte',
+        });
+      }
+    }
+
+    // 3c. Fonnte Device Status POST
+    if (parsedPath.endsWith('/api/fonnte/device') && method === 'POST') {
+      const targetToken = (body.token || fonnteConfigState.token || '').trim();
+      if (!targetToken) {
+        return res.status(400).json({ success: false, error: 'Token Fonnte belum diatur' });
+      }
+      try {
+        const response = await fetch('https://api.fonnte.com/device', {
+          method: 'POST',
+          headers: { Authorization: targetToken },
+        });
+        const data = await response.json();
+        return res.json({ success: true, data });
+      } catch (err: any) {
+        return res.status(500).json({ success: false, error: err.message || 'Gagal menghubungi server Fonnte' });
       }
     }
 
@@ -740,6 +807,76 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
       const orderNumber = `GZ-${now.toISOString().slice(0, 10).replace(/-/g, '')}-${String(Math.floor(10 + Math.random() * 90))}`;
       const cleanRegNo = (registrationNo && String(registrationNo).trim()) || `REG-${Date.now().toString().slice(-6)}`;
 
+      // Format WhatsApp Message Content
+      const menuLines = parsedItems
+        .map((it: any, idx: number) => `  ${idx + 1}. *${it.name}* x ${it.portion} porsi = Rp ${(it.price * it.portion).toLocaleString('id-ID')}`)
+        .join('\n');
+
+      const waOrderMessage = `🏥 *PESANAN MENU RUMAH SAKIT*\n` +
+        `━━━━━━━━━━━━━━━━━━━━━\n` +
+        `🚪 *Nama Kamar*: ${roomName || 'Kamar Pasien'}\n` +
+        `👤 *Nama Pasien*: ${patientName || 'Pasien Rawat Inap'}\n` +
+        `📱 *Nomor Telepon*: ${phoneNumber || '-'}\n` +
+        `🍽️ *Waktu Makan*: Makan ${(mealTime || 'siang').toUpperCase()}\n` +
+        `🔖 *No. Pesanan*: ${orderNumber}\n` +
+        `⏰ *Waktu Pesan*: ${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB\n\n` +
+        `📋 *MENU YANG DIPESAN*:\n${menuLines}\n\n` +
+        `💰 *Total Biaya*: *Rp ${totalPrice.toLocaleString('id-ID')}*\n` +
+        `🔥 *Total Kalori*: ${totalCalories} kkal\n\n` +
+        `📝 *Catatan Khusus*:\n${patientNotes ? `"${patientNotes}"` : '- Tidak ada catatan khusus -'}\n` +
+        `━━━━━━━━━━━━━━━━━━━━━\n` +
+        `_Pesanan telah terkirim langsung ke Dapur Gizi Rumah Sakit via NutriHospital (Fonnte Gateway)_`;
+
+      let waSent = false;
+      let waStatusText = 'Belum terkirim (Token Fonnte belum disetting)';
+      let fonnteResponse: any = null;
+
+      const effectiveTokenFonnte = (body.fonnteConfig?.token || fonnteConfigState.token || 'irrv1yX7bCHMUXWjHezr').trim();
+      const adminTarget = (body.fonnteConfig?.targetNumber || fonnteConfigState.targetNumber || '081394947002').trim();
+
+      if (effectiveTokenFonnte) {
+        const targetList: string[] = [];
+        if (adminTarget && fonnteConfigState.sendToAdmin !== false) {
+          targetList.push(adminTarget);
+        }
+        const cleanPat = (phoneNumber || '').replace(/[^0-9]/g, '');
+        const cleanAdm = adminTarget.replace(/[^0-9]/g, '');
+        if (fonnteConfigState.sendToPatient && cleanPat && cleanPat !== cleanAdm) {
+          targetList.push(phoneNumber);
+        }
+        if (targetList.length === 0 && adminTarget) {
+          targetList.push(adminTarget);
+        }
+
+        const combinedTargets = targetList
+          .map((p) => p.replace(/[^0-9]/g, ''))
+          .filter((p) => p.length >= 6)
+          .join(',');
+
+        try {
+          const formData = new URLSearchParams();
+          formData.append('target', combinedTargets);
+          formData.append('message', waOrderMessage);
+          formData.append('countryCode', '62');
+
+          const fRes = await fetch('https://api.fonnte.com/send', {
+            method: 'POST',
+            headers: { Authorization: effectiveTokenFonnte },
+            body: formData,
+          });
+          const fData = await fRes.json();
+          fonnteResponse = fData;
+          if (fData.status === true || fData.status === 'true') {
+            waSent = true;
+            waStatusText = `Terkirim langsung ke WhatsApp Admin Gizi (${adminTarget}) via Fonnte Gateway`;
+          } else {
+            waStatusText = `Gagal kirim via Fonnte: ${fData.reason || fData.detail || 'Fonnte menolak pengiriman'}`;
+          }
+        } catch (fErr: any) {
+          waStatusText = `Gagal menghubungi server Fonnte: ${fErr.message}`;
+        }
+      }
+
       const newOrder = {
         id: `ord-${Date.now()}`,
         orderNumber,
@@ -758,11 +895,12 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
           { status: 'baru', timestamp: now.toISOString(), note: 'Pesanan dibuat di sistem' }
         ],
         whatsappNotification: {
-          sent: false,
-          targetNumber: phoneNumber || '',
-          statusText: 'Format notifikasi WhatsApp siap disalin',
+          sent: waSent,
+          targetNumber: adminTarget || fonnteConfigState.targetNumber || phoneNumber || '',
+          statusText: waStatusText,
+          fonnteResponse,
           timestamp: now.toISOString(),
-          message: `Pesanan Gizi ${orderNumber} atas nama ${patientName || 'Pasien'} berhasil direkam.`
+          message: waOrderMessage,
         },
         simrsSync: {
           synced: false,

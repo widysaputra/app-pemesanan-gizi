@@ -47,7 +47,10 @@ import {
   UtensilsCrossed,
   BookOpen,
   Lock,
-  KeyRound
+  KeyRound,
+  Smartphone,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 import {
   SQL_PESANAN_GIZI_TABLE,
@@ -109,7 +112,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // Fonnte Settings States
   const [fonnteToken, setFonnteToken] = useState<string>('');
-  const [fonnteTarget, setFonnteTarget] = useState<string>('081234567890');
+  const [fonnteTarget, setFonnteTarget] = useState<string>('081394947002');
   const [sendToAdmin, setSendToAdmin] = useState<boolean>(true);
   const [sendToPatient, setSendToPatient] = useState<boolean>(true);
   const [showToken, setShowToken] = useState<boolean>(false);
@@ -117,10 +120,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [fonnteNotice, setFonnteNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isSavingFonnte, setIsSavingFonnte] = useState<boolean>(false);
 
-  // Fonnte Test Tool
-  const [testPhone, setTestPhone] = useState<string>('');
+  // Fonnte Test Tool & Device Health
+  const [testPhone, setTestPhone] = useState<string>('081394947002');
   const [isTestingFonnte, setIsTestingFonnte] = useState<boolean>(false);
   const [testResult, setTestResult] = useState<any | null>(null);
+  const [isCheckingDevice, setIsCheckingDevice] = useState<boolean>(false);
+  const [deviceStatusResult, setDeviceStatusResult] = useState<any | null>(null);
 
   // SIMRS (PostgreSQL & Laravel API) Integration States
   const [simrsApiUrl, setSimrsApiUrl] = useState<string>('http://localhost:8000/api/save-pesanan-gizi');
@@ -177,7 +182,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       try {
         const config = await realtimeService.getFonnteConfig();
         if (config) {
-          setFonnteTarget(config.targetNumber || '081234567890');
+          setFonnteTarget(config.targetNumber || '081394947002');
           setSendToAdmin(config.sendToAdmin !== false);
           setSendToPatient(config.sendToPatient !== false);
           setIsFonnteLoaded(true);
@@ -340,11 +345,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     try {
       const phoneToTest = testPhone.trim() || fonnteTarget.trim();
       const res = await realtimeService.testFonnteWhatsApp(phoneToTest, fonnteToken.trim() || undefined);
-      setTestResult({ success: true, message: res.message, data: res.data });
+      setTestResult({
+        success: Boolean(res.success),
+        message: res.message || res.error || (res.success ? 'Pesan uji coba berhasil dikirim via Fonnte Gateway!' : 'Gagal mengirim pesan'),
+        data: res.data,
+      });
     } catch (err: any) {
       setTestResult({ success: false, message: err.message });
     } finally {
       setIsTestingFonnte(false);
+    }
+  };
+
+  const handleCheckDeviceStatus = async () => {
+    setIsCheckingDevice(true);
+    setDeviceStatusResult(null);
+    try {
+      const res = await realtimeService.getFonnteDeviceStatus(fonnteToken.trim() || undefined);
+      if (res.success) {
+        setDeviceStatusResult({ success: true, data: res.data });
+      } else {
+        setDeviceStatusResult({ success: false, error: res.error || 'Gagal mengecek status perangkat Fonnte.' });
+      }
+    } catch (err: any) {
+      setDeviceStatusResult({ success: false, error: err.message || 'Gagal memeriksa status perangkat.' });
+    } finally {
+      setIsCheckingDevice(false);
     }
   };
 
@@ -1227,18 +1253,46 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
 
               {testResult && (
-                <div className={`p-3 rounded-xl text-xs font-mono space-y-1 ${
+                <div className={`p-3 rounded-xl text-xs font-mono space-y-1.5 ${
                   testResult.success
                     ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
                     : 'bg-rose-50 border border-rose-200 text-rose-800'
                 }`}>
-                  <div className="font-bold">
+                  <div className="font-bold text-xs">
                     {testResult.success ? '✅ Berhasil!' : '❌ Gagal:'} {testResult.message}
                   </div>
                   {testResult.data && (
                     <pre className="text-[10px] overflow-x-auto pt-1 text-slate-700 bg-white/70 p-2 rounded">
                       {JSON.stringify(testResult.data, null, 2)}
                     </pre>
+                  )}
+
+                  {/* If failure is caused by disconnected device, provide clear step-by-step resolution */}
+                  {!testResult.success && (
+                    (testResult.message?.toLowerCase().includes('disconnect') ||
+                     testResult.message?.toLowerCase().includes('terputus') ||
+                     testResult.data?.reason?.includes('disconnected device'))
+                  ) && (
+                    <div className="mt-2 p-3 bg-amber-50 border border-amber-300 rounded-xl text-xs font-sans text-amber-950 space-y-2">
+                      <div className="font-bold flex items-center gap-1.5 text-amber-900">
+                        <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span>Penyebab: Perangkat WhatsApp di Fonnte Berstatus "DISCONNECT"</span>
+                      </div>
+                      <p className="text-[11px] text-amber-900 leading-relaxed">
+                        Fonnte berfungsi sebagai jembatan WhatsApp Web. Karena perangkat belum terhubung atau sesi WhatsApp di HP terputus, Fonnte menolak pengiriman pesan dengan alasan <code>request invalid on disconnected device</code>.
+                      </p>
+                      <div className="bg-white/90 p-2.5 rounded-lg border border-amber-200 text-[11px] space-y-1 text-slate-800">
+                        <div className="font-bold text-slate-900">Langkah Menghubungkan (Scan QR Fonnte):</div>
+                        <ol className="list-decimal list-inside space-y-1 text-slate-700">
+                          <li>Buka situs <a href="https://md.fonnte.com" target="_blank" rel="noreferrer" className="text-emerald-700 font-bold underline">https://md.fonnte.com</a> lalu login ke akun Anda.</li>
+                          <li>Masuk ke menu <strong>Device</strong> &rarr; cari nama device Anda (misal: <em>app-pemesanan-gizi</em> / <em>6281394947002</em>).</li>
+                          <li>Klik tombol <strong>Connect</strong> atau <strong>Scan QR</strong> hingga QR Code tampil di layar laptop/komputer.</li>
+                          <li>Buka WhatsApp di HP Anda (<strong>{testPhone || fonnteTarget || '081394947002'}</strong>) &rarr; Pengaturan / Titik Tiga &rarr; <strong>Perangkat Tertaut (Linked Devices) &rarr; Tautkan Perangkat</strong>.</li>
+                          <li>Arahkan kamera HP ke QR Code tersebut sampai status di Fonnte berubah hijau: <span className="text-emerald-700 font-bold">"Connect"</span>.</li>
+                          <li>Setelah itu, klik tombol <strong>"Kirim Pesan Tes"</strong> lagi dan pesan akan langsung masuk!</li>
+                        </ol>
+                      </div>
+                    </div>
                   )}
                 </div>
               )}
@@ -1318,8 +1372,103 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           </div>
 
-          {/* Right Col: Live WhatsApp Message Template Preview */}
+          {/* Right Col: Live WhatsApp Message Template Preview & Device Health */}
           <div className="space-y-4">
+            {/* Live Device Status Card */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Smartphone className="w-4 h-4 text-emerald-600" />
+                  <h4 className="font-bold text-slate-900 text-sm">Status Perangkat Fonnte (Device)</h4>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCheckDeviceStatus}
+                  disabled={isCheckingDevice}
+                  className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                  title="Cek apakah WhatsApp di Fonnte Connect atau Disconnect"
+                >
+                  <RefreshCw className={`w-3 h-3 ${isCheckingDevice ? 'animate-spin' : ''}`} />
+                  <span>{isCheckingDevice ? 'Mengecek...' : 'Cek Status'}</span>
+                </button>
+              </div>
+
+              <p className="text-xs text-slate-500">
+                Memverifikasi apakah perangkat WhatsApp rumah sakit di Fonnte sudah ditautkan (Connect) atau masih terputus (Disconnect).
+              </p>
+
+              {deviceStatusResult ? (
+                deviceStatusResult.success ? (
+                  <div className="space-y-2.5">
+                    <div className={`p-3 rounded-xl border text-xs flex items-center justify-between ${
+                      deviceStatusResult.data?.device_status === 'connect'
+                        ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                        : 'bg-rose-50 border-rose-200 text-rose-900'
+                    }`}>
+                      <div className="flex items-center gap-2">
+                        {deviceStatusResult.data?.device_status === 'connect' ? (
+                          <Wifi className="w-4 h-4 text-emerald-600 shrink-0" />
+                        ) : (
+                          <WifiOff className="w-4 h-4 text-rose-600 shrink-0" />
+                        )}
+                        <div>
+                          <div className="font-bold uppercase tracking-wide text-[11px]">
+                            Status: {deviceStatusResult.data?.device_status || 'Unknown'}
+                          </div>
+                          <div className="text-[11px] opacity-80">
+                            Device: {deviceStatusResult.data?.device || '-'} ({deviceStatusResult.data?.name || '-'})
+                          </div>
+                        </div>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        deviceStatusResult.data?.device_status === 'connect'
+                          ? 'bg-emerald-200 text-emerald-800'
+                          : 'bg-rose-200 text-rose-800'
+                      }`}>
+                        {deviceStatusResult.data?.device_status === 'connect' ? 'ONLINE' : 'OFFLINE'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                      <div>
+                        <span className="text-slate-400 block text-[10px]">Paket Fonnte:</span>
+                        <span className="font-semibold text-slate-800">{deviceStatusResult.data?.package || 'Free'}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[10px]">Sisa Kuota:</span>
+                        <span className="font-semibold text-slate-800">{deviceStatusResult.data?.quota || '0'} pesan</span>
+                      </div>
+                      <div className="col-span-2 pt-1 border-t border-slate-200">
+                        <span className="text-slate-400 block text-[10px]">Masa Aktif Paket:</span>
+                        <span className="font-semibold text-slate-800">{deviceStatusResult.data?.expired || '-'}</span>
+                      </div>
+                    </div>
+
+                    {deviceStatusResult.data?.device_status === 'disconnect' && (
+                      <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900 space-y-1">
+                        <div className="font-bold flex items-center gap-1 text-amber-800">
+                          <AlertCircle className="w-3.5 h-3.5" />
+                          <span>Perangkat Belum Ditautkan</span>
+                        </div>
+                        <p className="text-[10px] leading-relaxed">
+                          Pesan tidak akan masuk selama device disconnect. Silakan login ke <a href="https://md.fonnte.com" target="_blank" rel="noreferrer" className="underline font-bold text-emerald-700">md.fonnte.com</a> &rarr; menu Device &rarr; klik <strong>Connect</strong> &rarr; lalu scan QR dengan WhatsApp HP Anda.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800">
+                    <div className="font-bold">Gagal memeriksa status:</div>
+                    <div className="text-[11px] mt-0.5">{deviceStatusResult.error}</div>
+                  </div>
+                )
+              ) : (
+                <div className="p-3 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-center space-y-1">
+                  <span className="text-xs text-slate-500">Klik tombol di atas untuk melihat status koneksi perangkat Fonnte secara langsung.</span>
+                </div>
+              )}
+            </div>
+
             <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
               <div className="flex items-center gap-2">
                 <MessageCircle className="w-4 h-4 text-emerald-600" />
