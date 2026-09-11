@@ -56,8 +56,8 @@ export default function App() {
         realtimeService.getOrders().catch(() => realtimeService.getLocalOrders()),
       ]);
 
-      const validMenu = fetchedMenu && fetchedMenu.length > 0 ? fetchedMenu : realtimeService.getLocalMenu();
-      const validOrders = fetchedOrders && Array.isArray(fetchedOrders) ? fetchedOrders : realtimeService.getLocalOrders();
+      const validMenu = Array.isArray(fetchedMenu) ? fetchedMenu : realtimeService.getLocalMenu();
+      const validOrders = Array.isArray(fetchedOrders) ? fetchedOrders : realtimeService.getLocalOrders();
 
       setMenuItems(validMenu);
       setOrders(validOrders);
@@ -77,8 +77,8 @@ export default function App() {
     const failsafeTimer = setTimeout(() => {
       setIsLoaded((current) => {
         if (!current) {
-          setMenuItems((m) => (m.length > 0 ? m : realtimeService.getLocalMenu()));
-          setOrders((o) => (o.length > 0 ? o : realtimeService.getLocalOrders()));
+          setMenuItems(realtimeService.getLocalMenu());
+          setOrders(realtimeService.getLocalOrders());
           return true;
         }
         return current;

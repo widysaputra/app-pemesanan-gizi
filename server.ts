@@ -85,9 +85,7 @@ export interface SimrsSettings {
   isConfigured: boolean;
 }
 
-// Initial Menu Catalog with standardized prices in Rupiah
-// Menu Catalog starts empty as requested by hospital administrators.
-// Master menu is populated via SIMRS synchronization or manual entry in Admin Dashboard.
+// Initial Menu Catalog with standardized prices in Rupiah (dimulai kosong)
 const INITIAL_MENU: MenuItem[] = [];
 
 const INITIAL_ORDERS: HospitalOrder[] = [
@@ -179,14 +177,14 @@ function loadPersistentMenuItems(): MenuItem[] {
     if (fs.existsSync(MENU_DATA_FILE)) {
       const raw = fs.readFileSync(MENU_DATA_FILE, 'utf-8');
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         return parsed;
       }
     }
   } catch (err) {
     console.warn('[Storage] Gagal membaca menu_items.json:', err);
   }
-  return [...INITIAL_MENU];
+  return [];
 }
 
 function savePersistentMenuItems(items: MenuItem[]) {

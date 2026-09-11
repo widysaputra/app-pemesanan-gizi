@@ -22,8 +22,10 @@ import {
   AlertCircle,
   ShoppingBag,
   ExternalLink,
-  ChevronRight
+  ChevronRight,
+  RefreshCw
 } from 'lucide-react';
+import { realtimeService } from '../services/api';
 import { OrderSuccessModal } from './OrderSuccessModal';
 
 interface PatientDashboardProps {
@@ -73,14 +75,13 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
 
   // Menu Browsing States
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [mealTimeFilter, setMealTimeFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isSyncingMenu, setIsSyncingMenu] = useState<boolean>(false);
+  const [syncStatusMsg, setSyncStatusMsg] = useState<string | null>(null);
 
-  // Cart / Tray State
-  const [tray, setTray] = useState<Record<string, number>>({
-    'menu-1': 1, // Nasi Putih Pulen
-    'menu-5': 1, // Ayam Panggang
-    'menu-11': 1, // Sayur Bayam
-  });
+  // Cart / Tray State - Starts clean so patient chooses their actual desired menu
+  const [tray, setTray] = useState<Record<string, number>>({});
 
   // Active View Tab: Catalog Menu vs Order History
   const [activeTab, setActiveTab] = useState<'catalog' | 'history'>('catalog');
@@ -106,17 +107,34 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
     return (menuItems || [])
       .filter((item): item is MenuItem => Boolean(item && item.id && item.name))
       .filter((item) => {
-        // Must match meal time if specified
+        // Must match meal time filter if active
         const times = Array.isArray(item.mealTimes) && item.mealTimes.length > 0 ? item.mealTimes : ['pagi', 'siang', 'malam', 'snack'];
-        const matchMealTime = times.includes(mealTime);
+        const matchMealTime = mealTimeFilter === 'all' || times.includes(mealTimeFilter as MealTime) || times.includes(mealTime);
         const matchCat = selectedCategory === 'all' || item.category === selectedCategory;
         const itemName = (item.name || '').toLowerCase();
         const itemDesc = (item.description || '').toLowerCase();
         const query = (searchQuery || '').toLowerCase();
-        const matchSearch = itemName.includes(query) || itemDesc.includes(query);
+        const matchSearch = !query || itemName.includes(query) || itemDesc.includes(query);
         return matchMealTime && matchCat && matchSearch;
       });
-  }, [menuItems, mealTime, selectedCategory, searchQuery]);
+  }, [menuItems, mealTime, mealTimeFilter, selectedCategory, searchQuery]);
+
+  // Handle manual sync from server / SIMRS
+  const handleSyncMenu = async () => {
+    try {
+      setIsSyncingMenu(true);
+      setSyncStatusMsg('Menghubungi server & SIMRS...');
+      await realtimeService.syncWithServer();
+      const updated = await realtimeService.getMenu();
+      setSyncStatusMsg(`Berhasil! ${updated.length} menu termuat.`);
+      setTimeout(() => setSyncStatusMsg(null), 3500);
+    } catch (err: any) {
+      setSyncStatusMsg('Gagal menyinkronkan: ' + (err.message || 'Koneksi terputus'));
+      setTimeout(() => setSyncStatusMsg(null), 4000);
+    } finally {
+      setIsSyncingMenu(false);
+    }
+  };
 
   // Cart calculation
   const trayItems = useMemo(() => {
@@ -239,44 +257,65 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
             Pesan makanan bergizi sesuai selera &amp; pantau status pesanan secara langsung dari HP atau perangkat Anda.
           </p>
 
-          {/* Navigation Tabs */}
-          <div className="flex items-center gap-2 mt-5 bg-black/20 backdrop-blur-md p-1.5 rounded-2xl w-fit border border-white/15">
-            <button
-              type="button"
-              onClick={() => setActiveTab('catalog')}
-              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-black flex items-center gap-2 transition-all cursor-pointer ${
-                activeTab === 'catalog'
-                  ? 'bg-white text-emerald-900 shadow-md'
-                  : 'text-white/80 hover:text-white hover:bg-white/10'
-              }`}
-            >
-              <Utensils className="w-4 h-4" />
-              <span>Pesan Menu Makanan</span>
-              {trayItems.length > 0 && (
-                <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-bold">
-                  {trayItems.reduce((acc, curr) => acc + curr.qty, 0)}
-                </span>
-              )}
-            </button>
+          {/* Navigation Tabs & Live Sync Action */}
+          <div className="flex flex-wrap items-center justify-between gap-2 mt-5">
+            <div className="flex items-center gap-2 bg-black/20 backdrop-blur-md p-1.5 rounded-2xl w-fit border border-white/15">
+              <button
+                type="button"
+                onClick={() => setActiveTab('catalog')}
+                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-black flex items-center gap-2 transition-all cursor-pointer ${
+                  activeTab === 'catalog'
+                    ? 'bg-white text-emerald-900 shadow-md'
+                    : 'text-white/80 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <Utensils className="w-4 h-4" />
+                <span>Pesan Menu Makanan</span>
+                {trayItems.length > 0 && (
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-bold">
+                    {trayItems.reduce((acc, curr) => acc + curr.qty, 0)}
+                  </span>
+                )}
+              </button>
 
+              <button
+                type="button"
+                onClick={() => setActiveTab('history')}
+                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-black flex items-center gap-2 transition-all cursor-pointer ${
+                  activeTab === 'history'
+                    ? 'bg-white text-emerald-900 shadow-md'
+                    : 'text-white/80 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <Clock className="w-4 h-4" />
+                <span>Riwayat &amp; Status Pesanan</span>
+                {myOrders.length > 0 && (
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-bold">
+                    {myOrders.length}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* Quick Sync Button */}
             <button
               type="button"
-              onClick={() => setActiveTab('history')}
-              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-black flex items-center gap-2 transition-all cursor-pointer ${
-                activeTab === 'history'
-                  ? 'bg-white text-emerald-900 shadow-md'
-                  : 'text-white/80 hover:text-white hover:bg-white/10'
-              }`}
+              onClick={handleSyncMenu}
+              disabled={isSyncingMenu}
+              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-white/20 hover:bg-white/30 text-white border border-white/20 flex items-center gap-2 cursor-pointer transition-all disabled:opacity-50"
+              title="Sinkronkan Menu dari SIMRS / Server"
             >
-              <Clock className="w-4 h-4" />
-              <span>Riwayat &amp; Status Pesanan</span>
-              {myOrders.length > 0 && (
-                <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-bold">
-                  {myOrders.length}
-                </span>
-              )}
+              <RefreshCw className={`w-3.5 h-3.5 ${isSyncingMenu ? 'animate-spin' : ''}`} />
+              <span>{isSyncingMenu ? 'Menyinkronkan...' : 'Sinkronkan SIMRS'}</span>
             </button>
           </div>
+
+          {syncStatusMsg && (
+            <div className="mt-3 px-3 py-1.5 bg-emerald-950/60 border border-emerald-400/40 text-emerald-200 text-xs rounded-xl inline-flex items-center gap-2">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              <span>{syncStatusMsg}</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -480,14 +519,28 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
               
               {/* Meal Time Selector */}
-              <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 w-full sm:w-auto">
+              <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 w-full sm:w-auto overflow-x-auto">
+                <button
+                  type="button"
+                  onClick={() => setMealTimeFilter('all')}
+                  className={`flex-1 sm:flex-none px-2 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                    mealTimeFilter === 'all'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Semua Waktu
+                </button>
                 {(['pagi', 'siang', 'malam', 'snack'] as MealTime[]).map((time) => (
                   <button
                     key={time}
                     type="button"
-                    onClick={() => setMealTime(time)}
-                    className={`flex-1 sm:flex-none px-2 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold capitalize transition-all cursor-pointer ${
-                      mealTime === time
+                    onClick={() => {
+                      setMealTimeFilter(time);
+                      setMealTime(time);
+                    }}
+                    className={`flex-1 sm:flex-none px-2 sm:px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all cursor-pointer whitespace-nowrap ${
+                      mealTimeFilter === time
                         ? 'bg-emerald-600 text-white shadow-xs'
                         : 'text-slate-600 hover:text-slate-900'
                     }`}
@@ -639,10 +692,38 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
           </div>
 
           {filteredMenu.length === 0 && (
-            <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-2">
-              <Utensils className="w-8 h-8 text-slate-300 mx-auto" />
-              <h4 className="font-bold text-slate-700 text-sm">Tidak ada menu untuk waktu makan ini</h4>
-              <p className="text-xs text-slate-500">Coba pilih waktu makan lain (Pagi, Siang, Malam, Snack) atau ganti kata kunci.</p>
+            <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-3">
+              <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
+                <Utensils className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="font-bold text-slate-800 text-sm">Tidak ada menu yang sesuai kriteria</h4>
+                <p className="text-xs text-slate-500 mt-1">
+                  Menu mungkin diatur untuk waktu makan lain, atau perlu disinkronkan dari SIMRS / Server.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMealTimeFilter('all');
+                    setSelectedCategory('all');
+                    setSearchQuery('');
+                  }}
+                  className="px-3.5 py-2 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs"
+                >
+                  Tampilkan Semua Menu ({menuItems.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSyncMenu}
+                  disabled={isSyncingMenu}
+                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isSyncingMenu ? 'animate-spin' : ''}`} />
+                  <span>{isSyncingMenu ? 'Menyinkronkan...' : 'Sinkronkan SIMRS'}</span>
+                </button>
+              </div>
             </div>
           )}
 

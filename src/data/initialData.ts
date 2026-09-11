@@ -1,7 +1,6 @@
 import { MenuItem, HospitalOrder } from '../types';
 
-// Default menu catalog is empty as requested by hospital administrators.
-// Master menu is populated directly via SIMRS sync or manual entry in Admin Dashboard.
+// Master menu katalog gizi standar rumah sakit (dimulai kosong sesuai permintaan)
 export const INITIAL_MENU: MenuItem[] = [];
 
 export const INITIAL_ORDERS: HospitalOrder[] = [
@@ -87,42 +86,15 @@ export const INITIAL_ORDERS: HospitalOrder[] = [
 const LOCAL_STORAGE_MENU_KEY = 'nutrihospital_menu_cache';
 const LOCAL_STORAGE_ORDERS_KEY = 'nutrihospital_orders_cache';
 
-// Identifikasi nama item mock default lama untuk dibersihkan secara otomatis
-const LEGACY_MOCK_NAMES = [
-  'nasi putih pulen organik',
-  'nasi merah berserat tinggi',
-  'bubur saring lembut halus',
-  'mashed potato',
-  'ayam panggang bumbu kuning',
-  'sup ikan kakap kuah bening',
-  'rolade daging cincang kukus',
-  'telur orak-arik herbal rebus',
-  'tahu kukus sutra isi sayur',
-  'tempe bacem rempah rendah gula',
-  'sayur bening bayam jagung manis',
-  'tumis labu siam & wortel sehat',
-  'sup krim labu kuning lembut',
-  'potongan pepaya & melon manis segar',
-  'puding cokelat susu skim rendah kalori',
-  'teh hijau hangat madu murni',
-  'susu kedelai murni tanpa gula tambahan',
-];
-
 export function getLocalCachedMenu(): MenuItem[] {
-  if (typeof window === 'undefined') return [];
+  if (typeof window === 'undefined') return INITIAL_MENU;
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_MENU_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        // Bersihkan item default mock lama agar menu benar-benar kosong sesuai permintaan user
-        const filtered = parsed
-          .filter((item) => item && typeof item === 'object' && item.id && item.name && typeof item.name === 'string')
-          .filter((item) => {
-            const lowerName = String(item.name).toLowerCase().trim();
-            const isMock = LEGACY_MOCK_NAMES.some((m) => lowerName.includes(m));
-            return !isMock;
-          })
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed
+          .filter((item) => item && typeof item === 'object' && item.id && item.name)
           .map((item) => ({
             id: String(item.id),
             name: String(item.name || 'Menu Makanan'),
@@ -138,16 +110,12 @@ export function getLocalCachedMenu(): MenuItem[] {
             isAvailable: item.isAvailable !== false,
             image: item.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
           }));
-
-        // Simpan hasil pembersihan kembali ke localStorage
-        localStorage.setItem(LOCAL_STORAGE_MENU_KEY, JSON.stringify(filtered));
-        return filtered;
       }
     }
   } catch {
     // Ignore storage parse error
   }
-  return [];
+  return INITIAL_MENU;
 }
 
 export function saveLocalCachedMenu(menu: MenuItem[]): void {
