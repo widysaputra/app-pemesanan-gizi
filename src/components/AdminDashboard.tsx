@@ -13,7 +13,7 @@ import {
   Utensils, 
   Plus, 
   Edit3, 
-  Trash2, 
+  Trash2, Download, 
   Search, 
   DollarSign, 
   CheckCircle2, 
@@ -457,6 +457,64 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       });
     } finally {
       setSyncingOrderId(null);
+    }
+  };
+
+  const handleFetchMenuFromSimrs = async () => {
+    setIsSyncingMenu(true);
+    setMenuSyncNotice(null);
+    try {
+      const res = await realtimeService.fetchMenuFromSimrs();
+      if (res.success) {
+        setMenuSyncNotice({
+          success: true,
+          text: (res as any).message || `Berhasil menarik data master menu dari SIMRS`,
+          latency: res.latency,
+        });
+        // Note: the cache is already updated by api.ts, the UI will update via broadcast channel
+      } else {
+        setMenuSyncNotice({
+          success: false,
+          text: `Gagal menarik data SIMRS: ${res.error}`
+        });
+      }
+    } catch (err: any) {
+      setMenuSyncNotice({
+        success: false,
+        text: `Error jaringan saat menarik dari SIMRS: ${err.message}`
+      });
+    } finally {
+      setIsSyncingMenu(false);
+    }
+  };
+
+  const handleFetchOrdersFromSimrs = async () => {
+    setSyncingOrderId('fetch-all');
+    setOrderSyncNotice(null);
+    try {
+      const res = await realtimeService.fetchOrdersFromSimrs();
+      if (res.success) {
+        setOrderSyncNotice({
+          id: 'all',
+          success: true,
+          text: (res as any).message || `Berhasil menarik riwayat pesanan dari SIMRS (${res.latency})`,
+        });
+      } else {
+        setOrderSyncNotice({
+          id: 'all',
+          success: false,
+          text: `Gagal menarik riwayat pesanan: ${res.error}`
+        });
+      }
+    } catch (err: any) {
+      setOrderSyncNotice({
+        id: 'all',
+        success: false,
+        text: `Error jaringan saat menarik riwayat: ${err.message}`
+      });
+    } finally {
+      setSyncingOrderId(null);
+      setTimeout(() => setOrderSyncNotice(null), 5000);
     }
   };
 
@@ -1635,6 +1693,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               {/* Action Button: Sync All Master Menus to SIMRS */}
               <div className="relative z-10 pt-2 border-t border-slate-100 space-y-2">
+                <button
+                  type="button"
+                  onClick={handleFetchMenuFromSimrs} // In Settings
+                  disabled={isSyncingMenu}
+                  className="w-full flex justify-center items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-70 shadow-sm mb-3"
+                >
+                  <Download className={`w-3.5 h-3.5 ${isSyncingMenu ? 'animate-bounce' : ''}`} />
+                  <span>{isSyncingMenu ? 'Menarik Master Menu...' : `Tarik Master Menu (master-menu-gizi) dari SIMRS`}</span>
+                </button>
                 <button
                   type="button"
                   onClick={handleSyncAllMenuToSimrs}

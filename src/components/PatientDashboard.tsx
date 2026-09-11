@@ -82,6 +82,9 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
     'menu-11': 1, // Sayur Bayam
   });
 
+  // Active View Tab: Catalog Menu vs Order History
+  const [activeTab, setActiveTab] = useState<'catalog' | 'history'>('catalog');
+
   // Submission States
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -91,6 +94,12 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
     waSent: boolean;
     waStatusText: string;
   } | null>(null);
+
+  // Filtered orders relevant for this patient/room or general recent
+  const myOrders = useMemo(() => {
+    if (!orders || !Array.isArray(orders)) return [];
+    return [...orders].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [orders]);
 
   // Filtered Menu Items
   const filteredMenu = useMemo(() => {
@@ -209,25 +218,257 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
   return (
     <div className="space-y-6">
       
-      {/* Patient Header Greeting */}
+      {/* Patient Header Greeting & Tab Switcher */}
       <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 text-white rounded-3xl p-6 shadow-md relative overflow-hidden">
         <div className="absolute -right-6 -bottom-6 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
-        <div className="relative z-10 max-w-2xl">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-white/20 backdrop-blur-md mb-2">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-200" />
-            <span>Pemesanan Makanan Pasien &bull; Dapur Gizi RS</span>
+        <div className="relative z-10 max-w-3xl">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-white/20 backdrop-blur-md">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-200" />
+              <span>Pemesanan Makanan Pasien &bull; Dapur Gizi RS</span>
+            </div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-emerald-950/40 border border-emerald-400/30 text-emerald-200">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>Sync Real-Time Aktif (Laptop &amp; HP)</span>
+            </div>
           </div>
           <h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">
-            Pesan Menu Makanan Pasien
+            Layanan Gizi Rawat Inap
           </h2>
-          <p className="text-xs sm:text-sm text-emerald-100 mt-1 leading-relaxed">
-            Pilih menu makanan sehat sesuai selera dan kebutuhan kamar Anda. Pesanan otomatis diproses dan langsung diteruskan ke Dapur Gizi.
+          <p className="text-xs sm:text-sm text-emerald-100 mt-1 leading-relaxed max-w-2xl">
+            Pesan makanan bergizi sesuai selera &amp; pantau status pesanan secara langsung dari HP atau perangkat Anda.
           </p>
+
+          {/* Navigation Tabs */}
+          <div className="flex items-center gap-2 mt-5 bg-black/20 backdrop-blur-md p-1.5 rounded-2xl w-fit border border-white/15">
+            <button
+              type="button"
+              onClick={() => setActiveTab('catalog')}
+              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-black flex items-center gap-2 transition-all cursor-pointer ${
+                activeTab === 'catalog'
+                  ? 'bg-white text-emerald-900 shadow-md'
+                  : 'text-white/80 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              <Utensils className="w-4 h-4" />
+              <span>Pesan Menu Makanan</span>
+              {trayItems.length > 0 && (
+                <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-bold">
+                  {trayItems.reduce((acc, curr) => acc + curr.qty, 0)}
+                </span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('history')}
+              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-black flex items-center gap-2 transition-all cursor-pointer ${
+                activeTab === 'history'
+                  ? 'bg-white text-emerald-900 shadow-md'
+                  : 'text-white/80 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              <Clock className="w-4 h-4" />
+              <span>Riwayat &amp; Status Pesanan</span>
+              {myOrders.length > 0 && (
+                <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-bold">
+                  {myOrders.length}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Main Grid: Left Catalog, Right Room Form & Order Tray */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {activeTab === 'history' ? (
+        /* ========================================================
+           TAB: RIWAYAT & STATUS PESANAN PASIEN (REAL-TIME TRACKING)
+           ======================================================== */
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+            <div>
+              <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                <span>Daftar Pesanan Pasien Terkini</span>
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">
+                  {myOrders.length} Pesanan
+                </span>
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Status pesanan diperbarui secara otomatis secara real-time saat diproses oleh Petugas Gizi.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveTab('catalog')}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Tambah Pesanan Baru</span>
+            </button>
+          </div>
+
+          {myOrders.length === 0 ? (
+            <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-xs">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center mb-3">
+                <ShoppingBag className="w-8 h-8" />
+              </div>
+              <h4 className="text-base font-black text-slate-900">Belum Ada Pesanan Makanan</h4>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">
+                Anda belum melakukan pemesanan makanan. Silakan pilih menu bergizi yang tersedia di katalog.
+              </p>
+              <button
+                type="button"
+                onClick={() => setActiveTab('catalog')}
+                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black inline-flex items-center gap-2 shadow-md cursor-pointer transition-all"
+              >
+                <Utensils className="w-4 h-4" />
+                <span>Buka Menu Makanan</span>
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {myOrders.map((ord) => {
+                const statusBadgeConfig: Record<string, { bg: string; label: string; dot: string }> = {
+                  baru: { bg: 'bg-blue-50 border-blue-200 text-blue-800', dot: 'bg-blue-500', label: 'Pesanan Diterima' },
+                  diproses: { bg: 'bg-amber-50 border-amber-200 text-amber-800', dot: 'bg-amber-500', label: 'Sedang Disiapkan di Dapur' },
+                  diantar: { bg: 'bg-purple-50 border-purple-200 text-purple-800', dot: 'bg-purple-500', label: 'Sedang Diantar ke Kamar' },
+                  selesai: { bg: 'bg-emerald-50 border-emerald-200 text-emerald-800', dot: 'bg-emerald-500', label: 'Pesanan Selesai / Disajikan' },
+                  dibatalkan: { bg: 'bg-rose-50 border-rose-200 text-rose-800', dot: 'bg-rose-500', label: 'Dibatalkan' },
+                };
+
+                const currentBadge = statusBadgeConfig[ord.status] || statusBadgeConfig.baru;
+                const statusSteps = ['baru', 'diproses', 'diantar', 'selesai'];
+                const currentStepIdx = statusSteps.indexOf(ord.status);
+
+                return (
+                  <div 
+                    key={ord.id} 
+                    className="bg-white rounded-3xl border border-slate-200 p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden"
+                  >
+                    <div className="space-y-3">
+                      {/* Top Header */}
+                      <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-xs font-black text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md">
+                              {ord.orderNumber}
+                            </span>
+                            <span className="text-[11px] font-bold text-slate-500 uppercase">
+                              Makan {ord.mealTime}
+                            </span>
+                          </div>
+                          <div className="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            <span>{new Date(ord.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB &bull; {new Date(ord.createdAt).toLocaleDateString('id-ID')}</span>
+                          </div>
+                        </div>
+
+                        <div className={`px-3 py-1 rounded-full border text-xs font-black flex items-center gap-1.5 ${currentBadge.bg}`}>
+                          <span className={`w-2 h-2 rounded-full ${currentBadge.dot} animate-pulse`}></span>
+                          <span>{currentBadge.label}</span>
+                        </div>
+                      </div>
+
+                      {/* Status Progress Stepper */}
+                      {ord.status !== 'dibatalkan' && (
+                        <div className="py-2">
+                          <div className="grid grid-cols-4 gap-1 relative">
+                            {statusSteps.map((st, idx) => {
+                              const isCompleted = currentStepIdx >= idx;
+                              const isCurrent = currentStepIdx === idx;
+                              const labels = ['Diterima', 'Disiapkan', 'Diantar', 'Selesai'];
+
+                              return (
+                                <div key={st} className="text-center">
+                                  <div 
+                                    className={`h-1.5 rounded-full mb-1 transition-all ${
+                                      isCompleted 
+                                        ? (isCurrent ? 'bg-emerald-500' : 'bg-emerald-400') 
+                                        : 'bg-slate-200'
+                                    }`}
+                                  />
+                                  <span className={`text-[10px] font-bold block truncate ${
+                                    isCurrent ? 'text-emerald-700 font-black' : isCompleted ? 'text-slate-700' : 'text-slate-400'
+                                  }`}>
+                                    {labels[idx]}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Patient & Room Details */}
+                      <div className="bg-slate-50 rounded-2xl p-3 grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <span className="text-[10px] font-bold text-slate-400 block uppercase">Kamar / Bed</span>
+                          <span className="font-extrabold text-slate-800">{ord.roomName}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-bold text-slate-400 block uppercase">Nama Pasien</span>
+                          <span className="font-extrabold text-slate-800">{ord.patientName}</span>
+                        </div>
+                      </div>
+
+                      {/* Item Details */}
+                      <div className="space-y-1.5 pt-1">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Menu yang Dipesan</span>
+                        <div className="space-y-1">
+                          {ord.items.map((it, i) => (
+                            <div key={i} className="flex items-center justify-between text-xs py-1 border-b border-slate-50 last:border-0">
+                              <span className="text-slate-700 font-medium">
+                                <strong className="text-slate-900">{it.name}</strong> &times; {it.portion} porsi
+                              </span>
+                              <span className="font-bold text-slate-900">
+                                Rp {((it.price || 0) * it.portion).toLocaleString('id-ID')}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Patient Notes */}
+                      {ord.patientNotes && (
+                        <div className="text-xs bg-amber-50/70 border border-amber-200/60 text-amber-900 p-2.5 rounded-xl">
+                          <strong className="font-black">Catatan Diet/Khusus:</strong> {ord.patientNotes}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Footer Summary */}
+                    <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 block font-bold">Total Pembayaran</span>
+                        <span className="text-sm font-black text-emerald-700">
+                          Rp {(ord.totalPrice || 0).toLocaleString('id-ID')}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        {ord.simrsSync?.synced ? (
+                          <span className="px-2 py-0.5 rounded-md bg-sky-100 text-sky-800 text-[10px] font-bold">
+                            SIMRS Synced
+                          </span>
+                        ) : null}
+                        {ord.whatsappNotification?.sent ? (
+                          <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                            WA Sent
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      ) : (
+        /* ========================================================
+           TAB: KATALOG & PEMESANAN MENU
+           ======================================================== */
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* ========================================================
             LEFT 2 COLUMNS: CATALOG & MENU SELECTION
@@ -636,9 +877,10 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
         </div>
 
       </div>
+      )}
 
       {/* Floating Mobile Cart / Tray Bar (Muncul di layar HP saat ada menu yang dipilih) */}
-      {trayItems.length > 0 && (
+      {activeTab === 'catalog' && trayItems.length > 0 && (
         <div 
           id="floating-mobile-cart"
           className="lg:hidden fixed bottom-3 left-3 right-3 z-50 bg-slate-950/95 text-white backdrop-blur-md px-3 py-2.5 rounded-2xl shadow-2xl flex items-center justify-between gap-2 border border-slate-700/80 max-w-sm mx-auto box-border"

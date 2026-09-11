@@ -204,10 +204,15 @@ export class HospitalRealtimeService {
   private eventSource: EventSource | null = null;
   private reconnectTimeout: any = null;
   private sseRetries: number = 0;
+  private pollInterval: any = null;
+  private lastMenuHash: string = '';
+  private lastOrdersHash: string = '';
 
   constructor() {
     this.initSSE();
     this.initBroadcastChannel();
+    this.initVisibilityListeners();
+    this.startBackgroundPolling();
   }
 
   public getLocalMenu(): MenuItem[] {
@@ -226,6 +231,64 @@ export class HospitalRealtimeService {
         this.notifyListeners(type, data);
       }
     };
+  }
+
+  private initVisibilityListeners() {
+    if (typeof window === 'undefined') return;
+
+    const handleWakeSync = () => {
+      if (document.visibilityState === 'visible' || navigator.onLine) {
+        // When tab is reopened or phone unlocks, reconnect SSE immediately and do a quick sync
+        if (!this.eventSource || this.eventSource.readyState === EventSource.CLOSED) {
+          this.sseRetries = 0;
+          this.initSSE();
+        }
+        this.syncWithServer();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleWakeSync);
+    window.addEventListener('online', handleWakeSync);
+    window.addEventListener('focus', handleWakeSync);
+  }
+
+  private startBackgroundPolling() {
+    if (typeof window === 'undefined') return;
+    if (this.pollInterval) clearInterval(this.pollInterval);
+
+    // Hybrid background polling: every 4 seconds, checks for changes
+    this.pollInterval = setInterval(() => {
+      this.syncWithServer();
+    }, 4000);
+  }
+
+  public async syncWithServer() {
+    try {
+      const [menuRes, ordersRes] = await Promise.all([
+        fetch('/api/menu').then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch('/api/orders').then(r => r.ok ? r.json() : null).catch(() => null),
+      ]);
+
+      if (Array.isArray(menuRes) && menuRes.length > 0) {
+        const hash = JSON.stringify(menuRes.map(m => `${m.id}-${m.price}-${m.isAvailable}-${m.name}`));
+        if (hash !== this.lastMenuHash) {
+          this.lastMenuHash = hash;
+          saveLocalCachedMenu(menuRes);
+          this.notifyListeners('init', { menuItems: menuRes });
+        }
+      }
+
+      if (Array.isArray(ordersRes)) {
+        const hash = JSON.stringify(ordersRes.map(o => `${o.id}-${o.status}-${o.orderNumber}`));
+        if (hash !== this.lastOrdersHash) {
+          this.lastOrdersHash = hash;
+          saveLocalCachedOrders(ordersRes);
+          this.notifyListeners('init', { orders: ordersRes });
+        }
+      }
+    } catch {
+      // Background sync silent catch
+    }
   }
 
   private broadcastLocal(type: 'init' | 'new_order' | 'status_update' | 'menu_update' | 'order_deleted', data: any) {
@@ -249,9 +312,19 @@ export class HospitalRealtimeService {
       const es = new EventSource('/api/realtime/stream');
       this.eventSource = es;
 
+      es.onopen = () => {
+        this.sseRetries = 0;
+      };
+
       es.addEventListener('init', (e: MessageEvent) => {
         try {
           const data = JSON.parse(e.data);
+          if (data.menuItems && Array.isArray(data.menuItems) && data.menuItems.length > 0) {
+            saveLocalCachedMenu(data.menuItems);
+          }
+          if (data.orders && Array.isArray(data.orders)) {
+            saveLocalCachedOrders(data.orders);
+          }
           this.notifyListeners('init', data);
         } catch (err) {
           console.error('SSE parse init error', err);
@@ -261,6 +334,11 @@ export class HospitalRealtimeService {
       es.addEventListener('new_order', (e: MessageEvent) => {
         try {
           const data = JSON.parse(e.data);
+          if (data.order) {
+            const currentOrders = getLocalCachedOrders();
+            const updated = [data.order, ...currentOrders.filter(o => o.id !== data.order.id)];
+            saveLocalCachedOrders(updated);
+          }
           this.notifyListeners('new_order', data);
           this.broadcastLocal('new_order', data);
         } catch (err) {
@@ -271,6 +349,11 @@ export class HospitalRealtimeService {
       es.addEventListener('status_update', (e: MessageEvent) => {
         try {
           const data = JSON.parse(e.data);
+          if (data.order) {
+            const currentOrders = getLocalCachedOrders();
+            const updated = currentOrders.map(o => o.id === data.order.id ? data.order : o);
+            saveLocalCachedOrders(updated);
+          }
           this.notifyListeners('status_update', data);
           this.broadcastLocal('status_update', data);
         } catch (err) {
@@ -281,6 +364,16 @@ export class HospitalRealtimeService {
       es.addEventListener('menu_update', (e: MessageEvent) => {
         try {
           const data = JSON.parse(e.data);
+          if (data.item) {
+            const currentMenu = getLocalCachedMenu();
+            if (data.action === 'delete') {
+              saveLocalCachedMenu(currentMenu.filter(m => m.id !== data.item.id));
+            } else if (data.action === 'create') {
+              saveLocalCachedMenu([data.item, ...currentMenu.filter(m => m.id !== data.item.id)]);
+            } else {
+              saveLocalCachedMenu(currentMenu.map(m => m.id === data.item.id ? { ...m, ...data.item } : m));
+            }
+          }
           this.notifyListeners('menu_update', data);
           this.broadcastLocal('menu_update', data);
         } catch (err) {
@@ -291,6 +384,10 @@ export class HospitalRealtimeService {
       es.addEventListener('order_deleted', (e: MessageEvent) => {
         try {
           const data = JSON.parse(e.data);
+          if (data.id) {
+            const currentOrders = getLocalCachedOrders();
+            saveLocalCachedOrders(currentOrders.filter(o => o.id !== data.id));
+          }
           this.notifyListeners('order_deleted', data);
           this.broadcastLocal('order_deleted', data);
         } catch (err) {
@@ -301,13 +398,12 @@ export class HospitalRealtimeService {
       es.onerror = () => {
         es.close();
         this.sseRetries++;
-        // Limit reconnection attempts so static hosting doesn't spam errors
-        if (this.sseRetries < 3) {
-          clearTimeout(this.reconnectTimeout);
-          this.reconnectTimeout = setTimeout(() => {
-            this.initSSE();
-          }, 5000);
-        }
+        // Resilient reconnection with exponential backoff capped at 8 seconds
+        const delay = Math.min(8000, 1000 * Math.pow(1.5, Math.min(this.sseRetries, 6)));
+        clearTimeout(this.reconnectTimeout);
+        this.reconnectTimeout = setTimeout(() => {
+          this.initSSE();
+        }, delay);
       };
     } catch (err) {
       console.warn('EventSource initialization bypassed:', err);
@@ -335,7 +431,7 @@ export class HospitalRealtimeService {
   async getMenu(): Promise<MenuItem[]> {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2500);
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
       const res = await fetch('/api/menu', { signal: controller.signal });
       clearTimeout(timeoutId);
 
@@ -565,10 +661,51 @@ export class HospitalRealtimeService {
   }
 
   // --- ORDERS APIS ---
+  async fetchOrdersFromSimrs(): Promise<{ success: boolean; data?: HospitalOrder[]; error?: string; totalOrders?: number; latency?: string }> {
+    const config = getLocalSimrsConfig();
+    try {
+      const startTime = Date.now();
+      const res = await fetch('/api/simrs/fetch-orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          apiUrl: config.apiUrl,
+          apiKey: config.apiKey
+        }),
+      });
+      const data = await res.json();
+      const latency = (Date.now() - startTime) + 'ms';
+      if (res.ok && data.success) {
+         if (data.data && Array.isArray(data.data)) {
+            const currentOrders = getLocalCachedOrders();
+            // Merge logic (prioritize SIMRS data)
+            const merged = [...data.data];
+            currentOrders.forEach(localOrder => {
+               if (!merged.find(o => o.orderNumber === localOrder.orderNumber || o.id === localOrder.id)) {
+                   merged.push(localOrder);
+               }
+            });
+            // sort by newest
+            merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            saveLocalCachedOrders(merged);
+            
+            // notify UI to update
+            this.notifyListeners('new_order', { action: 'sync_orders' });
+            this.broadcastLocal('new_order', { action: 'sync_orders' });
+         }
+         data.latency = latency;
+         return data;
+      }
+      return { success: false, error: data.error || 'Gagal sinkronisasi pesanan' };
+    } catch (e: any) {
+      return { success: false, error: e.message || 'Network error' };
+    }
+  }
+
   async getOrders(): Promise<HospitalOrder[]> {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2500);
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
       const res = await fetch('/api/orders', { signal: controller.signal });
       clearTimeout(timeoutId);
 
@@ -578,7 +715,7 @@ export class HospitalRealtimeService {
         return getLocalCachedOrders();
       }
       const data = await res.json();
-      if (Array.isArray(data)) {
+      if (Array.isArray(data) && data.length > 0) {
         saveLocalCachedOrders(data);
         return data;
       }
@@ -1373,6 +1510,41 @@ export class HospitalRealtimeService {
         : statusText,
       order: updatedOrder,
     };
+  }
+
+  async fetchMenuFromSimrs(): Promise<{ success: boolean; data?: MenuItem[]; error?: string; totalMenu?: number; latency?: string }> {
+    const config = getLocalSimrsConfig();
+    try {
+      const startTime = Date.now();
+      const res = await fetch('/api/simrs/fetch-menu', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          apiUrl: config.apiUrl,
+          apiKey: config.apiKey
+        }),
+      });
+      const data = await res.json();
+      const latency = (Date.now() - startTime) + 'ms';
+      if (res.ok && data.success) {
+         if (data.data && Array.isArray(data.data)) {
+            const currentMenu = getLocalCachedMenu();
+            // Merge logic (prioritize SIMRS data)
+            const merged = [...data.data];
+            currentMenu.forEach(localMenu => {
+               if (!merged.find(m => m.id === localMenu.id || m.name.toLowerCase() === localMenu.name.toLowerCase())) {
+                   merged.push(localMenu);
+               }
+            });
+            saveLocalCachedMenu(merged);
+         }
+         data.latency = latency;
+         return data;
+      }
+      return { success: false, error: data.error || 'Gagal sinkronisasi menu' };
+    } catch (e: any) {
+      return { success: false, error: e.message || 'Network error' };
+    }
   }
 
   async syncAllMenuToSimrs(apiUrl?: string, apiKey?: string): Promise<{

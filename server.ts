@@ -1,11 +1,7 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
-import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 export type MenuCategory = 'makanan_utama' | 'lauk_hewani' | 'lauk_nabati' | 'sayuran' | 'buah_snack' | 'minuman';
 export type MealTime = 'pagi' | 'siang' | 'malam' | 'snack';
@@ -174,9 +170,59 @@ const INITIAL_ORDERS: HospitalOrder[] = [
   },
 ];
 
-// In-memory state
-let menuItems: MenuItem[] = [];
-let orders: HospitalOrder[] = [...INITIAL_ORDERS];
+// Persistent Storage Files for Cross-Device Synchronization
+const MENU_DATA_FILE = path.join(process.cwd(), 'menu_items.json');
+const ORDERS_DATA_FILE = path.join(process.cwd(), 'orders_data.json');
+
+function loadPersistentMenuItems(): MenuItem[] {
+  try {
+    if (fs.existsSync(MENU_DATA_FILE)) {
+      const raw = fs.readFileSync(MENU_DATA_FILE, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (err) {
+    console.warn('[Storage] Gagal membaca menu_items.json:', err);
+  }
+  return [...INITIAL_MENU];
+}
+
+function savePersistentMenuItems(items: MenuItem[]) {
+  try {
+    fs.writeFileSync(MENU_DATA_FILE, JSON.stringify(items, null, 2), 'utf-8');
+  } catch (err) {
+    console.warn('[Storage] Gagal menyimpan menu_items.json:', err);
+  }
+}
+
+function loadPersistentOrders(): HospitalOrder[] {
+  try {
+    if (fs.existsSync(ORDERS_DATA_FILE)) {
+      const raw = fs.readFileSync(ORDERS_DATA_FILE, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (err) {
+    console.warn('[Storage] Gagal membaca orders_data.json:', err);
+  }
+  return [...INITIAL_ORDERS];
+}
+
+function savePersistentOrders(list: HospitalOrder[]) {
+  try {
+    fs.writeFileSync(ORDERS_DATA_FILE, JSON.stringify(list, null, 2), 'utf-8');
+  } catch (err) {
+    console.warn('[Storage] Gagal menyimpan orders_data.json:', err);
+  }
+}
+
+// In-memory state synchronized with persistent disk files
+let menuItems: MenuItem[] = loadPersistentMenuItems();
+let orders: HospitalOrder[] = loadPersistentOrders();
 
 // Fonnte Configuration State with persistent disk fallback
 const FONNTE_CONFIG_FILE = path.join(process.cwd(), 'fonnte_config.json');
@@ -251,6 +297,29 @@ function resolveSimrsBatchMenuUrl(inputUrl?: string): string {
   return `${u}/sync-batch-menu`;
 }
 
+function resolveSimrsFetchOrdersUrl(inputUrl?: string): string {
+  const defaultUrl = 'https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi';
+  if (!inputUrl || !inputUrl.trim()) return defaultUrl;
+  let u = inputUrl.trim();
+  if (u.includes('/riwayat-pesanan-gizi')) return u;
+  u = u.replace(/\/save-(pesanan-gizi|data-mmpi|master-menu)\/?$/, '');
+  u = u.replace(/\/sync-batch-menu\/?$/, '');
+  u = u.replace(/\/master-menu-gizi\/?$/, '');
+  u = u.replace(/\/$/, '');
+  return `${u}/riwayat-pesanan-gizi`;
+}
+
+function resolveSimrsFetchMenuUrl(inputUrl?: string): string {
+  const defaultUrl = 'https://rsbsaonline.com/service/medifirst2000/emr/master-menu-gizi';
+  if (!inputUrl || !inputUrl.trim()) return defaultUrl;
+  let u = inputUrl.trim();
+  if (u.includes('/master-menu-gizi')) return u;
+  u = u.replace(/\/save-(pesanan-gizi|data-mmpi|master-menu)\/?$/, '');
+  u = u.replace(/\/sync-batch-menu\/?$/, '');
+  u = u.replace(/\/$/, '');
+  return `${u}/master-menu-gizi`;
+}
+
 function resolveSimrsSingleMenuUrl(inputUrl?: string): string {
   const defaultUrl = 'https://rsbsaonline.com/service/medifirst2000/emr/save-master-menu';
   if (!inputUrl || !inputUrl.trim()) return defaultUrl;
@@ -263,13 +332,53 @@ function resolveSimrsSingleMenuUrl(inputUrl?: string): string {
 }
 
 // SIMRS Laravel & PostgreSQL Integration Configuration State
-let simrsSettings: SimrsSettings = {
-  apiUrl: process.env.SIMRS_API_URL || 'https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi',
-  apiKey: process.env.SIMRS_TOKEN || process.env.SIMRS_API_KEY || '',
-  authHeaderType: 'X-AUTH-TOKEN',
-  autoSyncOnOrder: true,
-  isConfigured: true,
-};
+const SIMRS_CONFIG_FILE = path.join(process.cwd(), 'simrs_config.json');
+
+function loadPersistentSimrsSettings(): SimrsSettings {
+  const defaultApiUrl = (process.env.SIMRS_API_URL || 'https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi').trim();
+  const defaultToken = (process.env.SIMRS_TOKEN || process.env.SIMRS_API_KEY || '').trim();
+
+  try {
+    if (fs.existsSync(SIMRS_CONFIG_FILE)) {
+      const raw = fs.readFileSync(SIMRS_CONFIG_FILE, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        return {
+          apiUrl: (parsed.apiUrl || defaultApiUrl).trim(),
+          apiKey: (parsed.apiKey !== undefined ? parsed.apiKey : defaultToken).trim(),
+          authHeaderType: parsed.authHeaderType || 'X-AUTH-TOKEN',
+          autoSyncOnOrder: parsed.autoSyncOnOrder !== false,
+          isConfigured: Boolean((parsed.apiUrl || defaultApiUrl).trim().length > 5),
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('[SIMRS] Gagal membaca simrs_config.json:', err);
+  }
+
+  return {
+    apiUrl: defaultApiUrl,
+    apiKey: defaultToken,
+    authHeaderType: 'X-AUTH-TOKEN',
+    autoSyncOnOrder: true,
+    isConfigured: Boolean(defaultApiUrl.length > 5),
+  };
+}
+
+let simrsSettings: SimrsSettings = loadPersistentSimrsSettings();
+
+function savePersistentSimrsSettings(settings: SimrsSettings) {
+  try {
+    fs.writeFileSync(SIMRS_CONFIG_FILE, JSON.stringify(settings, null, 2), 'utf-8');
+  } catch (err) {
+    console.warn('[SIMRS] Gagal menyimpan simrs_config.json:', err);
+  }
+}
+
+// Auto-save default if file doesn't exist
+if (!fs.existsSync(SIMRS_CONFIG_FILE)) {
+  savePersistentSimrsSettings(simrsSettings);
+}
 
 // Connected SSE clients for real-time broadcasts
 type SSEClient = {
@@ -909,6 +1018,7 @@ async function startServer() {
     };
 
     menuItems.unshift(newItem);
+    savePersistentMenuItems(menuItems);
     broadcastEvent('menu_update', { item: newItem, action: 'create' });
 
     // Otomatis simpan master menu ke SIMRS (save-master-menu)
@@ -958,6 +1068,7 @@ async function startServer() {
     if (image !== undefined) item.image = image.trim();
     if (isAvailable !== undefined) item.isAvailable = Boolean(isAvailable);
 
+    savePersistentMenuItems(menuItems);
     broadcastEvent('menu_update', { item, action: 'update' });
 
     // Otomatis sinkronisasi pembaruan ke SIMRS (save-master-menu)
@@ -991,6 +1102,7 @@ async function startServer() {
       return res.status(404).json({ error: 'Menu tidak ditemukan' });
     }
     item.isAvailable = !item.isAvailable;
+    savePersistentMenuItems(menuItems);
     broadcastEvent('menu_update', { item, action: 'toggle' });
     res.json(item);
   });
@@ -1003,6 +1115,7 @@ async function startServer() {
       return res.status(404).json({ error: 'Menu tidak ditemukan' });
     }
     const removed = menuItems.splice(index, 1)[0];
+    savePersistentMenuItems(menuItems);
     broadcastEvent('menu_update', { item: removed, action: 'delete' });
     res.json({ success: true, removedId: id });
   });
@@ -1010,8 +1123,44 @@ async function startServer() {
   // Admin: Reset / Kosongkan Seluruh Menu
   app.delete('/api/menu/reset/all', (req, res) => {
     menuItems = [];
+    savePersistentMenuItems(menuItems);
     broadcastEvent('menu_reset', {});
     res.json({ success: true, message: 'Seluruh menu katalog telah berhasil dikosongkan.' });
+  });
+
+  // Sync / Upload Menu items from Client (ensures menus created offline or on specific devices are persisted across all devices)
+  app.post('/api/menu/batch-sync', (req, res) => {
+    const { items } = req.body;
+    if (Array.isArray(items) && items.length > 0) {
+      let addedCount = 0;
+      for (const it of items) {
+        if (!it || !it.id || !it.name) continue;
+        const exists = menuItems.some(m => m.id === it.id || m.name.toLowerCase().trim() === String(it.name).toLowerCase().trim());
+        if (!exists) {
+          menuItems.push({
+            id: String(it.id),
+            name: String(it.name).trim(),
+            price: Number(it.price) >= 0 ? Number(it.price) : 0,
+            category: it.category || 'makanan_utama',
+            mealTimes: Array.isArray(it.mealTimes) && it.mealTimes.length > 0 ? it.mealTimes : ['pagi', 'siang', 'malam'],
+            calories: Number(it.calories) || 100,
+            protein: Number(it.protein) || 0,
+            carbs: Number(it.carbs) || 0,
+            fat: Number(it.fat) || 0,
+            sodium: Number(it.sodium) || 0,
+            description: String(it.description || ''),
+            isAvailable: it.isAvailable !== false,
+            image: it.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+          });
+          addedCount++;
+        }
+      }
+      if (addedCount > 0) {
+        savePersistentMenuItems(menuItems);
+        broadcastEvent('init', { orders, menuItems });
+      }
+    }
+    res.json({ success: true, menuItems });
   });
 
   // 3. Fonnte Configuration & WhatsApp Gateway APIs
@@ -1133,6 +1282,7 @@ async function startServer() {
       simrsSettings.autoSyncOnOrder = Boolean(autoSyncOnOrder);
     }
     simrsSettings.isConfigured = Boolean(simrsSettings.apiUrl && simrsSettings.apiUrl.trim().length > 5);
+    savePersistentSimrsSettings(simrsSettings);
 
     res.json({
       success: true,
@@ -1275,7 +1425,204 @@ async function startServer() {
   });
 
   // Sync All Master Menus to Laravel SIMRS API endpoint
-  app.post('/api/simrs/sync-menu', async (req, res) => {
+    // Fetch Master Menus from Laravel SIMRS API endpoint
+    // Fetch Riwayat Pesanan from Laravel SIMRS API endpoint
+  app.post('/api/simrs/fetch-orders', async (req, res) => {
+    const { apiUrl, apiKey } = req.body;
+    const rawTargetUrl = (apiUrl || simrsSettings.apiUrl || 'https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi').trim();
+    const targetToken = (apiKey && typeof apiKey === 'string' && apiKey.trim() !== '')
+      ? apiKey.trim()
+      : (simrsSettings.apiKey || '').trim();
+
+    if (!rawTargetUrl || rawTargetUrl.trim() === '') {
+      return res.status(400).json({ error: 'URL Endpoint API Laravel SIMRS wajib diisi' });
+    }
+
+    const targetUrl = resolveSimrsFetchOrdersUrl(rawTargetUrl);
+
+    try {
+      console.log(`[SIMRS Fetch] Mengambil data riwayat pesanan dari: ${targetUrl}`);
+      const response = await fetch(targetUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'X-AUTH-TOKEN': targetToken,
+          'Authorization': `Bearer ${targetToken}`
+        }
+      });
+      
+      const responseText = await response.text();
+      let parsedData;
+      try {
+        parsedData = JSON.parse(responseText);
+      } catch (e) {
+        throw new Error(`SIMRS mengembalikan respon yang bukan JSON: ${responseText.slice(0, 100)}...`);
+      }
+
+      if (!response.ok) {
+        throw new Error(parsedData?.message || parsedData?.error || `HTTP Error ${response.status}`);
+      }
+
+      let ordersData = Array.isArray(parsedData) ? parsedData : (Array.isArray(parsedData?.data) ? parsedData.data : []);
+      
+      if (!Array.isArray(ordersData)) {
+         ordersData = [];
+      }
+
+      // Transform SIMRS format back to HospitalOrder
+      const transformedOrders: HospitalOrder[] = ordersData.map((o: any) => ({
+        id: String(o.id || o.no_pesanan || o.order_number || `ord-${Date.now()}`),
+        orderNumber: String(o.order_number || o.no_pesanan || `GZ-${Date.now()}`),
+        registrationNo: String(o.noregistrasi || o.registrationNo || 'REG-Unknown'),
+        createdAt: o.tgl_pesanan || o.created_at || new Date().toISOString(),
+        roomName: String(o.room_name || o.kamar || 'Kamar Rawat Inap'),
+        patientName: String(o.patient_name || o.nama_pasien || 'Pasien'),
+        phoneNumber: o.phone_number || o.telepon || '',
+        mealTime: (o.meal_time || o.waktu_makan || 'siang') as MealTime,
+        items: (function() {
+           try {
+             if (typeof o.items_json === 'string') return JSON.parse(o.items_json);
+             if (Array.isArray(o.items)) return o.items;
+           } catch(e){}
+           return [];
+        })(),
+        patientNotes: o.patient_notes || o.catatan || '',
+        status: (o.order_status || o.status || 'baru') as OrderStatus,
+        statusHistory: [], // can reconstruct if SIMRS has it
+        simrsSync: {
+           synced: true,
+           statusText: 'Berhasil ditarik dari SIMRS',
+           timestamp: new Date().toISOString(),
+           targetUrl: targetUrl
+        }
+      }));
+
+      // Update in-memory orders (merge based on orderNumber)
+      transformedOrders.forEach(newOrder => {
+        const existingIdx = orders.findIndex(o => o.orderNumber === newOrder.orderNumber);
+        if (existingIdx !== -1) {
+          orders[existingIdx] = { ...orders[existingIdx], ...newOrder, id: orders[existingIdx].id }; // preserve our ID
+        } else {
+          orders.push(newOrder);
+        }
+      });
+      
+      // sort
+      orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
+      savePersistentOrders(orders);
+      broadcastEvent('init', { orders, menuItems });
+
+      res.json({
+        success: true,
+        message: `Berhasil mengambil ${transformedOrders.length} riwayat pesanan dari SIMRS`,
+        data: transformedOrders,
+        totalOrders: orders.length
+      });
+
+    } catch (error: any) {
+      console.error('[SIMRS Fetch] Gagal mengambil riwayat pesanan:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Gagal terhubung ke server SIMRS'
+      });
+    }
+  });
+
+app.post('/api/simrs/fetch-menu', async (req, res) => {
+    const { apiUrl, apiKey } = req.body;
+    const rawTargetUrl = (apiUrl || simrsSettings.apiUrl || 'https://rsbsaonline.com/service/medifirst2000/emr/master-menu-gizi').trim();
+    const targetToken = (apiKey && typeof apiKey === 'string' && apiKey.trim() !== '')
+      ? apiKey.trim()
+      : (simrsSettings.apiKey || '').trim();
+
+    if (!rawTargetUrl || rawTargetUrl.trim() === '') {
+      return res.status(400).json({ error: 'URL Endpoint API Laravel SIMRS wajib diisi' });
+    }
+
+    const targetUrl = resolveSimrsFetchMenuUrl(rawTargetUrl);
+
+    try {
+      console.log(`[SIMRS Fetch] Mengambil data menu dari: ${targetUrl}`);
+      const response = await fetch(targetUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'X-AUTH-TOKEN': targetToken,
+          'Authorization': `Bearer ${targetToken}`
+        }
+      });
+      
+      const responseText = await response.text();
+      let parsedData;
+      try {
+        parsedData = JSON.parse(responseText);
+      } catch (e) {
+        throw new Error(`SIMRS mengembalikan respon yang bukan JSON: ${responseText.slice(0, 100)}...`);
+      }
+
+      if (!response.ok) {
+        throw new Error(parsedData?.message || parsedData?.error || `HTTP Error ${response.status}`);
+      }
+
+      // SIMRS API returns { data: [...] } or array directly
+      let menus = Array.isArray(parsedData) ? parsedData : (Array.isArray(parsedData?.data) ? parsedData.data : []);
+      
+      if (!Array.isArray(menus)) {
+         menus = [];
+      }
+
+      // Transform SIMRS format back to MenuItem
+      const transformedMenus: MenuItem[] = menus.map((m: any) => ({
+        id: String(m.id_menu || m.id || `menu-${Date.now()}-${Math.floor(Math.random()*1000)}`),
+        name: String(m.nama_menu || m.name || 'Menu SIMRS').trim(),
+        price: Number(m.harga || m.price) || 0,
+        category: (m.kategori || m.category || 'makanan_utama') as MenuCategory,
+        mealTimes: Array.isArray(m.waktu_makan || m.mealTimes) 
+          ? (m.waktu_makan || m.mealTimes) 
+          : (typeof (m.waktu_makan || m.mealTimes) === 'string' 
+             ? (m.waktu_makan || m.mealTimes).split(',').map((s:string) => s.trim().toLowerCase()) 
+             : ['pagi', 'siang', 'malam']),
+        calories: Number(m.kalori || m.calories) || 0,
+        protein: Number(m.protein) || 0,
+        carbs: Number(m.karbohidrat || m.carbs) || 0,
+        fat: Number(m.lemak || m.fat) || 0,
+        sodium: Number(m.natrium || m.sodium) || 0,
+        description: String(m.deskripsi || m.description || ''),
+        image: m.gambar || m.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+        isAvailable: m.tersedia !== undefined ? Boolean(m.tersedia) : (m.isAvailable !== undefined ? Boolean(m.isAvailable) : true)
+      }));
+
+      // Update in-memory menu items (merge or replace based on ID)
+      transformedMenus.forEach(newMenu => {
+        const existingIdx = menuItems.findIndex(m => m.id === newMenu.id || m.name.toLowerCase() === newMenu.name.toLowerCase());
+        if (existingIdx !== -1) {
+          menuItems[existingIdx] = { ...menuItems[existingIdx], ...newMenu, id: menuItems[existingIdx].id }; // preserve our ID if name matched
+        } else {
+          menuItems.push(newMenu);
+        }
+      });
+      
+      savePersistentMenuItems(menuItems);
+      broadcastEvent('init', { orders, menuItems });
+
+      res.json({
+        success: true,
+        message: `Berhasil mengambil ${transformedMenus.length} menu dari SIMRS`,
+        data: transformedMenus,
+        totalMenu: menuItems.length
+      });
+
+    } catch (error: any) {
+      console.error('[SIMRS Fetch] Gagal mengambil menu:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Gagal terhubung ke server SIMRS'
+      });
+    }
+  });
+
+app.post('/api/simrs/sync-menu', async (req, res) => {
     const { apiUrl, apiKey, menuItems: clientItems } = req.body;
     const rawTargetUrl = (apiUrl || simrsSettings.apiUrl || 'https://rsbsaonline.com/service/medifirst2000/emr/sync-batch-menu').trim();
     const targetToken = (apiKey && typeof apiKey === 'string' && apiKey.trim() !== '')
@@ -1536,6 +1883,7 @@ async function startServer() {
     newOrder.simrsSync = simrsSyncData;
 
     orders.unshift(newOrder);
+    savePersistentOrders(orders);
 
     // Broadcast in real-time to Admin Dashboard
     broadcastEvent('new_order', { order: newOrder });
@@ -1572,6 +1920,7 @@ async function startServer() {
         targetUrl: targetOrderUrl,
         response: simrsRes.data,
       };
+      savePersistentOrders(orders);
       broadcastEvent('status_update', { order });
       res.json({ success: true, message: 'Pesanan berhasil disimpan ke database SIMRS!', order });
     } else {
@@ -1582,6 +1931,7 @@ async function startServer() {
         targetUrl: targetOrderUrl,
         error: simrsRes.error,
       };
+      savePersistentOrders(orders);
       broadcastEvent('status_update', { order });
       res.status(400).json({ success: false, error: simrsRes.error, order });
     }
@@ -1604,6 +1954,7 @@ async function startServer() {
         timestamp: new Date().toISOString(),
         note: note || `Status diubah menjadi ${status}`,
       });
+      savePersistentOrders(orders);
     }
 
     broadcastEvent('status_update', { order });
@@ -1618,6 +1969,7 @@ async function startServer() {
       return res.status(404).json({ error: 'Pesanan tidak ditemukan' });
     }
     const removed = orders.splice(index, 1)[0];
+    savePersistentOrders(orders);
     broadcastEvent('order_deleted', { id });
     res.json({ success: true, removedId: id });
   });
@@ -1626,6 +1978,8 @@ async function startServer() {
   app.post('/api/reset-demo', (req, res) => {
     orders = [...INITIAL_ORDERS];
     menuItems = [...INITIAL_MENU];
+    savePersistentOrders(orders);
+    savePersistentMenuItems(menuItems);
     broadcastEvent('init', { orders, menuItems });
     res.json({ success: true, message: 'Data demo menu & pesanan telah direset' });
   });

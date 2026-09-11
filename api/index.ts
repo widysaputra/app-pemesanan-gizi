@@ -1,4 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'http';
+import fs from 'fs';
+import path from 'path';
 
 // Vercel Serverless Function entry point for /api/*
 // Handles SIMRS endpoints, WhatsApp Fonnte endpoints, and CORS for Vercel deployments
