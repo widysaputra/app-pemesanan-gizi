@@ -283,7 +283,7 @@ export class HospitalRealtimeService {
         fetch('/api/orders').then(r => r.ok ? r.json() : null).catch(() => null),
       ]);
 
-      if (Array.isArray(menuRes)) {
+      if (Array.isArray(menuRes) && menuRes.length > 0) {
         const hash = JSON.stringify(menuRes.map(m => `${m.id}-${m.price}-${m.isAvailable}-${m.name}`));
         if (hash !== this.lastMenuHash) {
           this.lastMenuHash = hash;
@@ -292,7 +292,7 @@ export class HospitalRealtimeService {
         }
       }
 
-      if (Array.isArray(ordersRes)) {
+      if (Array.isArray(ordersRes) && ordersRes.length > 0) {
         const hash = JSON.stringify(ordersRes.map(o => `${o.id}-${o.status}-${o.orderNumber}`));
         if (hash !== this.lastOrdersHash) {
           this.lastOrdersHash = hash;

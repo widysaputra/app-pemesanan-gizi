@@ -110,8 +110,12 @@ export default function App() {
   useEffect(() => {
     const unsubscribe = realtimeService.subscribe((event) => {
       if (event.type === 'init') {
-        if (event.data?.orders) setOrders(event.data.orders);
-        if (event.data?.menuItems) setMenuItems(event.data.menuItems);
+        if (Array.isArray(event.data?.orders) && event.data.orders.length > 0) {
+          setOrders(event.data.orders);
+        }
+        if (Array.isArray(event.data?.menuItems) && event.data.menuItems.length > 0) {
+          setMenuItems(event.data.menuItems);
+        }
       } else if (event.type === 'new_order') {
         const newOrder: HospitalOrder = event.data.order;
         if (!newOrder) return;

@@ -94,6 +94,9 @@ let fonnteConfigState = {
   isConfigured: true,
 };
 
+let vercelMenuItems: any[] = [];
+let vercelOrders: any[] = [];
+
 async function parseJsonBody(req: ExtendedRequest): Promise<any> {
   if (req.body) return req.body;
   return new Promise((resolve) => {
@@ -869,7 +872,82 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
     if (parsedPath === '/api/menu' || parsedPath.startsWith('/api/menu/')) {
       if (parsedPath === '/api/menu') {
         if (method === 'GET') {
-          return res.json([]);
+          // Attempt to live fetch menu directly from SIMRS if token is present
+          const rawTargetUrl = (simrsConfigState.apiUrl || 'https://rsbsaonline.com/service/medifirst2000/emr/master-menu-gizi').trim();
+          const targetToken = (simrsConfigState.apiKey || '').trim();
+          if (targetToken) {
+            try {
+              const targetUrl = resolveSimrsFetchMenuUrl(rawTargetUrl);
+              const rawToken = targetToken.replace(/^Bearer\s+/i, '').trim();
+              const response = await fetch(targetUrl, {
+                method: 'GET',
+                headers: {
+                  Accept: 'application/json',
+                  'X-AUTH-TOKEN': rawToken,
+                  Authorization: `Bearer ${rawToken}`,
+                },
+              });
+              if (response.ok) {
+                const parsedData = await response.json().catch(() => null);
+                let menus = Array.isArray(parsedData) ? parsedData : (Array.isArray(parsedData?.data) ? parsedData.data : []);
+                if (Array.isArray(menus) && menus.length > 0) {
+                  const transformed = menus.map((m: any) => {
+                    let parsedMealTimes: ('pagi' | 'siang' | 'malam' | 'snack')[] = ['pagi', 'siang', 'malam'];
+                    const rawTimes = m.waktu_makan || m.mealTimes || m.meal_time;
+                    if (Array.isArray(rawTimes)) {
+                      parsedMealTimes = rawTimes;
+                    } else if (typeof rawTimes === 'string') {
+                      if (rawTimes.toLowerCase() === 'semua' || rawTimes.toLowerCase() === 'all') {
+                        parsedMealTimes = ['pagi', 'siang', 'malam'];
+                      } else {
+                        try {
+                          const decoded = JSON.parse(rawTimes);
+                          if (Array.isArray(decoded)) parsedMealTimes = decoded;
+                          else parsedMealTimes = rawTimes.split(',').map((s: string) => s.trim().toLowerCase()) as any;
+                        } catch {
+                          parsedMealTimes = rawTimes.split(',').map((s: string) => s.trim().toLowerCase()) as any;
+                        }
+                      }
+                    }
+
+                    const parseNum = (val: any, def = 0): number => {
+                      if (val === undefined || val === null) return def;
+                      if (typeof val === 'number') return isNaN(val) ? def : val;
+                      const s = String(val).replace(',', '.').replace(/[^0-9.-]/g, '');
+                      const p = parseFloat(s);
+                      return isNaN(p) ? def : p;
+                    };
+
+                    const parseBool = (val: any): boolean => {
+                      if (val === undefined || val === null) return true;
+                      if (typeof val === 'boolean') return val;
+                      const s = String(val).toLowerCase().trim();
+                      return s === 't' || s === 'true' || s === '1' || s === 'y';
+                    };
+
+                    return {
+                      id: String(m.menu_id || m.id_menu || m.id || `menu-${Date.now()}-${Math.floor(Math.random() * 1000)}`),
+                      name: String(m.nama_menu || m.name || 'Menu SIMRS').trim(),
+                      price: parseNum(m.harga ?? m.price, 0),
+                      category: (m.kategori || m.category || 'makanan_utama'),
+                      mealTimes: parsedMealTimes,
+                      calories: parseNum(m.kalori ?? m.calories, 0),
+                      protein: parseNum(m.protein_gram ?? m.protein, 0),
+                      carbs: parseNum(m.karbohidrat_gram ?? m.karbohidrat ?? m.carbs, 0),
+                      fat: parseNum(m.lemak_gram ?? m.lemak ?? m.fat, 0),
+                      sodium: parseNum(m.natrium_mg ?? m.natrium ?? m.sodium, 0),
+                      description: String(m.deskripsi || m.description || ''),
+                      image: m.foto_url || m.gambar || m.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+                      isAvailable: parseBool(m.tersedia ?? m.isAvailable ?? true),
+                    };
+                  });
+                  vercelMenuItems = transformed;
+                  return res.json(transformed);
+                }
+              }
+            } catch {}
+          }
+          return res.json(vercelMenuItems);
         }
         if (method === 'POST') {
           const { name, price, category, mealTimes, calories, protein, carbs, fat, sodium, description, image, isAvailable, simrsApiUrl, simrsApiKey } = body;
@@ -996,8 +1074,12 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
     }
 
     // 6. Orders API (/api/orders)
-    if (parsedPath === '/api/orders' && method === 'POST') {
-      const { roomName, patientName, phoneNumber, registrationNo, mealTime, items, patientNotes } = body;
+    if (parsedPath === '/api/orders') {
+      if (method === 'GET') {
+        return res.json(vercelOrders);
+      }
+      if (method === 'POST') {
+        const { roomName, patientName, phoneNumber, registrationNo, mealTime, items, patientNotes } = body;
       const formattedItems = Array.isArray(items) ? items : [];
       let totalPrice = 0;
       let totalCalories = 0;
@@ -1214,6 +1296,8 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
         }
       }
 
+      vercelOrders.unshift(newOrder);
+
       return res.status(201).json({
         order: newOrder,
         waMessage: newOrder.whatsappNotification.message,
@@ -1222,6 +1306,7 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
         simrsSynced: newOrder.simrsSync.synced,
         simrsStatusText: newOrder.simrsSync.statusText,
       });
+      }
     }
 
     // Default Fallback for other /api routes
