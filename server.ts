@@ -2453,6 +2453,7 @@ app.post('/api/simrs/sync-menu', async (req, res) => {
 
   // --- Admin Security & Password API ---
   app.get('/api/admin/password', (req, res) => {
+    currentServerAdminPassword = loadAdminPassword();
     res.json({
       success: true,
       hasPassword: currentServerAdminPassword.length > 0,
@@ -2475,6 +2476,7 @@ app.post('/api/simrs/sync-menu', async (req, res) => {
   });
 
   app.post('/api/admin/verify', (req, res) => {
+    currentServerAdminPassword = loadAdminPassword();
     const { password } = req.body;
     const input = (password || '').trim();
     if (!input) {
@@ -2491,11 +2493,15 @@ app.post('/api/simrs/sync-menu', async (req, res) => {
       }
       currentServerAdminPassword = input;
       saveAdminPassword(currentServerAdminPassword);
-      console.log('[Security] Kata sandi admin baru berhasil dibuat dan disimpan');
+      console.log('[Security] Kata sandi admin baru berhasil dibuat dan disimpan:', input);
       return res.json({ success: true, isNewlySet: true, message: 'Kata sandi admin baru berhasil disimpan!' });
     }
     const isValid = input === currentServerAdminPassword;
-    res.json({ success: isValid });
+    res.json({
+      success: isValid,
+      hasPassword: Boolean(currentServerAdminPassword),
+      message: isValid ? 'Sukses' : 'Kata sandi salah! Silakan periksa kembali kata sandi Anda.'
+    });
   });
 
   // Reset Demo Data

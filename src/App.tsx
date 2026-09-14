@@ -229,13 +229,23 @@ export default function App() {
   };
 
   // Admin access handlers
-  const handleSelectAdminView = () => {
+  const handleSelectAdminView = async () => {
     if (isAdminAuthenticated) {
       setActiveView('admin');
     } else {
       setAdminPasswordInput('');
       setLoginError('');
       setShowAdminLoginModal(true);
+
+      // Pastikan status ada/tidaknya kata sandi di server selalu termutakhir
+      try {
+        const pwdData = await realtimeService.getAdminPassword();
+        if (pwdData) {
+          const pwd = pwdData.currentPassword === 'admin123' ? '' : (pwdData.currentPassword || '');
+          setAdminPassword(pwd);
+          setHasServerPassword(Boolean(pwd && pwd.length > 0));
+        }
+      } catch {}
     }
   };
 
@@ -247,6 +257,44 @@ export default function App() {
       return;
     }
 
+    // Jika sistem sedang dalam mode pembuatan kata sandi baru (belum ada sandi)
+    const isCreatingNewPassword = !hasServerPassword && !adminPassword;
+    if (isCreatingNewPassword) {
+      if (input.length < 4) {
+        setLoginError('Kata sandi baru minimal 4 karakter!');
+        return;
+      }
+      if (input.toLowerCase() === 'admin123') {
+        setLoginError('Kata sandi admin123 telah dinonaktifkan! Silakan gunakan kata sandi lain.');
+        return;
+      }
+
+      const saveRes = await realtimeService.updateAdminPassword(input);
+      if (!saveRes.success) {
+        setLoginError(saveRes.message || 'Gagal menyimpan kata sandi');
+        return;
+      }
+
+      setIsAdminAuthenticated(true);
+      setAdminPassword(input);
+      setHasServerPassword(true);
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('nutrihospital_admin_auth', 'true');
+        localStorage.setItem('nutrihospital_admin_pwd', input);
+      }
+      setShowAdminLoginModal(false);
+      setAdminPasswordInput('');
+      setLoginError('');
+      setActiveView('admin');
+      setToastMessage({
+        title: 'Kata Sandi Baru Berhasil Disimpan',
+        desc: 'Selamat datang! Kata sandi baru Anda telah aktif.',
+      });
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
+
+    // Mode normal autentikasi jika kata sandi sudah pernah diatur
     const isValid = await realtimeService.verifyAdminPassword(input);
 
     if (isValid || (adminPassword && input === adminPassword)) {
