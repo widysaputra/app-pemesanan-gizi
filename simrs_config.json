@@ -1,0 +1,7 @@
+{
+  "apiUrl": "https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi",
+  "apiKey": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhZG1pbi5yZWdpc3RyYXNpIn0.z1sCAtuc6ODM-HKzftAXqvqUPlFs7bm4wd-qTY-EvnBN1uHSk-OHhlHEpgs2vznkiem7u579VFGC2kxAhxD3NA",
+  "authHeaderType": "X-AUTH-TOKEN",
+  "autoSyncOnOrder": true,
+  "isConfigured": true
+}

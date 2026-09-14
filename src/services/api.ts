@@ -1020,7 +1020,9 @@ export class HospitalRealtimeService {
   // --- SIMRS (POSTGRESQL & LARAVEL) APIS ---
   async getSimrsConfig(): Promise<{
     apiUrl: string;
+    apiKey?: string;
     apiKeyMasked: string;
+    hasToken?: boolean;
     authHeaderType?: 'X-AUTH-TOKEN' | 'Bearer' | 'Both';
     autoSyncOnOrder: boolean;
     isConfigured: boolean;
@@ -1035,10 +1037,24 @@ export class HospitalRealtimeService {
       const contentType = res.headers.get('content-type') || '';
       if (res.ok && contentType.includes('application/json')) {
         const serverConfig = await res.json();
-        // Return server config, or fallback to local if server is not configured but local is
-        if (serverConfig.isConfigured || !local.isConfigured) {
-          return serverConfig;
+        // Otomatis sinkronisasi token dari server ke local storage jika server sudah memiliki token
+        if (serverConfig.apiKey && serverConfig.apiKey.trim() !== '') {
+          saveLocalSimrsConfig({
+            apiUrl: serverConfig.apiUrl || local.apiUrl,
+            apiKey: serverConfig.apiKey,
+            authHeaderType: serverConfig.authHeaderType || local.authHeaderType,
+            autoSyncOnOrder: serverConfig.autoSyncOnOrder !== undefined ? serverConfig.autoSyncOnOrder : local.autoSyncOnOrder,
+          });
         }
+        return {
+          apiUrl: serverConfig.apiUrl || local.apiUrl,
+          apiKey: serverConfig.apiKey || local.apiKey,
+          apiKeyMasked: serverConfig.apiKeyMasked || (local.apiKey ? `${local.apiKey.slice(0, 3)}••••${local.apiKey.slice(-3)}` : ''),
+          hasToken: Boolean((serverConfig.apiKey && serverConfig.apiKey.length > 5) || (local.apiKey && local.apiKey.length > 5)),
+          authHeaderType: serverConfig.authHeaderType || local.authHeaderType,
+          autoSyncOnOrder: serverConfig.autoSyncOnOrder !== undefined ? serverConfig.autoSyncOnOrder : local.autoSyncOnOrder,
+          isConfigured: Boolean(serverConfig.isConfigured || local.isConfigured),
+        };
       }
     } catch {
       // Backend not running / Vercel static rewrite
@@ -1046,7 +1062,9 @@ export class HospitalRealtimeService {
 
     return {
       apiUrl: local.apiUrl,
+      apiKey: local.apiKey,
       apiKeyMasked: local.apiKeyMasked,
+      hasToken: Boolean(local.apiKey && local.apiKey.length > 5),
       authHeaderType: local.authHeaderType,
       autoSyncOnOrder: local.autoSyncOnOrder,
       isConfigured: local.isConfigured,
@@ -1550,23 +1568,14 @@ export class HospitalRealtimeService {
     const config = getLocalSimrsConfig();
     const startTime = Date.now();
 
-    if (!config.apiKey || config.apiKey.trim() === '') {
-      return {
-        success: false,
-        data: getLocalCachedMenu(),
-        totalMenu: getLocalCachedMenu().length,
-        error: 'Token autentikasi SIMRS belum diisi.',
-      };
-    }
-
-    // 1. Coba via backend server / Vercel serverless function terlebih dahulu
+    // 1. Coba via backend server / Express API terlebih dahulu (Server menyimpan token dari admin untuk seluruh device)
     try {
       const res = await fetch('/api/simrs/fetch-menu', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           apiUrl: config.apiUrl,
-          apiKey: config.apiKey
+          apiKey: config.apiKey || undefined
         }),
       });
       const data = await res.json();
@@ -1587,6 +1596,15 @@ export class HospitalRealtimeService {
       }
     } catch {
       // Backend offline atau Vercel fallback
+    }
+
+    if (!config.apiKey || config.apiKey.trim() === '') {
+      return {
+        success: false,
+        data: getLocalCachedMenu(),
+        totalMenu: getLocalCachedMenu().length,
+        error: 'Token autentikasi SIMRS belum diisi atau server belum terhubung.',
+      };
     }
 
     // 2. Fallback: Tarik langsung dari browser ke endpoint SIMRS master-menu-gizi
@@ -1657,6 +1675,10 @@ export class HospitalRealtimeService {
         }
 
         const rawImg = m.foto_url || m.gambar_url || m.image || m.gambar || m.foto || m.url_gambar || m.url_foto || m.photo || m.photo_url || m.img || m.image_url;
+        let validImg = '';
+        if (typeof rawImg === 'string' && rawImg.trim().length > 5 && rawImg !== 'true' && rawImg !== 'false') {
+          validImg = rawImg.trim();
+        }
 
         return {
           id: String(m.menu_id || m.id_menu || m.id || `menu-${Date.now()}-${Math.floor(Math.random() * 1000)}`),
@@ -1670,7 +1692,7 @@ export class HospitalRealtimeService {
           fat: parsePgNumber(m.lemak_gram ?? m.lemak ?? m.fat, 0),
           sodium: parsePgNumber(m.natrium_mg ?? m.natrium ?? m.sodium, 0),
           description: String(m.deskripsi || m.description || ''),
-          image: rawImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+          image: validImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
           isAvailable: parsePgBoolean(m.tersedia ?? m.isAvailable ?? true),
         };
       });
@@ -1685,8 +1707,9 @@ export class HospitalRealtimeService {
         } else {
           // Update menu yang sudah ada: jika dari SIMRS terdapat foto asli, terapkan ke data lokal
           const existing = merged[existingIdx];
-          const hasRealSimrsImage = Boolean(simrsMenu.image && simrsMenu.image.trim() !== '' && !simrsMenu.image.includes('unsplash.com'));
-          const finalImage = hasRealSimrsImage ? simrsMenu.image : (existing.image || simrsMenu.image);
+          const hasRealExistingImage = Boolean(existing.image && typeof existing.image === 'string' && existing.image.length > 15 && !existing.image.includes('unsplash.com'));
+          const hasRealSimrsImage = Boolean(simrsMenu.image && typeof simrsMenu.image === 'string' && simrsMenu.image.length > 15 && !simrsMenu.image.includes('unsplash.com'));
+          const finalImage = hasRealSimrsImage ? simrsMenu.image : (hasRealExistingImage ? existing.image : (simrsMenu.image || existing.image));
           merged[existingIdx] = {
             ...existing,
             ...simrsMenu,

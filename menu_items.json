@@ -15,8 +15,8 @@
     "fat": 3,
     "sodium": 30,
     "description": "Penyajian higienis instalasi gizi rumah sakit.",
-    "isAvailable": true,
     "image": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCACiARQDASIAAhEBAxEB/8QAHAAAAQUBAQEAAAAAAAAAAAAABQADBAYHAgEI/8QAQBAAAgEEAAQEBAMLBA==",
+    "isAvailable": true,
     "id_menu": "menu-1789110419140",
     "kd_menu": "menu-1789110419140",
     "nama": "Roti bakar + telur + teh hangat",
@@ -46,5 +46,231 @@
     "img": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCACiARQDASIAAhEBAxEB/8QAHAAAAQUBAQEAAAAAAAAAAAAABQADBAYHAgEI/8QAQBAAAgEEAAQEBAMLBA==",
     "is_tersedia": true,
     "status": 1
+  },
+  {
+    "id": "menu-1789110365112",
+    "name": "Nasi Kuning + telur + orek tempe + timun",
+    "price": 10000,
+    "category": "makanan_utama",
+    "mealTimes": [
+      "pagi",
+      "siang",
+      "malam"
+    ],
+    "calories": 150,
+    "protein": 6,
+    "carbs": 20,
+    "fat": 3,
+    "sodium": 30,
+    "description": "Penyajian higienis instalasi gizi rumah sakit.",
+    "image": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80",
+    "isAvailable": true
+  },
+  {
+    "id": "menu-1789110391032",
+    "name": "Bubur ayam lengkap",
+    "price": 10000,
+    "category": "makanan_utama",
+    "mealTimes": [
+      "pagi",
+      "siang",
+      "malam"
+    ],
+    "calories": 150,
+    "protein": 6,
+    "carbs": 20,
+    "fat": 3,
+    "sodium": 31,
+    "description": "Penyajian higienis instalasi gizi rumah sakit.",
+    "image": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80",
+    "isAvailable": true
+  },
+  {
+    "id": "menu-1789110504741",
+    "name": "Nasi + ayam goreng + tahu/tempe + sayur + sambal",
+    "price": 25000,
+    "category": "makanan_utama",
+    "mealTimes": [
+      "pagi",
+      "siang",
+      "malam"
+    ],
+    "calories": 150,
+    "protein": 6,
+    "carbs": 20,
+    "fat": 3,
+    "sodium": 30,
+    "description": "Penyajian higienis instalasi gizi rumah sakit.",
+    "image": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80",
+    "isAvailable": true
+  },
+  {
+    "id": "menu-1789110570808",
+    "name": "Nasi + ikan goreng + sayur + sambal",
+    "price": 25000,
+    "category": "makanan_utama",
+    "mealTimes": [
+      "pagi",
+      "siang",
+      "malam"
+    ],
+    "calories": 150,
+    "protein": 6,
+    "carbs": 20,
+    "fat": 3,
+    "sodium": 30,
+    "description": "Penyajian higienis instalasi gizi rumah sakit.",
+    "image": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80",
+    "isAvailable": true
+  },
+  {
+    "id": "menu-1789110594638",
+    "name": "Nasi telur balado + tahu + sayur",
+    "price": 25000,
+    "category": "makanan_utama",
+    "mealTimes": [
+      "pagi",
+      "siang",
+      "malam"
+    ],
+    "calories": 150,
+    "protein": 6,
+    "carbs": 20,
+    "fat": 3,
+    "sodium": 30,
+    "description": "Penyajian higienis instalasi gizi rumah sakit.",
+    "image": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80",
+    "isAvailable": true
+  },
+  {
+    "id": "menu-1789110659549",
+    "name": "Nasi + ayam kecap + tumis sayur",
+    "price": 25000,
+    "category": "makanan_utama",
+    "mealTimes": [
+      "pagi",
+      "siang",
+      "malam"
+    ],
+    "calories": 150,
+    "protein": 6,
+    "carbs": 20,
+    "fat": 3,
+    "sodium": 30,
+    "description": "Penyajian higienis instalasi gizi rumah sakit.",
+    "image": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80",
+    "isAvailable": true
+  },
+  {
+    "id": "menu-1789110720484",
+    "name": "Mie goreng (mie, telur, sayur)",
+    "price": 15000,
+    "category": "makanan_utama",
+    "mealTimes": [
+      "pagi",
+      "siang",
+      "malam"
+    ],
+    "calories": 150,
+    "protein": 6,
+    "carbs": 20,
+    "fat": 3,
+    "sodium": 30,
+    "description": "Penyajian higienis instalasi gizi rumah sakit.",
+    "image": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80",
+    "isAvailable": true
+  },
+  {
+    "id": "menu-1789110754478",
+    "name": "Mie kuah (mie, telur, sayur)",
+    "price": 15000,
+    "category": "makanan_utama",
+    "mealTimes": [
+      "pagi",
+      "siang",
+      "malam"
+    ],
+    "calories": 150,
+    "protein": 6,
+    "carbs": 20,
+    "fat": 3,
+    "sodium": 30,
+    "description": "Penyajian higienis instalasi gizi rumah sakit.",
+    "image": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80",
+    "isAvailable": true
+  },
+  {
+    "id": "menu-1789110830889",
+    "name": "Teh manis hangat/es",
+    "price": 15000,
+    "category": "makanan_utama",
+    "mealTimes": [
+      "pagi",
+      "siang",
+      "malam"
+    ],
+    "calories": 150,
+    "protein": 6,
+    "carbs": 20,
+    "fat": 3,
+    "sodium": 30,
+    "description": "Penyajian higienis instalasi gizi rumah sakit.",
+    "image": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80",
+    "isAvailable": true
+  },
+  {
+    "id": "menu-1789110904040",
+    "name": "Air mineral",
+    "price": 3000,
+    "category": "minuman",
+    "mealTimes": [
+      "pagi",
+      "siang",
+      "malam"
+    ],
+    "calories": 150,
+    "protein": 6,
+    "carbs": 20,
+    "fat": 3,
+    "sodium": 30,
+    "description": "Penyajian higienis instalasi gizi rumah sakit.",
+    "image": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80",
+    "isAvailable": true
+  },
+  {
+    "id": "menu-test-col",
+    "name": "Menu Test Column",
+    "price": 5000,
+    "category": "makanan_utama",
+    "mealTimes": [
+      "pagi",
+      "siang",
+      "malam"
+    ],
+    "calories": 0,
+    "protein": 0,
+    "carbs": 0,
+    "fat": 0,
+    "sodium": 0,
+    "description": "Penyajian higienis instalasi gizi rumah sakit.",
+    "image": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80",
+    "isAvailable": true
+  },
+  {
+    "id": "menu-1",
+    "name": "Sup Ayam Sayur Bening",
+    "price": 18000,
+    "category": "makanan_utama",
+    "mealTimes": [
+      "siang"
+    ],
+    "calories": 120,
+    "protein": 15,
+    "carbs": 20,
+    "fat": 5,
+    "sodium": 300,
+    "description": "Menu uji coba integrasi gizi RS",
+    "image": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80",
+    "isAvailable": true
   }
 ]

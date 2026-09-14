@@ -333,6 +333,16 @@ export const parsePgBoolean = (val: any): boolean => {
   return str === 't' || str === 'true' || str === '1' || str === 'y';
 };
 
+export const parsePgImage = (raw: any, fallback = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80'): string => {
+  if (typeof raw === 'string') {
+    const s = raw.trim();
+    if (s.length > 5 && s !== 'true' && s !== 'false' && s !== '1' && s !== '0' && s !== 'null' && s !== 'undefined') {
+      return s;
+    }
+  }
+  return fallback;
+};
+
 export async function autoFetchSimrsMenuFromServer(): Promise<MenuItem[]> {
   const rawTargetUrl = simrsSettings.apiUrl || 'https://rsbsaonline.com/service/medifirst2000/emr/master-menu-gizi';
   const targetUrl = resolveSimrsFetchMenuUrl(rawTargetUrl);
@@ -387,6 +397,9 @@ export async function autoFetchSimrsMenuFromServer(): Promise<MenuItem[]> {
         }
       }
 
+      const rawImg = m.foto_url || m.gambar_url || m.gambar || m.foto || m.url_gambar || m.url_foto || m.photo || m.photo_url || m.img || m.image_url || m.image;
+      const validSimrsImg = parsePgImage(rawImg, '');
+
       return {
         id: String(m.menu_id || m.id_menu || m.id || `menu-${Date.now()}-${Math.floor(Math.random() * 1000)}`),
         name: String(m.nama_menu || m.name || 'Menu SIMRS').trim(),
@@ -399,7 +412,7 @@ export async function autoFetchSimrsMenuFromServer(): Promise<MenuItem[]> {
         fat: parsePgNumber(m.lemak_gram ?? m.lemak ?? m.fat, 0),
         sodium: parsePgNumber(m.natrium_mg ?? m.natrium ?? m.sodium, 0),
         description: String(m.deskripsi || m.description || 'Penyajian higienis instalasi gizi rumah sakit.'),
-        image: m.foto_url || m.gambar || m.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+        image: validSimrsImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
         isAvailable: parsePgBoolean(m.tersedia ?? m.isAvailable ?? true),
       };
     });
@@ -413,10 +426,11 @@ export async function autoFetchSimrsMenuFromServer(): Promise<MenuItem[]> {
           menuItems.push(newMenu);
           hasChanges = true;
         } else {
-          // Jika sudah ada, utamakan gambar asli dari SIMRS jika tersedia
+          // Jika sudah ada, utamakan gambar asli (Base64 atau URL valid) yang sudah ada di lokal jika SIMRS hanya mengembalikan default
           const existing = menuItems[existingIdx];
-          const hasRealNewImage = Boolean(newMenu.image && newMenu.image.trim() !== '' && !newMenu.image.includes('unsplash.com'));
-          const finalImage = hasRealNewImage ? newMenu.image : (existing.image || newMenu.image);
+          const hasRealExistingImage = Boolean(existing.image && typeof existing.image === 'string' && existing.image.length > 15 && !existing.image.includes('unsplash.com'));
+          const hasRealNewImage = Boolean(newMenu.image && typeof newMenu.image === 'string' && newMenu.image.length > 15 && !newMenu.image.includes('unsplash.com'));
+          const finalImage = hasRealNewImage ? newMenu.image : (hasRealExistingImage ? existing.image : (newMenu.image || existing.image));
           const preservedPrice = existing.price !== undefined ? existing.price : newMenu.price;
           menuItems[existingIdx] = { ...newMenu, ...existing, image: finalImage, price: preservedPrice, id: existing.id };
           hasChanges = true;
@@ -1120,7 +1134,15 @@ async function startServer() {
   });
 
   // 2. Menu Catalog APIs (Admin & Patient)
-  app.get('/api/menu', (req, res) => {
+  app.get('/api/menu', async (req, res) => {
+    // Jika katalog di memori server belum terisi atau hanya sedikit, auto-tarik dari SIMRS jika token aktif
+    if (menuItems.length <= 1 && simrsSettings.apiKey && simrsSettings.apiKey.trim().length > 5) {
+      try {
+        await autoFetchSimrsMenuFromServer();
+      } catch (err) {
+        console.warn('[Auto-Fetch] Gagal auto-tarik master menu pada GET /api/menu:', err);
+      }
+    }
     res.json(menuItems);
   });
 
@@ -1414,7 +1436,9 @@ async function startServer() {
   app.get('/api/simrs/config', (req, res) => {
     res.json({
       apiUrl: simrsSettings.apiUrl,
+      apiKey: simrsSettings.apiKey,
       apiKeyMasked: simrsSettings.apiKey ? `${simrsSettings.apiKey.slice(0, 3)}••••${simrsSettings.apiKey.slice(-3)}` : '',
+      hasToken: Boolean(simrsSettings.apiKey && simrsSettings.apiKey.trim().length > 5),
       authHeaderType: simrsSettings.authHeaderType || 'X-AUTH-TOKEN',
       autoSyncOnOrder: simrsSettings.autoSyncOnOrder,
       isConfigured: Boolean(simrsSettings.apiUrl && simrsSettings.apiUrl.trim().length > 5),
@@ -1440,10 +1464,12 @@ async function startServer() {
 
     res.json({
       success: true,
-      message: 'Pengaturan API SIMRS (PostgreSQL & Laravel) dengan X-AUTH-TOKEN berhasil disimpan!',
+      message: 'Pengaturan API SIMRS (PostgreSQL & Laravel) dengan X-AUTH-TOKEN berhasil disimpan di server!',
       config: {
         apiUrl: simrsSettings.apiUrl,
+        apiKey: simrsSettings.apiKey,
         apiKeyMasked: simrsSettings.apiKey ? `${simrsSettings.apiKey.slice(0, 3)}••••${simrsSettings.apiKey.slice(-3)}` : '',
+        hasToken: Boolean(simrsSettings.apiKey && simrsSettings.apiKey.trim().length > 5),
         authHeaderType: simrsSettings.authHeaderType,
         autoSyncOnOrder: simrsSettings.autoSyncOnOrder,
         isConfigured: simrsSettings.isConfigured,
@@ -1842,7 +1868,7 @@ app.post('/api/simrs/fetch-menu', async (req, res) => {
           fat: parsePgNumber(m.lemak_gram ?? m.lemak ?? m.fat, 0),
           sodium: parsePgNumber(m.natrium_mg ?? m.natrium ?? m.sodium, 0),
           description: String(m.deskripsi || m.description || ''),
-          image: m.foto_url || m.gambar_url || m.image || m.gambar || m.foto || m.url_gambar || m.url_foto || m.photo || m.photo_url || m.img || m.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+          image: parsePgImage(m.foto_url || m.gambar_url || m.image || m.gambar || m.foto || m.url_gambar || m.url_foto || m.photo || m.photo_url || m.img || m.image_url, 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80'),
           isAvailable: parsePgBoolean(m.tersedia ?? m.isAvailable ?? true),
         };
       });
@@ -1852,8 +1878,9 @@ app.post('/api/simrs/fetch-menu', async (req, res) => {
         const existingIdx = menuItems.findIndex(m => m.id === newMenu.id || m.name.toLowerCase() === newMenu.name.toLowerCase());
         if (existingIdx !== -1) {
           const existing = menuItems[existingIdx];
-          const hasRealNewImage = Boolean(newMenu.image && newMenu.image.trim() !== '' && !newMenu.image.includes('unsplash.com'));
-          const finalImage = hasRealNewImage ? newMenu.image : (existing.image || newMenu.image);
+          const hasRealExistingImage = Boolean(existing.image && typeof existing.image === 'string' && existing.image.length > 15 && !existing.image.includes('unsplash.com'));
+          const hasRealNewImage = Boolean(newMenu.image && typeof newMenu.image === 'string' && newMenu.image.length > 15 && !newMenu.image.includes('unsplash.com'));
+          const finalImage = hasRealNewImage ? newMenu.image : (hasRealExistingImage ? existing.image : (newMenu.image || existing.image));
           menuItems[existingIdx] = { ...existing, ...newMenu, image: finalImage, id: existing.id };
         } else {
           menuItems.push(newMenu);

@@ -130,6 +130,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // SIMRS (PostgreSQL & Laravel API) Integration States
   const [simrsApiUrl, setSimrsApiUrl] = useState<string>('http://localhost:8000/api/save-pesanan-gizi');
   const [simrsApiKey, setSimrsApiKey] = useState<string>('');
+  const [simrsApiKeyMasked, setSimrsApiKeyMasked] = useState<string>('');
+  const [hasServerToken, setHasServerToken] = useState<boolean>(false);
   const [simrsAuthHeaderType, setSimrsAuthHeaderType] = useState<'X-AUTH-TOKEN' | 'Bearer' | 'Both'>('X-AUTH-TOKEN');
   const [simrsAutoSync, setSimrsAutoSync] = useState<boolean>(true);
   const [isSimrsConfigured, setIsSimrsConfigured] = useState<boolean>(false);
@@ -198,6 +200,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           if (simrsConfig.authHeaderType) setSimrsAuthHeaderType(simrsConfig.authHeaderType);
           setSimrsAutoSync(simrsConfig.autoSyncOnOrder !== false);
           setIsSimrsConfigured(simrsConfig.isConfigured);
+          if (simrsConfig.apiKeyMasked) setSimrsApiKeyMasked(simrsConfig.apiKeyMasked);
+          if (simrsConfig.hasToken || Boolean(simrsConfig.apiKeyMasked)) {
+            setHasServerToken(true);
+          }
         }
       } catch (err) {
         console.warn('Could not fetch SIMRS config', err);
@@ -390,9 +396,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       }
       const res = await realtimeService.saveSimrsConfig(payload);
       setIsSimrsConfigured(res.config?.isConfigured || Boolean(simrsApiUrl.trim()));
+      if (res.config?.apiKeyMasked) {
+        setSimrsApiKeyMasked(res.config.apiKeyMasked);
+        setHasServerToken(true);
+      } else if (payload.apiKey) {
+        setSimrsApiKeyMasked(`${payload.apiKey.slice(0, 3)}••••${payload.apiKey.slice(-3)}`);
+        setHasServerToken(true);
+      }
       setSimrsNotice({
         type: 'success',
-        text: 'Konfigurasi API SIMRS dengan autentikasi X-AUTH-TOKEN berhasil disimpan & aktif!',
+        text: 'Konfigurasi API SIMRS dengan autentikasi X-AUTH-TOKEN berhasil disimpan & aktif untuk semua perangkat!',
       });
       setSimrsApiKey('');
     } catch (err: any) {
@@ -1843,9 +1856,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       type={showToken ? 'text' : 'password'}
                       value={simrsApiKey}
                       onChange={(e) => setSimrsApiKey(e.target.value)}
-                      placeholder="Masukkan token autentikasi X-AUTH-TOKEN SIMRS..."
+                      placeholder={hasServerToken && simrsApiKeyMasked ? `Token tersimpan di server (${simrsApiKeyMasked}). Kosongkan jika tidak ingin mengubah.` : 'Masukkan token autentikasi X-AUTH-TOKEN SIMRS...'}
                       className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-slate-50"
                     />
+
+                    {hasServerToken && simrsApiKeyMasked && (
+                      <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-emerald-700 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-200">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                        <span className="leading-snug">
+                          <strong>Token Aktif di Server:</strong> <code className="font-mono font-bold text-emerald-900 bg-white px-1 py-0.5 rounded border border-emerald-300">{simrsApiKeyMasked}</code> — Berlaku otomatis untuk semua perangkat & pasien (tidak perlu diinput ulang).
+                        </span>
+                      </div>
+                    )}
 
                     {/* Header Protocol Selector */}
                     <div className="mt-2.5 space-y-1.5">
