@@ -333,14 +333,72 @@ export const parsePgBoolean = (val: any): boolean => {
   return str === 't' || str === 'true' || str === '1' || str === 'y';
 };
 
-export const parsePgImage = (raw: any, fallback = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80'): string => {
+export function getCategoryFallbackImageServer(category: string, menuName = ''): string {
+  const lowerName = (menuName || '').toLowerCase();
+  if (lowerName.includes('nasi kuning')) {
+    return 'https://images.unsplash.com/photo-1596797038530-2c107229654b?auto=format&fit=crop&w=500&q=80';
+  }
+  if (lowerName.includes('bubur')) {
+    return 'https://images.unsplash.com/photo-1541832676-9b763b0239ab?auto=format&fit=crop&w=500&q=80';
+  }
+  if (lowerName.includes('roti')) {
+    return 'https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=500&q=80';
+  }
+  if (lowerName.includes('ayam')) {
+    return 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=500&q=80';
+  }
+  if (lowerName.includes('ikan')) {
+    return 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&w=500&q=80';
+  }
+  if (lowerName.includes('telur')) {
+    return 'https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=500&q=80';
+  }
+  if (lowerName.includes('mie') || lowerName.includes('bihun')) {
+    return 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=500&q=80';
+  }
+  if (lowerName.includes('sup') || lowerName.includes('sayur') || lowerName.includes('bening')) {
+    return 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=500&q=80';
+  }
+  if (lowerName.includes('teh')) {
+    return 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?auto=format&fit=crop&w=500&q=80';
+  }
+  if (lowerName.includes('air')) {
+    return 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?auto=format&fit=crop&w=500&q=80';
+  }
+  if (lowerName.includes('buah') || lowerName.includes('pisang') || lowerName.includes('pepaya') || lowerName.includes('melon')) {
+    return 'https://images.unsplash.com/photo-1619566636858-adf3ef46400b?auto=format&fit=crop&w=500&q=80';
+  }
+  switch (category) {
+    case 'lauk_hewani':
+      return 'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=500&q=80';
+    case 'lauk_nabati':
+      return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=80';
+    case 'sayuran':
+      return 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=500&q=80';
+    case 'buah_snack':
+      return 'https://images.unsplash.com/photo-1619566636858-adf3ef46400b?auto=format&fit=crop&w=500&q=80';
+    case 'minuman':
+      return 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?auto=format&fit=crop&w=500&q=80';
+    case 'makanan_utama':
+    default:
+      return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=80';
+  }
+}
+
+export const parsePgImage = (raw: any, fallback = '', menuName = '', category = 'makanan_utama'): string => {
   if (typeof raw === 'string') {
     const s = raw.trim();
-    if (s.length > 5 && s !== 'true' && s !== 'false' && s !== '1' && s !== '0' && s !== 'null' && s !== 'undefined') {
+    if (s.startsWith('data:image/') || s.startsWith('http://') || s.startsWith('https://')) {
+      return s;
+    }
+    if (s.length > 10 && s !== 'true' && s !== 'false' && s !== '1' && s !== '0' && s !== 'null' && s !== 'undefined') {
       return s;
     }
   }
-  return fallback;
+  if (fallback && typeof fallback === 'string' && fallback.length > 5 && fallback !== 'true' && fallback !== 'false') {
+    return fallback;
+  }
+  return getCategoryFallbackImageServer(category, menuName);
 };
 
 export async function autoFetchSimrsMenuFromServer(): Promise<MenuItem[]> {
@@ -398,7 +456,7 @@ export async function autoFetchSimrsMenuFromServer(): Promise<MenuItem[]> {
       }
 
       const rawImg = m.foto_url || m.gambar_url || m.gambar || m.foto || m.url_gambar || m.url_foto || m.photo || m.photo_url || m.img || m.image_url || m.image;
-      const validSimrsImg = parsePgImage(rawImg, '');
+      const validSimrsImg = parsePgImage(rawImg, '', m.nama_menu || m.name, m.kategori || m.category);
 
       return {
         id: String(m.menu_id || m.id_menu || m.id || `menu-${Date.now()}-${Math.floor(Math.random() * 1000)}`),
@@ -412,7 +470,7 @@ export async function autoFetchSimrsMenuFromServer(): Promise<MenuItem[]> {
         fat: parsePgNumber(m.lemak_gram ?? m.lemak ?? m.fat, 0),
         sodium: parsePgNumber(m.natrium_mg ?? m.natrium ?? m.sodium, 0),
         description: String(m.deskripsi || m.description || 'Penyajian higienis instalasi gizi rumah sakit.'),
-        image: validSimrsImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+        image: validSimrsImg || getCategoryFallbackImageServer(m.kategori || m.category || 'makanan_utama', m.nama_menu || m.name),
         isAvailable: parsePgBoolean(m.tersedia ?? m.isAvailable ?? true),
       };
     });
@@ -432,7 +490,7 @@ export async function autoFetchSimrsMenuFromServer(): Promise<MenuItem[]> {
           const hasRealNewImage = Boolean(newMenu.image && typeof newMenu.image === 'string' && newMenu.image.length > 15 && !newMenu.image.includes('unsplash.com'));
           const finalImage = hasRealNewImage ? newMenu.image : (hasRealExistingImage ? existing.image : (newMenu.image || existing.image));
           const preservedPrice = existing.price !== undefined ? existing.price : newMenu.price;
-          menuItems[existingIdx] = { ...newMenu, ...existing, image: finalImage, price: preservedPrice, id: existing.id };
+          menuItems[existingIdx] = { ...existing, ...newMenu, image: finalImage, price: preservedPrice, id: existing.id };
           hasChanges = true;
         }
       });
@@ -1148,14 +1206,16 @@ async function startServer() {
   });
 
   // 2. Menu Catalog APIs (Admin & Patient)
+  let lastMenuAutoSyncTime = 0;
   app.get('/api/menu', async (req, res) => {
-    // Jika katalog di memori server belum terisi atau hanya sedikit, auto-tarik dari SIMRS jika token aktif
-    if (menuItems.length <= 1 && simrsSettings.apiKey && simrsSettings.apiKey.trim().length > 5) {
-      try {
-        await autoFetchSimrsMenuFromServer();
-      } catch (err) {
+    const now = Date.now();
+    // Otomatis sinkronkan dari SIMRS setiap 20 detik di latar belakang
+    // sehingga setiap pasien di smartphone masing-masing langsung menerima menu terbaru tanpa perlu klik apa pun
+    if (simrsSettings.apiKey && simrsSettings.apiKey.trim().length > 5 && (now - lastMenuAutoSyncTime > 20000 || req.query.sync === '1' || menuItems.length <= 1)) {
+      lastMenuAutoSyncTime = now;
+      autoFetchSimrsMenuFromServer().catch((err) => {
         console.warn('[Auto-Fetch] Gagal auto-tarik master menu pada GET /api/menu:', err);
-      }
+      });
     }
     res.json(menuItems);
   });
@@ -1883,7 +1943,7 @@ app.post('/api/simrs/fetch-menu', async (req, res) => {
           fat: parsePgNumber(m.lemak_gram ?? m.lemak ?? m.fat, 0),
           sodium: parsePgNumber(m.natrium_mg ?? m.natrium ?? m.sodium, 0),
           description: String(m.deskripsi || m.description || ''),
-          image: parsePgImage(m.foto_url || m.gambar_url || m.image || m.gambar || m.foto || m.url_gambar || m.url_foto || m.photo || m.photo_url || m.img || m.image_url, 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80'),
+          image: parsePgImage(m.foto_url || m.gambar_url || m.image || m.gambar || m.foto || m.url_gambar || m.url_foto || m.photo || m.photo_url || m.img || m.image_url, '', m.nama_menu || m.name, m.kategori || m.category),
           isAvailable: parsePgBoolean(m.tersedia ?? m.isAvailable ?? true),
         };
       });

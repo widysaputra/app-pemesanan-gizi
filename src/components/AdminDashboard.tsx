@@ -9,6 +9,7 @@ import {
 } from '../types';
 import { realtimeService } from '../services/api';
 import { MenuEditModal } from './MenuEditModal';
+import { getValidMenuImage, getCategoryFallbackImage } from '../utils/imageHelper';
 import { 
   Utensils, 
   Plus, 
@@ -774,8 +775,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   {/* Photo & Badge */}
                   <div className="relative h-28 sm:h-40 w-full bg-slate-100 overflow-hidden">
                     <img
-                      src={item.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80'}
+                      src={getValidMenuImage(item.image, item.name, item.category)}
                       alt={item.name}
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        target.onerror = null;
+                        target.src = getCategoryFallbackImage(item.category, item.name);
+                      }}
                       className={`w-full h-full object-cover transition-transform duration-300 hover:scale-105 ${
                         !item.isAvailable ? 'grayscale' : ''
                       }`}

@@ -7,6 +7,7 @@ import {
   INITIAL_MENU,
   INITIAL_ORDERS
 } from '../data/initialData';
+import { getCategoryFallbackImage } from '../utils/imageHelper';
 
 const BROADCAST_CHANNEL_NAME = 'nutri_hospital_channel';
 let localBroadcastChannel: BroadcastChannel | null = null;
@@ -1691,7 +1692,7 @@ export class HospitalRealtimeService {
           fat: parsePgNumber(m.lemak_gram ?? m.lemak ?? m.fat, 0),
           sodium: parsePgNumber(m.natrium_mg ?? m.natrium ?? m.sodium, 0),
           description: String(m.deskripsi || m.description || ''),
-          image: validImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+          image: validImg || getCategoryFallbackImage(m.kategori || m.category || 'makanan_utama', m.nama_menu || m.name),
           isAvailable: parsePgBoolean(m.tersedia ?? m.isAvailable ?? true),
         };
       });

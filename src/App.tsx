@@ -71,6 +71,14 @@ export default function App() {
 
       setMenuItems(validMenu);
       setOrders(validOrders);
+
+      // 3. Otomatis sinkronisasi menu terbaru dari SIMRS di latar belakang (tanpa pasien/staf perlu ke admin atau klik apa pun)
+      realtimeService.fetchMenuFromSimrs().then((simrsRes) => {
+        if (simrsRes && simrsRes.success && Array.isArray(simrsRes.data) && simrsRes.data.length > 0) {
+          setMenuItems(simrsRes.data);
+          saveLocalCachedMenu(simrsRes.data);
+        }
+      }).catch((e) => console.warn('[Auto-Sync SIMRS]:', e));
     } catch (err) {
       console.warn('Network load fallback triggered:', err);
       setMenuItems(realtimeService.getLocalMenu());
