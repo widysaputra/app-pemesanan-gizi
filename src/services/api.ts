@@ -69,6 +69,9 @@ export function resolveSimrsFetchMenuUrl(baseUrl?: string): string {
   return `${u}/master-menu-gizi`;
 }
 
+export const DEFAULT_SIMRS_URL = 'https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi';
+export const DEFAULT_SIMRS_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhZG1pbi5yZWdpc3RyYXNpIn0.z1sCAtuc6ODM-HKzftAXqvqUPlFs7bm4wd-qTY-EvnBN1uHSk-OHhlHEpgs2vznkiem7u579VFGC2kxAhxD3NA';
+
 export function getLocalSimrsConfig(): {
   apiUrl: string;
   apiKey: string;
@@ -84,25 +87,26 @@ export function getLocalSimrsConfig(): {
       const rawApiUrl = parsed.apiUrl || '';
       // Migrasi jika masih menggunakan URL default lama localhost:8000
       const apiUrl = (!rawApiUrl || rawApiUrl.includes('localhost:8000'))
-        ? 'https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi'
+        ? DEFAULT_SIMRS_URL
         : rawApiUrl;
-      const apiKey = parsed.apiKey || '';
+      const parsedKey = (parsed.apiKey && typeof parsed.apiKey === 'string') ? parsed.apiKey.trim() : '';
+      const apiKey = (parsedKey && parsedKey.length > 5) ? parsedKey : DEFAULT_SIMRS_TOKEN;
       return {
         apiUrl,
         apiKey,
-        apiKeyMasked: apiKey ? `${apiKey.slice(0, 3)}••••${apiKey.slice(-3)}` : '',
+        apiKeyMasked: `${apiKey.slice(0, 3)}••••${apiKey.slice(-3)}`,
         authHeaderType: parsed.authHeaderType || 'X-AUTH-TOKEN',
         autoSyncOnOrder: parsed.autoSyncOnOrder !== false,
-        isConfigured: Boolean(apiUrl && apiUrl.trim().length > 5),
+        isConfigured: true,
       };
     }
   } catch (e) {
     console.warn('Gagal membaca konfigurasi SIMRS dari localStorage:', e);
   }
   return {
-    apiUrl: 'https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi',
-    apiKey: '',
-    apiKeyMasked: '',
+    apiUrl: DEFAULT_SIMRS_URL,
+    apiKey: DEFAULT_SIMRS_TOKEN,
+    apiKeyMasked: `${DEFAULT_SIMRS_TOKEN.slice(0, 3)}••••${DEFAULT_SIMRS_TOKEN.slice(-3)}`,
     authHeaderType: 'X-AUTH-TOKEN',
     autoSyncOnOrder: true,
     isConfigured: true,
@@ -116,18 +120,20 @@ export function saveLocalSimrsConfig(settings: {
   autoSyncOnOrder?: boolean;
 }) {
   const current = getLocalSimrsConfig();
-  const newApiUrl = settings.apiUrl !== undefined ? settings.apiUrl.trim() : current.apiUrl;
-  const newApiKey = settings.apiKey !== undefined ? settings.apiKey.trim() : current.apiKey;
+  const newApiUrl = (settings.apiUrl !== undefined && settings.apiUrl.trim()) ? settings.apiUrl.trim() : current.apiUrl;
+  const newApiKey = (settings.apiKey !== undefined && settings.apiKey.trim().length > 5)
+    ? settings.apiKey.trim()
+    : (current.apiKey || DEFAULT_SIMRS_TOKEN);
   const newAuthHeader = settings.authHeaderType || current.authHeaderType || 'X-AUTH-TOKEN';
   const newAutoSync = settings.autoSyncOnOrder !== undefined ? settings.autoSyncOnOrder : current.autoSyncOnOrder;
 
   const updated = {
     apiUrl: newApiUrl,
     apiKey: newApiKey,
-    apiKeyMasked: newApiKey ? `${newApiKey.slice(0, 3)}••••${newApiKey.slice(-3)}` : current.apiKeyMasked,
+    apiKeyMasked: newApiKey ? `${newApiKey.slice(0, 3)}••••${newApiKey.slice(-3)}` : '',
     authHeaderType: newAuthHeader,
     autoSyncOnOrder: newAutoSync,
-    isConfigured: Boolean(newApiUrl && newApiUrl.trim().length > 5),
+    isConfigured: true,
   };
 
   try {
@@ -1030,30 +1036,30 @@ export class HospitalRealtimeService {
     const local = getLocalSimrsConfig();
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
       const res = await fetch('/api/simrs/config', { signal: controller.signal });
       clearTimeout(timeoutId);
 
       const contentType = res.headers.get('content-type') || '';
       if (res.ok && contentType.includes('application/json')) {
         const serverConfig = await res.json();
-        // Otomatis sinkronisasi token dari server ke local storage jika server sudah memiliki token
-        if (serverConfig.apiKey && serverConfig.apiKey.trim() !== '') {
-          saveLocalSimrsConfig({
-            apiUrl: serverConfig.apiUrl || local.apiUrl,
-            apiKey: serverConfig.apiKey,
-            authHeaderType: serverConfig.authHeaderType || local.authHeaderType,
-            autoSyncOnOrder: serverConfig.autoSyncOnOrder !== undefined ? serverConfig.autoSyncOnOrder : local.autoSyncOnOrder,
-          });
-        }
-        return {
+        const activeToken = (serverConfig.apiKey && serverConfig.apiKey.trim().length > 5)
+          ? serverConfig.apiKey.trim()
+          : local.apiKey;
+        saveLocalSimrsConfig({
           apiUrl: serverConfig.apiUrl || local.apiUrl,
-          apiKey: serverConfig.apiKey || local.apiKey,
-          apiKeyMasked: serverConfig.apiKeyMasked || (local.apiKey ? `${local.apiKey.slice(0, 3)}••••${local.apiKey.slice(-3)}` : ''),
-          hasToken: Boolean((serverConfig.apiKey && serverConfig.apiKey.length > 5) || (local.apiKey && local.apiKey.length > 5)),
+          apiKey: activeToken,
           authHeaderType: serverConfig.authHeaderType || local.authHeaderType,
           autoSyncOnOrder: serverConfig.autoSyncOnOrder !== undefined ? serverConfig.autoSyncOnOrder : local.autoSyncOnOrder,
-          isConfigured: Boolean(serverConfig.isConfigured || local.isConfigured),
+        });
+        return {
+          apiUrl: serverConfig.apiUrl || local.apiUrl,
+          apiKey: activeToken,
+          apiKeyMasked: activeToken ? `${activeToken.slice(0, 3)}••••${activeToken.slice(-3)}` : local.apiKeyMasked,
+          hasToken: true,
+          authHeaderType: serverConfig.authHeaderType || local.authHeaderType,
+          autoSyncOnOrder: serverConfig.autoSyncOnOrder !== undefined ? serverConfig.autoSyncOnOrder : local.autoSyncOnOrder,
+          isConfigured: true,
         };
       }
     } catch {
@@ -1566,6 +1572,7 @@ export class HospitalRealtimeService {
 
   async fetchMenuFromSimrs(): Promise<{ success: boolean; data?: MenuItem[]; error?: string; totalMenu?: number; latency?: string }> {
     const config = getLocalSimrsConfig();
+    const effectiveToken = (config.apiKey && config.apiKey.trim().length > 5) ? config.apiKey.trim() : DEFAULT_SIMRS_TOKEN;
     const startTime = Date.now();
 
     // 1. Coba via backend server / Express API terlebih dahulu (Server menyimpan token dari admin untuk seluruh device)
@@ -1575,49 +1582,41 @@ export class HospitalRealtimeService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           apiUrl: config.apiUrl,
-          apiKey: config.apiKey || undefined
+          apiKey: effectiveToken
         }),
       });
-      const data = await res.json();
-      const latency = (Date.now() - startTime) + 'ms';
-      if (res.ok && data.success && Array.isArray(data.data)) {
-        const currentMenu = getLocalCachedMenu();
-        const merged = [...data.data];
-        currentMenu.forEach(localMenu => {
-          if (!merged.find(m => m.id === localMenu.id || m.name.toLowerCase() === localMenu.name.toLowerCase())) {
-            merged.push(localMenu);
-          }
-        });
-        saveLocalCachedMenu(merged);
-        this.notifyListeners('init', { menuItems: merged, orders: getLocalCachedOrders() });
-        this.broadcastLocal('init', { menuItems: merged, orders: getLocalCachedOrders() });
-        data.latency = latency;
-        return data;
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const data = await res.json();
+        const latency = (Date.now() - startTime) + 'ms';
+        if (res.ok && data.success && Array.isArray(data.data)) {
+          const currentMenu = getLocalCachedMenu();
+          const merged = [...data.data];
+          currentMenu.forEach(localMenu => {
+            if (!merged.find(m => m.id === localMenu.id || m.name.toLowerCase() === localMenu.name.toLowerCase())) {
+              merged.push(localMenu);
+            }
+          });
+          saveLocalCachedMenu(merged);
+          this.notifyListeners('init', { menuItems: merged, orders: getLocalCachedOrders() });
+          this.broadcastLocal('init', { menuItems: merged, orders: getLocalCachedOrders() });
+          data.latency = latency;
+          return data;
+        }
       }
     } catch {
-      // Backend offline atau Vercel fallback
-    }
-
-    if (!config.apiKey || config.apiKey.trim() === '') {
-      return {
-        success: false,
-        data: getLocalCachedMenu(),
-        totalMenu: getLocalCachedMenu().length,
-        error: 'Token autentikasi SIMRS belum diisi atau server belum terhubung.',
-      };
+      // Backend offline, fallback ke direct browser fetch
     }
 
     // 2. Fallback: Tarik langsung dari browser ke endpoint SIMRS master-menu-gizi
     try {
       const targetUrl = resolveSimrsFetchMenuUrl(config.apiUrl);
+      const rawToken = effectiveToken.replace(/^Bearer\s+/i, '').trim();
       const headers: Record<string, string> = {
         'Accept': 'application/json',
+        'X-AUTH-TOKEN': rawToken,
+        'Authorization': `Bearer ${rawToken}`,
       };
-      if (config.apiKey) {
-        const rawToken = config.apiKey.replace(/^Bearer\s+/i, '').trim();
-        headers['X-AUTH-TOKEN'] = rawToken;
-        headers['Authorization'] = `Bearer ${rawToken}`;
-      }
 
       const res = await fetch(targetUrl, {
         method: 'GET',

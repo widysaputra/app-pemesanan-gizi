@@ -464,19 +464,22 @@ const SIMRS_CONFIG_FILE = path.join(process.cwd(), 'simrs_config.json');
 
 function loadPersistentSimrsSettings(): SimrsSettings {
   const defaultApiUrl = (process.env.SIMRS_API_URL || 'https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi').trim();
-  const defaultToken = (process.env.SIMRS_TOKEN || process.env.SIMRS_API_KEY || '').trim();
+  const defaultToken = (process.env.SIMRS_TOKEN || process.env.SIMRS_API_KEY || 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhZG1pbi5yZWdpc3RyYXNpIn0.z1sCAtuc6ODM-HKzftAXqvqUPlFs7bm4wd-qTY-EvnBN1uHSk-OHhlHEpgs2vznkiem7u579VFGC2kxAhxD3NA').trim();
 
   try {
     if (fs.existsSync(SIMRS_CONFIG_FILE)) {
       const raw = fs.readFileSync(SIMRS_CONFIG_FILE, 'utf-8');
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === 'object') {
+        const savedToken = (parsed.apiKey && typeof parsed.apiKey === 'string' && parsed.apiKey.trim().length > 5)
+          ? parsed.apiKey.trim()
+          : defaultToken;
         return {
           apiUrl: (parsed.apiUrl || defaultApiUrl).trim(),
-          apiKey: (parsed.apiKey !== undefined ? parsed.apiKey : defaultToken).trim(),
+          apiKey: savedToken,
           authHeaderType: parsed.authHeaderType || 'X-AUTH-TOKEN',
           autoSyncOnOrder: parsed.autoSyncOnOrder !== false,
-          isConfigured: Boolean((parsed.apiUrl || defaultApiUrl).trim().length > 5),
+          isConfigured: true,
         };
       }
     }
@@ -489,7 +492,7 @@ function loadPersistentSimrsSettings(): SimrsSettings {
     apiKey: defaultToken,
     authHeaderType: 'X-AUTH-TOKEN',
     autoSyncOnOrder: true,
-    isConfigured: Boolean(defaultApiUrl.length > 5),
+    isConfigured: true,
   };
 }
 
@@ -1084,6 +1087,17 @@ async function syncMenuToSimrs(
 async function startServer() {
   const app = express();
   const PORT = 3000;
+
+  // Middleware CORS agar device lain (tablet, HP, bed pasien) dapat mengakses API
+  app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-AUTH-TOKEN');
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
+    }
+    next();
+  });
 
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -1769,10 +1783,11 @@ async function startServer() {
 
 app.post('/api/simrs/fetch-menu', async (req, res) => {
     const { apiUrl, apiKey } = req.body;
+    const DEFAULT_SIMRS_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhZG1pbi5yZWdpc3RyYXNpIn0.z1sCAtuc6ODM-HKzftAXqvqUPlFs7bm4wd-qTY-EvnBN1uHSk-OHhlHEpgs2vznkiem7u579VFGC2kxAhxD3NA';
     const rawTargetUrl = (apiUrl || simrsSettings.apiUrl || 'https://rsbsaonline.com/service/medifirst2000/emr/master-menu-gizi').trim();
-    const targetToken = (apiKey && typeof apiKey === 'string' && apiKey.trim() !== '')
+    const targetToken = (apiKey && typeof apiKey === 'string' && apiKey.trim().length > 5)
       ? apiKey.trim()
-      : (simrsSettings.apiKey || '').trim();
+      : ((simrsSettings.apiKey && simrsSettings.apiKey.trim().length > 5) ? simrsSettings.apiKey.trim() : DEFAULT_SIMRS_TOKEN);
 
     if (!rawTargetUrl || rawTargetUrl.trim() === '') {
       return res.status(400).json({ error: 'URL Endpoint API Laravel SIMRS wajib diisi' });
