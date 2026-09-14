@@ -191,6 +191,11 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
       return;
     }
 
+    if (!patientName.trim()) {
+      setFormError('Nama Pemesan wajib diisi.');
+      return;
+    }
+
     if (!phoneNumber.trim()) {
       setFormError('Nomor WhatsApp wajib diisi agar notifikasi dapat dikirim.');
       return;
@@ -444,7 +449,7 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                           <span className="font-extrabold text-slate-800">{ord.roomName}</span>
                         </div>
                         <div>
-                          <span className="text-[10px] font-bold text-slate-400 block uppercase">Nama Pasien</span>
+                          <span className="text-[10px] font-bold text-slate-400 block uppercase">Nama Pemesan</span>
                           <span className="font-extrabold text-slate-800">{ord.patientName}</span>
                         </div>
                       </div>
@@ -781,7 +786,7 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
               {/* Room Name Input */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Nama / Nomor Kamar &amp; Bed <span className="text-rose-500">*</span>
+                  Nama Ruangan / Nomor Kamar &amp; Bed <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"

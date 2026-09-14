@@ -264,7 +264,7 @@ export default function App() {
       setActiveView('admin');
       setToastMessage({
         title: 'Akses Admin Berhasil',
-        desc: 'Selamat datang di Dashboard Admin NutriHospital.',
+        desc: 'Selamat datang di Dashboard Admin SiapMakan.',
       });
       setTimeout(() => setToastMessage(null), 3000);
     } else {
