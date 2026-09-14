@@ -47,7 +47,7 @@ export const EtiketModal: React.FC<EtiketModalProps> = ({ order, onClose }) => {
         <div className="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Printer className="w-4 h-4 text-emerald-400" />
-            <span className="font-semibold text-sm tracking-wide">Etiket Baki Makan Pasien RS</span>
+            <span className="font-semibold text-sm tracking-wide">Etiket Baki Makan</span>
           </div>
           <button
             onClick={onClose}
@@ -79,8 +79,8 @@ export const EtiketModal: React.FC<EtiketModalProps> = ({ order, onClose }) => {
             {/* Patient Clinical Info Grid */}
             <div className="grid grid-cols-2 gap-2 text-xs mb-3 pb-3 border-b border-slate-200">
               <div>
-                <span className="text-slate-400 block text-[10px] font-semibold">NAMA PASIEN</span>
-                <span className="font-bold text-slate-900 text-sm">{order.patientName || 'Pasien Umum'}</span>
+                <span className="text-slate-400 block text-[10px] font-semibold">NAMA PEMESAN</span>
+                <span className="font-bold text-slate-900 text-sm">{order.patientName || 'Pemesan Umum'}</span>
               </div>
               <div>
                 <span className="text-slate-400 block text-[10px] font-semibold">NO. REGISTRASI / RM</span>

@@ -111,11 +111,11 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
               <span className="font-bold text-slate-900">{order.roomName}</span>
             </div>
             <div className="flex justify-between items-center pb-2 border-b border-slate-200/80">
-              <span className="text-slate-500 font-medium">Nama Pasien:</span>
+              <span className="text-slate-500 font-medium">Nama Pemesan:</span>
               <span className="font-bold text-slate-900">{order.patientName}</span>
             </div>
             <div className="flex justify-between items-center pb-2 border-b border-slate-200/80">
-              <span className="text-slate-500 font-medium">No. Telepon Pasien:</span>
+              <span className="text-slate-500 font-medium">No. Telepon Pemesan:</span>
               <span className="font-bold font-mono text-slate-900">{order.phoneNumber}</span>
             </div>
             <div className="flex justify-between items-center pt-1">

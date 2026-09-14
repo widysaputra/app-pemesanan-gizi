@@ -261,7 +261,7 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
           <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-white/20 backdrop-blur-md">
               <Sparkles className="w-3.5 h-3.5 text-emerald-200" />
-              <span>Pemesanan Makanan Pasien &bull; Dapur Gizi RS</span>
+              <span>Pemesanan Makanan &bull; Dapur Gizi RS</span>
             </div>
           </div>
           <h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">
@@ -331,7 +331,7 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
             <div>
               <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                <span>Daftar Pesanan Pasien Terkini</span>
+                <span>Daftar Pesanan Terkini</span>
                 <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">
                   {myOrders.length} Pesanan
                 </span>
@@ -801,13 +801,13 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
               {/* Patient Name Input */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Nama Pasien / Pemesan
+                  Nama Pemesan
                 </label>
                 <input
                   type="text"
                   value={patientName}
                   onChange={(e) => setPatientName(e.target.value)}
-                  placeholder="Masukkan nama lengkap pasien..."
+                  placeholder="Masukkan nama lengkap pemesan..."
                   className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                 />
               </div>

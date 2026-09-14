@@ -147,7 +147,7 @@ export default function App() {
 
         // Floating toast alert
         setToastMessage({
-          title: 'Pesanan Pasien Masuk!',
+          title: 'Pesanan Masuk!',
           desc: `${newOrder.patientName} (${newOrder.roomName}) memesan menu. WhatsApp Fonnte diteruskan.`,
         });
         setTimeout(() => {
@@ -319,7 +319,7 @@ export default function App() {
                 </span>
               </div>
               <div className="text-[11px] text-slate-500 font-medium hidden md:block">
-                Pemesanan Makanan Pasien
+                Pemesanan Makanan
               </div>
             </div>
           </div>
@@ -336,7 +336,7 @@ export default function App() {
             >
               <User className="w-3.5 h-3.5 text-blue-600 shrink-0" />
               <span className="hidden sm:inline">Dashboard </span>
-              <span>Pasien</span>
+              <span>Pemesan</span>
             </button>
 
             <button
@@ -576,9 +576,9 @@ export default function App() {
                   </ul>
                 </div>
                 <div>
-                  <strong className="text-blue-700">2. Dashboard Pasien:</strong>
+                  <strong className="text-blue-700">2. Dashboard Pemesan:</strong>
                   <ul className="list-disc pl-4 mt-0.5 space-y-0.5 text-[11px] text-slate-600">
-                    <li>Isi nama kamar, nama pasien, dan nomor WhatsApp.</li>
+                    <li>Isi nama kamar, nama pemesan, dan nomor WhatsApp.</li>
                     <li>Pilih menu makanan beserta porsi yang diinginkan.</li>
                     <li>Klik "Kirim Pesanan Sekarang" untuk memesan menu.</li>
                     <li>Pesanan otomatis diteruskan langsung ke sistem Dapur Gizi.</li>

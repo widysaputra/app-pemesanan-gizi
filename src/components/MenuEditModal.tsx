@@ -782,7 +782,7 @@ export const MenuEditModal: React.FC<MenuEditModalProps> = ({
                     type="text"
                     value={uploadTitle}
                     onChange={(e) => setUploadTitle(e.target.value)}
-                    placeholder="Contoh: Roti Bakar Telur, Bubur Pasien..."
+                    placeholder="Contoh: Roti Bakar Telur, Bubur..."
                     className="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>

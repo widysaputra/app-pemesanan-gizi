@@ -636,7 +636,7 @@ function formatWhatsAppOrderMessage(order: HospitalOrder): string {
   return `🏥 *PESANAN MENU RUMAH SAKIT*\n` +
     `━━━━━━━━━━━━━━━━━━━━━\n` +
     `🚪 *Nama Kamar*: ${order.roomName}\n` +
-    `👤 *Nama Pasien*: ${order.patientName}\n` +
+    `👤 *Nama Pemesan*: ${order.patientName}\n` +
     `📱 *Nomor Telepon*: ${order.phoneNumber}\n` +
     `🍽️ *Waktu Makan*: Makan ${order.mealTime.toUpperCase()}\n` +
     `🔖 *No. Pesanan*: ${order.orderNumber}\n` +
@@ -1508,7 +1508,7 @@ async function startServer() {
       `━━━━━━━━━━━━━━━━━━━━━\n` +
       `Halo! Integrasi WhatsApp Gateway Fonnte dengan aplikasi NutriHospital berhasil terhubung dengan sukses.\n\n` +
       `⏰ Waktu Uji Coba: ${new Date().toLocaleString('id-ID')}\n` +
-      `Status: ✅ Ready untuk menerima notifikasi pesanan menu kamar pasien!`;
+      `Status: ✅ Ready untuk menerima notifikasi pesanan menu kamar/ruangan pemesan!`;
 
     const result = await sendFonnteMessage(phone, testMessage, testToken);
 
@@ -2265,7 +2265,7 @@ app.post('/api/simrs/sync-menu', async (req, res) => {
         {
           status: 'baru',
           timestamp: new Date().toISOString(),
-          note: `Pesanan dibuat oleh ${patientName || 'Pasien'} dari ${roomName}.`,
+          note: `Pesanan dibuat oleh ${patientName || 'Pemesan'} dari ${roomName}.`,
         },
       ],
     };
