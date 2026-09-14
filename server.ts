@@ -1053,6 +1053,14 @@ async function startServer() {
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+  // Global Anti-Cache Header for all /api endpoints to prevent stale mobile/browser HTTP caching across devices
+  app.use('/api', (req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    next();
+  });
+
   // 1. SSE Real-Time Stream
   app.get('/api/realtime/stream', (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
@@ -1948,12 +1956,42 @@ app.post('/api/simrs/sync-menu', async (req, res) => {
 
   // 4. Orders APIs
   app.get('/api/orders', (req, res) => {
+    // Reload from disk to guarantee freshest multi-device state
+    orders = loadPersistentOrders();
     res.json(orders);
   });
 
   // Create Order (From Patient Dashboard) + AUTO SYNC SIMRS
   app.post('/api/orders', async (req, res) => {
-    const { roomName, patientName, phoneNumber, registrationNo, mealTime, items, patientNotes, simrsConfig } = req.body;
+    const { roomName, patientName, phoneNumber, registrationNo, mealTime, items, patientNotes, simrsConfig, bypassOperatingHours } = req.body;
+
+    // Enforce Order Operating Hours (06:30 - 19:00 WIB)
+    if (!bypassOperatingHours) {
+      const now = new Date();
+      let jakartaHours = 0;
+      let jakartaMins = 0;
+      try {
+        const jStr = now.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' });
+        const jDate = new Date(jStr);
+        jakartaHours = jDate.getHours();
+        jakartaMins = jDate.getMinutes();
+      } catch {
+        const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+        const wibDate = new Date(utcTime + (7 * 60 * 60000));
+        jakartaHours = wibDate.getHours();
+        jakartaMins = wibDate.getMinutes();
+      }
+      const totalMins = jakartaHours * 60 + jakartaMins;
+      const openMins = 6 * 60 + 30; // 06:30
+      const closeMins = 19 * 60;    // 19:00
+
+      if (totalMins < openMins || totalMins >= closeMins) {
+        return res.status(403).json({
+          error: 'Layanan pemesanan sedang ditutup. Jam operasional pemesanan adalah pukul 06:30 s/d 19:00 WIB.',
+          operatingHours: { open: '06:30', close: '19:00', timezone: 'WIB' }
+        });
+      }
+    }
 
     if (!roomName || roomName.trim() === '') {
       return res.status(400).json({ error: 'Nama kamar / nomor kamar wajib diisi' });
@@ -2101,18 +2139,30 @@ app.post('/api/simrs/sync-menu', async (req, res) => {
     }
   });
 
-  // Update Order Status (Admin)
-  app.patch('/api/orders/:id/status', (req, res) => {
+  // Update Order Status (Admin) - Supports PATCH, PUT, and POST with cross-device sync
+  const handleOrderStatusUpdate = (req: express.Request, res: express.Response) => {
     const { id } = req.params;
-    const { status, note } = req.body;
+    const { status, note } = req.body || {};
 
-    const order = orders.find(o => o.id === id);
+    // Reload persistent orders from disk first
+    orders = loadPersistentOrders();
+
+    const cleanId = String(id || '').trim();
+    const order = orders.find(o => 
+      String(o.id).trim() === cleanId || 
+      String(o.orderNumber).trim() === cleanId ||
+      String(o.registrationNo || '').trim() === cleanId
+    );
+
     if (!order) {
       return res.status(404).json({ error: 'Pesanan tidak ditemukan' });
     }
 
     if (status) {
       order.status = status;
+      if (!Array.isArray(order.statusHistory)) {
+        order.statusHistory = [];
+      }
       order.statusHistory.push({
         status,
         timestamp: new Date().toISOString(),
@@ -2123,18 +2173,28 @@ app.post('/api/simrs/sync-menu', async (req, res) => {
 
     broadcastEvent('status_update', { order });
     res.json(order);
-  });
+  };
+
+  app.patch('/api/orders/:id/status', handleOrderStatusUpdate);
+  app.put('/api/orders/:id/status', handleOrderStatusUpdate);
+  app.post('/api/orders/:id/status', handleOrderStatusUpdate);
 
   // Delete Order (Admin)
   app.delete('/api/orders/:id', (req, res) => {
     const { id } = req.params;
-    const index = orders.findIndex(o => o.id === id);
+    orders = loadPersistentOrders();
+    const cleanId = String(id || '').trim();
+    const index = orders.findIndex(o => 
+      String(o.id).trim() === cleanId || 
+      String(o.orderNumber).trim() === cleanId ||
+      String(o.registrationNo || '').trim() === cleanId
+    );
     if (index === -1) {
       return res.status(404).json({ error: 'Pesanan tidak ditemukan' });
     }
     const removed = orders.splice(index, 1)[0];
     savePersistentOrders(orders);
-    broadcastEvent('order_deleted', { id });
+    broadcastEvent('order_deleted', { id: removed.id || id });
     res.json({ success: true, removedId: id });
   });
 

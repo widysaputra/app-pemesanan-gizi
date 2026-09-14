@@ -145,6 +145,11 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, X-AUTH-TOKEN, Authorization'
   );
 
+  // Global Anti-Cache Header
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+
   // Helper response methods if running raw node http
   if (!res.status) {
     res.status = (code: number) => {
@@ -1030,22 +1035,28 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
 
     // 6. Orders API (/api/orders)
     if (parsedPath.startsWith('/api/orders')) {
-      // 6a. PATCH /api/orders/:id/status
-      if (parsedPath.includes('/status') && (method === 'PATCH' || method === 'POST')) {
+      // 6a. PATCH / PUT / POST /api/orders/:id/status
+      if (parsedPath.includes('/status') && (method === 'PATCH' || method === 'POST' || method === 'PUT')) {
         const parts = parsedPath.split('/');
         // e.g. ['', 'api', 'orders', 'order-123', 'status']
-        const orderId = parts[3] || body.id;
+        const orderId = decodeURIComponent(parts[3] || body.id || '');
         const status = body.status;
         const note = body.note;
 
-        const order = vercelOrders.find(o => o.id === orderId);
+        const cleanId = String(orderId).trim();
+        const order = vercelOrders.find(
+          o =>
+            String(o.id).trim() === cleanId ||
+            String(o.orderNumber).trim() === cleanId ||
+            String(o.registrationNo || '').trim() === cleanId
+        );
         if (!order) {
           return res.status(404).json({ error: 'Pesanan tidak ditemukan' });
         }
 
         if (status) {
           order.status = status;
-          if (!order.statusHistory) order.statusHistory = [];
+          if (!Array.isArray(order.statusHistory)) order.statusHistory = [];
           order.statusHistory.push({
             status,
             timestamp: new Date().toISOString(),
@@ -1058,11 +1069,17 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
       // 6b. DELETE /api/orders/:id
       if (method === 'DELETE') {
         const parts = parsedPath.split('/');
-        const orderId = parts[3] || body.id;
-        const idx = vercelOrders.findIndex(o => o.id === orderId);
+        const orderId = decodeURIComponent(parts[3] || body.id || '');
+        const cleanId = String(orderId).trim();
+        const idx = vercelOrders.findIndex(
+          o =>
+            String(o.id).trim() === cleanId ||
+            String(o.orderNumber).trim() === cleanId ||
+            String(o.registrationNo || '').trim() === cleanId
+        );
         if (idx !== -1) {
-          vercelOrders.splice(idx, 1);
-          return res.json({ success: true, removedId: orderId });
+          const removed = vercelOrders.splice(idx, 1)[0];
+          return res.json({ success: true, removedId: removed.id || orderId });
         }
         return res.status(404).json({ error: 'Pesanan tidak ditemukan' });
       }
@@ -1072,8 +1089,37 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
           return res.json(vercelOrders);
         }
         if (method === 'POST') {
-        const { roomName, patientName, phoneNumber, registrationNo, mealTime, items, patientNotes } = body;
-      const formattedItems = Array.isArray(items) ? items : [];
+          const { roomName, patientName, phoneNumber, registrationNo, mealTime, items, patientNotes, bypassOperatingHours } = body || {};
+
+          // Enforce Operating Hours (06:30 - 19:00 WIB)
+          if (!bypassOperatingHours) {
+            const checkDate = new Date();
+            let jHours = 0;
+            let jMins = 0;
+            try {
+              const jStr = checkDate.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' });
+              const jD = new Date(jStr);
+              jHours = jD.getHours();
+              jMins = jD.getMinutes();
+            } catch {
+              const utcTime = checkDate.getTime() + (checkDate.getTimezoneOffset() * 60000);
+              const wibD = new Date(utcTime + (7 * 60 * 60000));
+              jHours = wibD.getHours();
+              jMins = wibD.getMinutes();
+            }
+            const totalM = jHours * 60 + jMins;
+            const openM = 6 * 60 + 30; // 06:30
+            const closeM = 19 * 60;    // 19:00
+
+            if (totalM < openM || totalM >= closeM) {
+              return res.status(403).json({
+                error: 'Layanan pemesanan sedang ditutup. Jam operasional pemesanan adalah pukul 06:30 s/d 19:00 WIB.',
+                operatingHours: { open: '06:30', close: '19:00', timezone: 'WIB' }
+              });
+            }
+          }
+
+          const formattedItems = Array.isArray(items) ? items : [];
       let totalPrice = 0;
       let totalCalories = 0;
       const parsedItems = formattedItems.map((it: any) => {

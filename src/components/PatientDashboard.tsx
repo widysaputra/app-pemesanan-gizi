@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   MenuItem, 
   HospitalOrder, 
@@ -23,11 +23,14 @@ import {
   ShoppingBag,
   ExternalLink,
   ChevronRight,
-  RefreshCw
+  RefreshCw,
+  Lock,
+  AlertTriangle
 } from 'lucide-react';
 import { realtimeService } from '../services/api';
 import { OrderSuccessModal } from './OrderSuccessModal';
 import { getValidMenuImage, getCategoryFallbackImage } from '../utils/imageHelper';
+import { checkOrderOperatingHours, OperatingHoursInfo, ORDER_OPEN_TIME, ORDER_CLOSE_TIME } from '../utils/operatingHours';
 
 interface PatientDashboardProps {
   menuItems: MenuItem[];
@@ -86,6 +89,17 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
 
   // Active View Tab: Catalog Menu vs Order History
   const [activeTab, setActiveTab] = useState<'catalog' | 'history'>('catalog');
+
+  // Operating Hours State (06:30 - 19:00 WIB)
+  const [operatingInfo, setOperatingInfo] = useState<OperatingHoursInfo>(() => checkOrderOperatingHours());
+
+  // Periodically refresh operating hours status every 15 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setOperatingInfo(checkOrderOperatingHours());
+    }, 15000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Submission States
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -159,6 +173,12 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
 
   // Tray operations
   const handleAddItem = (menuId: string) => {
+    const currentStatus = checkOrderOperatingHours();
+    if (!currentStatus.isOpen) {
+      setFormError(`Layanan pemesanan sedang ditutup. Jam operasional pemesanan adalah ${ORDER_OPEN_TIME} s/d ${ORDER_CLOSE_TIME} WIB.`);
+      return;
+    }
+    setFormError(null);
     setTray((prev) => ({
       ...prev,
       [menuId]: (Number(prev[menuId]) || 0) + 1,
@@ -185,6 +205,13 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
+
+    // Validate Operating Hours strictly (06:30 - 19:00 WIB)
+    const currentStatus = checkOrderOperatingHours();
+    if (!currentStatus.isOpen) {
+      setFormError(currentStatus.message);
+      return;
+    }
 
     if (!roomName.trim()) {
       setFormError('Nama kamar / nomor kamar wajib diisi.');
@@ -269,6 +296,16 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
               <Sparkles className="w-3.5 h-3.5 text-emerald-200" />
               <span>Pemesanan Makanan &bull; Dapur Gizi RS</span>
             </div>
+
+            {/* Operating Hours Status Badge */}
+            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black shadow-xs ${
+              operatingInfo.isOpen 
+                ? 'bg-emerald-950/80 text-emerald-200 border border-emerald-400/50' 
+                : 'bg-rose-950/85 text-rose-200 border border-rose-400/50'
+            }`}>
+              <span className={`w-2 h-2 rounded-full ${operatingInfo.isOpen ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`}></span>
+              <span>{operatingInfo.isOpen ? `🟢 Buka (${ORDER_OPEN_TIME} - ${ORDER_CLOSE_TIME} WIB)` : `🔴 Tutup (Buka ${ORDER_OPEN_TIME} WIB)`}</span>
+            </div>
           </div>
           <h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">
             Layanan Gizi Rawat Inap
@@ -328,6 +365,59 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
           )}
         </div>
       </div>
+
+      {/* Operating Hours Alert Banner */}
+      {!operatingInfo.isOpen ? (
+        <div className="bg-gradient-to-r from-rose-50 via-amber-50 to-rose-50 border-2 border-rose-300 rounded-3xl p-5 sm:p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-md">
+              <Lock className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2 mb-1">
+                <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-rose-600 text-white uppercase tracking-wider">
+                  Layanan Tutup
+                </span>
+                <span className="text-xs font-bold text-rose-800 bg-rose-100 px-2 py-0.5 rounded-lg">
+                  Jam Buka: {ORDER_OPEN_TIME} &ndash; {ORDER_CLOSE_TIME} WIB
+                </span>
+                <span className="text-xs text-slate-500">
+                  (Waktu sekarang: {operatingInfo.currentTimeFormatted})
+                </span>
+              </div>
+              <h3 className="text-base sm:text-lg font-black text-rose-950">
+                Pemesanan Makanan Saat Ini Sedang Ditutup
+              </h3>
+              <p className="text-xs sm:text-sm text-rose-800/90 mt-1 leading-relaxed max-w-2xl">
+                {operatingInfo.message} Pasien dan keluarga tetap dapat melihat katalog menu dan memantau status pesanan sebelumnya pada tab <strong>Riwayat</strong>.
+              </p>
+            </div>
+          </div>
+
+          <div className="shrink-0 w-full sm:w-auto flex justify-end">
+            <button
+              type="button"
+              onClick={() => setActiveTab('history')}
+              className="w-full sm:w-auto px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-black rounded-xl shadow-xs flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
+            >
+              <Clock className="w-4 h-4" />
+              <span>Lihat Status Pesanan</span>
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-emerald-50/80 border border-emerald-200/80 rounded-2xl px-4 py-3 flex flex-wrap items-center justify-between gap-2 shadow-2xs">
+          <div className="flex items-center gap-2.5 text-xs text-emerald-900">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span className="font-bold">Layanan Pemesanan Aktif</span>
+            <span className="text-emerald-700">&bull; Jam Operasional: <strong>{ORDER_OPEN_TIME} &ndash; {ORDER_CLOSE_TIME} WIB</strong></span>
+            <span className="text-emerald-600 hidden md:inline">({operatingInfo.message})</span>
+          </div>
+          <span className="text-[11px] font-mono font-bold bg-white text-emerald-800 px-2.5 py-0.5 rounded-lg border border-emerald-200">
+            {operatingInfo.currentTimeFormatted}
+          </span>
+        </div>
+      )}
 
       {activeTab === 'history' ? (
         /* ========================================================
@@ -678,7 +768,17 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                     </div>
 
                     {item.isAvailable ? (
-                      inTrayQty > 0 ? (
+                      !operatingInfo.isOpen ? (
+                        <button
+                          type="button"
+                          onClick={() => setFormError(`Pemesanan ditutup. Jam operasional pemesanan adalah ${ORDER_OPEN_TIME} - ${ORDER_CLOSE_TIME} WIB.`)}
+                          className="w-full sm:w-auto px-2 py-1.5 sm:px-3 sm:py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold shadow-2xs flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                          title={`Layanan pemesanan tutup (Buka ${ORDER_OPEN_TIME} - ${ORDER_CLOSE_TIME} WIB)`}
+                        >
+                          <Lock className="w-3 h-3 text-slate-500" />
+                          <span>Tutup ({ORDER_OPEN_TIME})</span>
+                        </button>
+                      ) : inTrayQty > 0 ? (
                         <div className="flex items-center justify-between sm:justify-center bg-white border border-emerald-500 rounded-lg sm:rounded-xl p-0.5 shadow-xs w-full sm:w-auto">
                           <button
                             type="button"
@@ -935,15 +1035,39 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                 </div>
               </div>
 
+              {/* Operating Hours Alert inside Tray */}
+              {!operatingInfo.isOpen && (
+                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs flex items-start gap-2">
+                  <Lock className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
+                  <div>
+                    <strong className="block font-bold">Layanan Tutup ({ORDER_OPEN_TIME} &ndash; {ORDER_CLOSE_TIME} WIB)</strong>
+                    <span className="text-[11px] text-rose-700">Pemesanan makanan belum dapat dikirim sebelum pukul {ORDER_OPEN_TIME} atau setelah {ORDER_CLOSE_TIME} WIB.</span>
+                  </div>
+                </div>
+              )}
+
               {/* Primary Submit Button */}
               <button
                 type="submit"
-                disabled={isSubmitting || trayItems.length === 0}
-                className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-2xl shadow-lg shadow-emerald-600/20 text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isSubmitting || trayItems.length === 0 || !operatingInfo.isOpen}
+                className={`w-full py-3.5 px-4 text-white font-extrabold rounded-2xl shadow-lg text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                  !operatingInfo.isOpen
+                    ? 'bg-slate-500 shadow-none'
+                    : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
+                }`}
               >
-                <CheckCircle2 className="w-5 h-5" />
-                <span>{isSubmitting ? 'Memproses Pesanan...' : 'Kirim Pesanan Sekarang'}</span>
-                <ChevronRight className="w-4 h-4 opacity-70" />
+                {!operatingInfo.isOpen ? (
+                  <>
+                    <Lock className="w-5 h-5" />
+                    <span>Layanan Tutup (Buka {ORDER_OPEN_TIME} &ndash; {ORDER_CLOSE_TIME} WIB)</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-5 h-5" />
+                    <span>{isSubmitting ? 'Memproses Pesanan...' : 'Kirim Pesanan Sekarang'}</span>
+                    <ChevronRight className="w-4 h-4 opacity-70" />
+                  </>
+                )}
               </button>
 
               <div className="flex items-center justify-center gap-1 text-[11px] text-slate-400 text-center">
@@ -973,15 +1097,19 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
               }
             }}
           >
-            <div className="w-7 h-7 rounded-xl bg-emerald-600 flex items-center justify-center font-black text-xs text-white shrink-0 shadow-xs">
+            <div className={`w-7 h-7 rounded-xl flex items-center justify-center font-black text-xs text-white shrink-0 shadow-xs ${
+              !operatingInfo.isOpen ? 'bg-slate-600' : 'bg-emerald-600'
+            }`}>
               {trayItems.reduce((acc, curr) => acc + curr.qty, 0)}
             </div>
             <div className="min-w-0 truncate">
-              <div className="text-xs font-black text-emerald-400 whitespace-nowrap leading-tight">
+              <div className={`text-xs font-black whitespace-nowrap leading-tight ${
+                !operatingInfo.isOpen ? 'text-slate-300' : 'text-emerald-400'
+              }`}>
                 Rp {totalPrice.toLocaleString('id-ID')}
               </div>
               <div className="text-[10px] text-slate-300 font-medium leading-tight truncate">
-                {trayItems.length} menu dipilih
+                {!operatingInfo.isOpen ? `Layanan Tutup (${ORDER_OPEN_TIME} - ${ORDER_CLOSE_TIME})` : `${trayItems.length} menu dipilih`}
               </div>
             </div>
           </div>
@@ -1001,10 +1129,23 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                 }, 300);
               }
             }}
-            className="shrink-0 px-3.5 py-2 bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-black text-xs rounded-xl flex items-center gap-1 cursor-pointer shadow-md transition-all whitespace-nowrap"
+            className={`shrink-0 px-3.5 py-2 font-black text-xs rounded-xl flex items-center gap-1 cursor-pointer shadow-md transition-all whitespace-nowrap ${
+              !operatingInfo.isOpen
+                ? 'bg-slate-700 text-rose-300'
+                : 'bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950'
+            }`}
           >
-            <span>Pesan</span>
-            <ChevronRight className="w-3.5 h-3.5 shrink-0" />
+            {!operatingInfo.isOpen ? (
+              <>
+                <Lock className="w-3.5 h-3.5 shrink-0" />
+                <span>Tutup</span>
+              </>
+            ) : (
+              <>
+                <span>Pesan</span>
+                <ChevronRight className="w-3.5 h-3.5 shrink-0" />
+              </>
+            )}
           </button>
         </div>
       )}

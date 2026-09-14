@@ -208,17 +208,24 @@ export class HospitalRealtimeService {
     if (typeof window === 'undefined') return;
     if (this.pollInterval) clearInterval(this.pollInterval);
 
-    // Hybrid background polling: every 4 seconds, checks for changes
+    // Hybrid background polling: every 2.5 seconds, checks for changes across all devices
     this.pollInterval = setInterval(() => {
       this.syncWithServer();
-    }, 4000);
+    }, 2500);
   }
 
   public async syncWithServer() {
     try {
+      const timestamp = Date.now();
       const [menuRes, ordersRes] = await Promise.all([
-        fetch('/api/menu').then(r => r.ok ? r.json() : null).catch(() => null),
-        fetch('/api/orders').then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch(`/api/menu?_t=${timestamp}`, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+        }).then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch(`/api/orders?_t=${timestamp}`, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+        }).then(r => r.ok ? r.json() : null).catch(() => null),
       ]);
 
       if (Array.isArray(menuRes) && menuRes.length > 0) {
@@ -230,8 +237,8 @@ export class HospitalRealtimeService {
         }
       }
 
-      if (Array.isArray(ordersRes) && ordersRes.length > 0) {
-        const hash = JSON.stringify(ordersRes.map(o => `${o.id}-${o.status}-${o.orderNumber}`));
+      if (Array.isArray(ordersRes)) {
+        const hash = JSON.stringify(ordersRes.map(o => `${o.id}-${o.status}-${o.orderNumber}-${(o.statusHistory || []).length}`));
         if (hash !== this.lastOrdersHash) {
           this.lastOrdersHash = hash;
           saveLocalCachedOrders(ordersRes);
@@ -676,7 +683,11 @@ export class HospitalRealtimeService {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000);
-      const res = await fetch('/api/orders', { signal: controller.signal });
+      const res = await fetch(`/api/orders?_t=${Date.now()}`, {
+        signal: controller.signal,
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+      });
       clearTimeout(timeoutId);
 
       const contentType = res.headers.get('content-type') || '';
@@ -685,7 +696,7 @@ export class HospitalRealtimeService {
         return getLocalCachedOrders();
       }
       const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         saveLocalCachedOrders(data);
         return data;
       }
@@ -800,32 +811,50 @@ export class HospitalRealtimeService {
 
   async updateOrderStatus(orderId: string, status: OrderStatus, note?: string): Promise<HospitalOrder> {
     try {
-      const res = await fetch(`/api/orders/${orderId}/status`, {
+      const cleanId = encodeURIComponent(String(orderId).trim());
+      const res = await fetch(`/api/orders/${cleanId}/status?_t=${Date.now()}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+          Pragma: 'no-cache',
+        },
         body: JSON.stringify({ status, note }),
       });
       if (res.ok) {
         const order = await res.json();
-        this.notifyListeners('status_update', { order });
-        this.broadcastLocal('status_update', { order });
-        const currentOrders = getLocalCachedOrders();
-        saveLocalCachedOrders(currentOrders.map(o => o.id === orderId ? order : o));
-        return order;
+        if (order && (order.id || order.orderNumber)) {
+          this.notifyListeners('status_update', { order });
+          this.broadcastLocal('status_update', { order });
+          const currentOrders = getLocalCachedOrders();
+          const isMatch = (o: HospitalOrder) =>
+            o.id === orderId ||
+            o.id === order.id ||
+            o.orderNumber === orderId ||
+            o.orderNumber === order.orderNumber;
+          const updatedList = currentOrders.map((o) => (isMatch(o) ? order : o));
+          saveLocalCachedOrders(updatedList);
+          return order;
+        }
       }
-    } catch {
-      // Fallback
+    } catch (e) {
+      console.warn('Backend update status error, falling back to local:', e);
     }
 
     const currentOrders = getLocalCachedOrders();
     let updatedOrder: HospitalOrder | null = null;
     const now = new Date().toISOString();
-    const updatedList = currentOrders.map(o => {
-      if (o.id === orderId) {
+    const isMatch = (o: HospitalOrder) => o.id === orderId || o.orderNumber === orderId;
+    const updatedList = currentOrders.map((o) => {
+      if (isMatch(o)) {
+        const hist = Array.isArray(o.statusHistory) ? o.statusHistory : [];
         updatedOrder = {
           ...o,
           status,
-          statusHistory: [...o.statusHistory, { status, timestamp: now, note }]
+          statusHistory: [
+            ...hist,
+            { status, timestamp: now, note: note || `Status diubah menjadi ${status}` },
+          ],
         };
         return updatedOrder;
       }
@@ -843,14 +872,19 @@ export class HospitalRealtimeService {
 
   async deleteOrder(orderId: string): Promise<void> {
     try {
-      const res = await fetch(`/api/orders/${orderId}`, {
+      const cleanId = encodeURIComponent(String(orderId).trim());
+      const res = await fetch(`/api/orders/${cleanId}?_t=${Date.now()}`, {
         method: 'DELETE',
+        headers: {
+          'Cache-Control': 'no-cache',
+          Pragma: 'no-cache',
+        },
       });
       if (res.ok) {
         this.notifyListeners('order_deleted', { id: orderId });
         this.broadcastLocal('order_deleted', { id: orderId });
         const currentOrders = getLocalCachedOrders();
-        saveLocalCachedOrders(currentOrders.filter(o => o.id !== orderId));
+        saveLocalCachedOrders(currentOrders.filter((o) => o.id !== orderId && o.orderNumber !== orderId));
         return;
       }
     } catch {
@@ -858,7 +892,7 @@ export class HospitalRealtimeService {
     }
 
     const currentOrders = getLocalCachedOrders();
-    saveLocalCachedOrders(currentOrders.filter(o => o.id !== orderId));
+    saveLocalCachedOrders(currentOrders.filter((o) => o.id !== orderId && o.orderNumber !== orderId));
     this.notifyListeners('order_deleted', { id: orderId });
     this.broadcastLocal('order_deleted', { id: orderId });
   }

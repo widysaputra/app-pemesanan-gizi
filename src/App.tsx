@@ -157,8 +157,16 @@ export default function App() {
       } else if (event.type === 'status_update') {
         const updatedOrder: HospitalOrder = event.data.order;
         if (!updatedOrder) return;
-        setOrders((prev) => prev.map((o) => (o.id === updatedOrder.id ? updatedOrder : o)));
-
+        setOrders((prev) => {
+          const isMatch = (o: HospitalOrder) =>
+            o.id === updatedOrder.id ||
+            (o.orderNumber && updatedOrder.orderNumber && o.orderNumber === updatedOrder.orderNumber);
+          const exists = prev.some(isMatch);
+          if (exists) {
+            return prev.map((o) => (isMatch(o) ? updatedOrder : o));
+          }
+          return [updatedOrder, ...prev];
+        });
       } else if (event.type === 'menu_update') {
         const item: MenuItem = event.data?.item;
         const action: string = event.data?.action;
@@ -216,7 +224,7 @@ export default function App() {
     const nowIso = new Date().toISOString();
     setOrders((prev) =>
       prev.map((o) => {
-        if (o.id === orderId) {
+        if (o.id === orderId || o.orderNumber === orderId) {
           return {
             ...o,
             status,
