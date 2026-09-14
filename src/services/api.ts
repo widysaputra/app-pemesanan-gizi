@@ -549,6 +549,8 @@ export class HospitalRealtimeService {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          id: menuId,
+          id_menu: menuId,
           ...updates,
           simrsApiUrl: simrsConfig.apiUrl,
           simrsApiKey: simrsConfig.apiKey,
