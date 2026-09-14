@@ -97,6 +97,34 @@ let fonnteConfigState = {
 let vercelMenuItems: any[] = [];
 let vercelOrders: any[] = [];
 
+// Admin Security Configuration (File and In-Memory fallback for Serverless)
+const ADMIN_SECURITY_FILE = path.join(process.cwd(), 'admin_security.json');
+
+function loadAdminPassword(): string {
+  try {
+    if (fs.existsSync(ADMIN_SECURITY_FILE)) {
+      const data = JSON.parse(fs.readFileSync(ADMIN_SECURITY_FILE, 'utf-8'));
+      if (data && typeof data.password === 'string' && data.password.trim().length > 0) {
+        const pwd = data.password.trim();
+        if (pwd !== 'admin123') return pwd;
+      }
+    }
+  } catch {}
+  return '';
+}
+
+function saveAdminPassword(password: string) {
+  try {
+    fs.writeFileSync(
+      ADMIN_SECURITY_FILE,
+      JSON.stringify({ password, updatedAt: new Date().toISOString() }, null, 2),
+      'utf-8'
+    );
+  } catch {}
+}
+
+let vercelAdminPassword = loadAdminPassword();
+
 async function parseJsonBody(req: ExtendedRequest): Promise<any> {
   if (req.body) return req.body;
   return new Promise((resolve) => {
@@ -159,6 +187,57 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
   }
 
   try {
+    // 0. Admin Security & Password endpoints
+    if (parsedPath.endsWith('/api/admin/password')) {
+      if (method === 'GET') {
+        const pwd = loadAdminPassword() || vercelAdminPassword;
+        return res.json({
+          success: true,
+          hasPassword: pwd.length > 0,
+          currentPassword: pwd,
+        });
+      }
+
+      if (method === 'POST') {
+        const { newPassword } = body;
+        if (!newPassword || typeof newPassword !== 'string' || newPassword.trim().length < 4) {
+          return res.status(400).json({ success: false, message: 'Kata sandi minimal 4 karakter!' });
+        }
+        if (newPassword.trim().toLowerCase() === 'admin123') {
+          return res.status(400).json({ success: false, message: 'Kata sandi admin123 telah dinonaktifkan! Silakan gunakan kata sandi lain.' });
+        }
+        vercelAdminPassword = newPassword.trim();
+        saveAdminPassword(vercelAdminPassword);
+        return res.json({ success: true, message: 'Kata sandi admin berhasil disimpan di server!' });
+      }
+    }
+
+    if (parsedPath.endsWith('/api/admin/verify') && method === 'POST') {
+      const { password } = body;
+      const input = (password || '').trim();
+      if (!input) {
+        return res.json({ success: false, message: 'Kata sandi tidak boleh kosong.' });
+      }
+      if (input.toLowerCase() === 'admin123') {
+        return res.json({ success: false, message: 'Kata sandi admin123 telah dinonaktifkan.' });
+      }
+      const currentPwd = loadAdminPassword() || vercelAdminPassword;
+      if (!currentPwd) {
+        if (input.length < 4) {
+          return res.json({ success: false, message: 'Kata sandi baru minimal 4 karakter!' });
+        }
+        vercelAdminPassword = input;
+        saveAdminPassword(vercelAdminPassword);
+        return res.json({ success: true, isNewlySet: true, message: 'Kata sandi admin baru berhasil disimpan!' });
+      }
+      const isValid = input === currentPwd;
+      return res.json({
+        success: isValid,
+        hasPassword: Boolean(currentPwd),
+        message: isValid ? 'Sukses' : 'Kata sandi salah! Silakan periksa kembali kata sandi Anda.',
+      });
+    }
+
     // 1. SIMRS Config GET & POST
     if (parsedPath.endsWith('/api/simrs/config')) {
       if (method === 'GET') {
