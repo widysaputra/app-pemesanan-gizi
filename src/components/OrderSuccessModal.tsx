@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { HospitalOrder } from '../types';
-import { getLocalFonnteConfig } from '../services/api';
-import { CheckCircle2, MessageCircle, Copy, Check, X, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, MessageCircle, Copy, Check, X, ShieldCheck, ExternalLink } from 'lucide-react';
 
 interface OrderSuccessModalProps {
   order: HospitalOrder | null;
@@ -15,8 +14,6 @@ interface OrderSuccessModalProps {
 export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
   order,
   waMessage,
-  waSent,
-  waStatusText,
   isOpen,
   onClose,
 }) => {
@@ -24,8 +21,10 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
 
   if (!isOpen || !order) return null;
 
-  const fonnteConfig = getLocalFonnteConfig();
-  const adminPhone = order.whatsappNotification?.targetNumber || fonnteConfig.targetNumber || '081394947002';
+  const giziPhoneNumber = '083822156432';
+  const giziPhoneFormatted = '0838-2215-6432';
+  const giziPhoneWaTarget = '6283822156432';
+  const waDirectUrl = `https://api.whatsapp.com/send?phone=${giziPhoneWaTarget}&text=${encodeURIComponent(waMessage)}`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(waMessage);
@@ -52,10 +51,10 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
             </div>
             <div>
               <span className="text-xs font-bold text-emerald-200 uppercase tracking-wider">
-                Pesanan Berhasil Disimpan
+                Pesanan Berhasil Dibuat
               </span>
               <h3 className="text-lg font-black text-white leading-tight">
-                Menu Makanan Berhasil Dipesan
+                Menu Makanan Siap Diproses
               </h3>
               <p className="text-xs text-emerald-100 mt-0.5">
                 No. Pesanan: <span className="font-mono font-bold">{order.orderNumber}</span>
@@ -80,11 +79,26 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
                 </span>
               </div>
               <p className="mt-1 text-xs leading-relaxed text-emerald-800">
-                {waSent
-                  ? `Pesanan telah otomatis diteruskan oleh sistem ke WhatsApp Admin Gizi (${adminPhone}). Petugas dapur gizi akan segera memproses menu pesanan Anda.`
-                  : `Pesanan telah tersimpan di sistem dapur rumah sakit dan akan segera dipersiapkan oleh petugas gizi.`}
+                Pesanan telah tersimpan di sistem. Kirimkan langsung rincian pesanan ini ke WhatsApp Dapur Gizi (<strong>{giziPhoneFormatted}</strong>) melalui tombol hijau di bawah agar segera dipersiapkan oleh petugas.
               </p>
             </div>
+          </div>
+
+          {/* Direct WhatsApp Send Action Banner */}
+          <div className="space-y-2">
+            <a
+              href={waDirectUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white rounded-2xl font-black text-sm flex items-center justify-center gap-2.5 shadow-lg shadow-emerald-600/25 transition-all cursor-pointer no-underline"
+            >
+              <MessageCircle className="w-5 h-5" />
+              <span>Kirim ke WhatsApp Gizi ({giziPhoneFormatted})</span>
+              <ExternalLink className="w-4 h-4 opacity-80" />
+            </a>
+            <p className="text-[11px] text-center text-slate-500">
+              Langsung membuka WhatsApp dengan rincian pesanan tanpa perlu perantara gateway.
+            </p>
           </div>
 
           {/* Key Order Details Summary */}
@@ -98,7 +112,7 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
               <span className="font-bold text-slate-900">{order.patientName}</span>
             </div>
             <div className="flex justify-between items-center pb-2 border-b border-slate-200/80">
-              <span className="text-slate-500 font-medium">No. Telepon / WhatsApp:</span>
+              <span className="text-slate-500 font-medium">No. Telepon Pasien:</span>
               <span className="font-bold font-mono text-slate-900">{order.phoneNumber}</span>
             </div>
             <div className="flex justify-between items-center pt-1">
@@ -114,7 +128,7 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
                 <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Rincian Pesanan:</span>
+                <span>Rincian Teks Pesanan WhatsApp:</span>
               </label>
               <button
                 onClick={handleCopy}
@@ -128,7 +142,7 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
                 ) : (
                   <>
                     <Copy className="w-3.5 h-3.5" />
-                    <span>Salin Rincian</span>
+                    <span>Salin Teks</span>
                   </>
                 )}
               </button>
@@ -141,13 +155,12 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
         </div>
 
         {/* Modal Footer with Actions */}
-        <div className="p-5 bg-slate-50 border-t border-slate-200 flex items-center">
+        <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center gap-2">
           <button
             onClick={onClose}
-            className="w-full py-3 px-5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
+            className="w-full py-2.5 px-4 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl font-bold text-xs transition-colors cursor-pointer"
           >
-            <CheckCircle2 className="w-4 h-4" />
-            <span>Selesai (Tutup)</span>
+            Selesai / Tutup
           </button>
         </div>
 

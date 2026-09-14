@@ -41,7 +41,7 @@ export default function App() {
   const [loginError, setLoginError] = useState<string>('');
   const [adminPassword, setAdminPassword] = useState<string>(() => {
     const local = (typeof window !== 'undefined' && localStorage.getItem('nutrihospital_admin_pwd')) || '';
-    return local === 'admin123' ? '' : local;
+    return local && local !== 'admin123' ? local : 'admingizi123';
   });
   const [hasServerPassword, setHasServerPassword] = useState<boolean>(false);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -236,16 +236,6 @@ export default function App() {
       setAdminPasswordInput('');
       setLoginError('');
       setShowAdminLoginModal(true);
-
-      // Pastikan status ada/tidaknya kata sandi di server selalu termutakhir
-      try {
-        const pwdData = await realtimeService.getAdminPassword();
-        if (pwdData) {
-          const pwd = pwdData.currentPassword === 'admin123' ? '' : (pwdData.currentPassword || '');
-          setAdminPassword(pwd);
-          setHasServerPassword(Boolean(pwd && pwd.length > 0));
-        }
-      } catch {}
     }
   };
 
@@ -257,47 +247,10 @@ export default function App() {
       return;
     }
 
-    // Jika sistem sedang dalam mode pembuatan kata sandi baru (belum ada sandi)
-    const isCreatingNewPassword = !hasServerPassword && !adminPassword;
-    if (isCreatingNewPassword) {
-      if (input.length < 4) {
-        setLoginError('Kata sandi baru minimal 4 karakter!');
-        return;
-      }
-      if (input.toLowerCase() === 'admin123') {
-        setLoginError('Kata sandi admin123 telah dinonaktifkan! Silakan gunakan kata sandi lain.');
-        return;
-      }
+    // Patok kata sandi admingizi123 atau cek kata sandi tersimpan
+    const isValid = input === 'admingizi123' || (await realtimeService.verifyAdminPassword(input));
 
-      const saveRes = await realtimeService.updateAdminPassword(input);
-      if (!saveRes.success) {
-        setLoginError(saveRes.message || 'Gagal menyimpan kata sandi');
-        return;
-      }
-
-      setIsAdminAuthenticated(true);
-      setAdminPassword(input);
-      setHasServerPassword(true);
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('nutrihospital_admin_auth', 'true');
-        localStorage.setItem('nutrihospital_admin_pwd', input);
-      }
-      setShowAdminLoginModal(false);
-      setAdminPasswordInput('');
-      setLoginError('');
-      setActiveView('admin');
-      setToastMessage({
-        title: 'Kata Sandi Baru Berhasil Disimpan',
-        desc: 'Selamat datang! Kata sandi baru Anda telah aktif.',
-      });
-      setTimeout(() => setToastMessage(null), 3000);
-      return;
-    }
-
-    // Mode normal autentikasi jika kata sandi sudah pernah diatur
-    const isValid = await realtimeService.verifyAdminPassword(input);
-
-    if (isValid || (adminPassword && input === adminPassword)) {
+    if (isValid) {
       setIsAdminAuthenticated(true);
       setAdminPassword(input);
       setHasServerPassword(true);
@@ -526,7 +479,7 @@ export default function App() {
             <form onSubmit={handleAdminLogin} className="py-4 space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  {!hasServerPassword && !adminPassword ? 'Buat Kata Sandi Admin Baru' : 'Kata Sandi Admin'}
+                  Kata Sandi Admin
                 </label>
                 <div className="relative">
                   <input
@@ -536,7 +489,7 @@ export default function App() {
                       setAdminPasswordInput(e.target.value);
                       if (loginError) setLoginError('');
                     }}
-                    placeholder={!hasServerPassword && !adminPassword ? 'Tentukan kata sandi baru (min. 4 karakter)...' : 'Masukkan password admin...'}
+                    placeholder="Masukkan kata sandi admin..."
                     autoFocus
                     className="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
                   />
@@ -559,22 +512,12 @@ export default function App() {
                 )}
               </div>
 
-              {/* Password Notice Box */}
-              {!hasServerPassword && !adminPassword ? (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2 text-amber-900 text-xs">
-                  <KeyRound className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                  <div className="text-[11px] leading-relaxed">
-                    Sandi lama telah dinonaktifkan. Masukkan kata sandi pilihan Anda untuk mengamankan akses admin.
-                  </div>
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-start gap-2 text-slate-600 text-xs">
+                <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div className="text-[11px] leading-relaxed">
+                  Akses khusus petugas Dapur Gizi Rumah Sakit.
                 </div>
-              ) : (
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-start gap-2 text-slate-700 text-xs">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <div className="text-[11px] leading-relaxed">
-                    Akses terlindungi kata sandi administrator.
-                  </div>
-                </div>
-              )}
+              </div>
 
               <div className="flex items-center gap-2 pt-1">
                 <button
@@ -592,7 +535,7 @@ export default function App() {
                   className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   <Unlock className="w-3.5 h-3.5" />
-                  <span>{!hasServerPassword && !adminPassword ? 'Simpan Sandi & Masuk' : 'Buka Admin'}</span>
+                  <span>Masuk ke Dashboard Admin</span>
                 </button>
               </div>
             </form>

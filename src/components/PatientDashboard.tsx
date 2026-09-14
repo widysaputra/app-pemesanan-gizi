@@ -227,6 +227,14 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
       setSuccessModalData(res);
       setTray({});
       setPatientNotes('');
+
+      // Auto-trigger direct WhatsApp link to Dapur Gizi (0838-2215-6432)
+      if (res?.waMessage) {
+        try {
+          const directWaUrl = `https://api.whatsapp.com/send?phone=6283822156432&text=${encodeURIComponent(res.waMessage)}`;
+          window.open(directWaUrl, '_blank');
+        } catch {}
+      }
     } catch (err: any) {
       setFormError(err.message || 'Gagal mengirim pesanan');
     } finally {
@@ -471,15 +479,24 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={`https://api.whatsapp.com/send?phone=6283822156432&text=${encodeURIComponent(
+                            ord.whatsappNotification?.message ||
+                            `Halo Dapur Gizi, saya ingin konfirmasi pesanan ${ord.orderNumber} untuk Ruangan: ${ord.roomName} an. ${ord.patientName}.`
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                          title="Kirim atau konfirmasi pesanan ke WhatsApp Dapur Gizi (0838-2215-6432)"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Kirim ke WA Gizi</span>
+                        </a>
+
                         {ord.simrsSync?.synced ? (
                           <span className="px-2 py-0.5 rounded-md bg-sky-100 text-sky-800 text-[10px] font-bold">
                             SIMRS Synced
-                          </span>
-                        ) : null}
-                        {ord.whatsappNotification?.sent ? (
-                          <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                            WA Sent
                           </span>
                         ) : null}
                       </div>
@@ -943,7 +960,7 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
               </button>
 
               <div className="flex items-center justify-center gap-1 text-[11px] text-slate-400 text-center">
-                <span>Pesanan otomatis tercatat &amp; diteruskan ke Dapur Gizi</span>
+                <span>Pesanan otomatis tersimpan &amp; diteruskan ke WhatsApp Dapur Gizi (0838-2215-6432)</span>
               </div>
             </div>
 

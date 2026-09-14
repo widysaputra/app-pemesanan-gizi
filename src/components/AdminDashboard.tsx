@@ -113,7 +113,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // Fonnte Settings States
   const [fonnteToken, setFonnteToken] = useState<string>('');
-  const [fonnteTarget, setFonnteTarget] = useState<string>('081394947002');
+  const [fonnteTarget, setFonnteTarget] = useState<string>('083822156432');
   const [sendToAdmin, setSendToAdmin] = useState<boolean>(true);
   const [sendToPatient, setSendToPatient] = useState<boolean>(true);
   const [showToken, setShowToken] = useState<boolean>(false);
@@ -122,7 +122,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [isSavingFonnte, setIsSavingFonnte] = useState<boolean>(false);
 
   // Fonnte Test Tool & Device Health
-  const [testPhone, setTestPhone] = useState<string>('081394947002');
+  const [testPhone, setTestPhone] = useState<string>('083822156432');
   const [isTestingFonnte, setIsTestingFonnte] = useState<boolean>(false);
   const [testResult, setTestResult] = useState<any | null>(null);
   const [isCheckingDevice, setIsCheckingDevice] = useState<boolean>(false);
@@ -201,7 +201,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       try {
         const config = await realtimeService.getFonnteConfig();
         if (config) {
-          setFonnteTarget(config.targetNumber || '081394947002');
+          setFonnteTarget(config.targetNumber || '083822156432');
           setSendToAdmin(config.sendToAdmin !== false);
           setSendToPatient(config.sendToPatient !== false);
           setIsFonnteLoaded(true);
@@ -1411,7 +1411,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <li>Buka situs <a href="https://md.fonnte.com" target="_blank" rel="noreferrer" className="text-emerald-700 font-bold underline">https://md.fonnte.com</a> lalu login ke akun Anda.</li>
                           <li>Masuk ke menu <strong>Device</strong> &rarr; cari nama device Anda (misal: <em>app-pemesanan-gizi</em> / <em>6281394947002</em>).</li>
                           <li>Klik tombol <strong>Connect</strong> atau <strong>Scan QR</strong> hingga QR Code tampil di layar laptop/komputer.</li>
-                          <li>Buka WhatsApp di HP Anda (<strong>{testPhone || fonnteTarget || '081394947002'}</strong>) &rarr; Pengaturan / Titik Tiga &rarr; <strong>Perangkat Tertaut (Linked Devices) &rarr; Tautkan Perangkat</strong>.</li>
+                          <li>Buka WhatsApp di HP Anda (<strong>{testPhone || fonnteTarget || '083822156432'}</strong>) &rarr; Pengaturan / Titik Tiga &rarr; <strong>Perangkat Tertaut (Linked Devices) &rarr; Tautkan Perangkat</strong>.</li>
                           <li>Arahkan kamera HP ke QR Code tersebut sampai status di Fonnte berubah hijau: <span className="text-emerald-700 font-bold">"Connect"</span>.</li>
                           <li>Setelah itu, klik tombol <strong>"Kirim Pesan Tes"</strong> lagi dan pesan akan langsung masuk!</li>
                         </ol>
