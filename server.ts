@@ -227,7 +227,7 @@ const FONNTE_CONFIG_FILE = path.join(process.cwd(), 'fonnte_config.json');
 
 function loadPersistentFonnteSettings(): FonnteSettings {
   const defaultToken = (process.env.FONNTE_TOKEN || 'irrv1yX7bCHMUXWjHezr').trim();
-  const defaultTarget = (process.env.FONNTE_TARGET_PHONE || '083822156432').trim();
+  const defaultTarget = (process.env.FONNTE_TARGET_PHONE || '081573570843').trim();
 
   try {
     if (fs.existsSync(FONNTE_CONFIG_FILE)) {
@@ -2279,7 +2279,7 @@ app.post('/api/simrs/sync-menu', async (req, res) => {
     let fonnteResponse: any = null;
 
     const effectiveFonnteToken = (fonnteConfig?.token || fonnteSettings.token || 'irrv1yX7bCHMUXWjHezr').trim();
-    const adminTargetPhone = (fonnteConfig?.targetNumber || fonnteSettings.targetNumber || '083822156432').trim();
+    const adminTargetPhone = (fonnteConfig?.targetNumber || fonnteSettings.targetNumber || '081573570843').trim();
 
     if (effectiveFonnteToken) {
       // Determine recipient list:

@@ -25,7 +25,7 @@ import {
   ChevronRight,
   RefreshCw
 } from 'lucide-react';
-import { realtimeService } from '../services/api';
+import { realtimeService, getLocalFonnteConfig } from '../services/api';
 import { OrderSuccessModal } from './OrderSuccessModal';
 import { getValidMenuImage, getCategoryFallbackImage } from '../utils/imageHelper';
 
@@ -66,11 +66,11 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
   orders,
   onSubmitOrder,
 }) => {
-  // Order Identity States
-  const [roomName, setRoomName] = useState<string>('Kamar Mawar 201 - Bed 01');
-  const [patientName, setPatientName] = useState<string>('Ny. Siti Rahmawati');
-  const [phoneNumber, setPhoneNumber] = useState<string>('081298765432');
-  const [registrationNo, setRegistrationNo] = useState<string>('REG-20260908-001');
+  // Order Identity States - Default blank as requested
+  const [roomName, setRoomName] = useState<string>('');
+  const [patientName, setPatientName] = useState<string>('');
+  const [phoneNumber, setPhoneNumber] = useState<string>('');
+  const [registrationNo] = useState<string>('');
   const [mealTime, setMealTime] = useState<MealTime>('siang');
   const [patientNotes, setPatientNotes] = useState<string>('');
 
@@ -228,10 +228,14 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
       setTray({});
       setPatientNotes('');
 
-      // Auto-trigger direct WhatsApp link to Dapur Gizi (0838-2215-6432)
+      // Auto-trigger direct WhatsApp link to Dapur Gizi
       if (res?.waMessage) {
         try {
-          const directWaUrl = `https://api.whatsapp.com/send?phone=6283822156432&text=${encodeURIComponent(res.waMessage)}`;
+          const fonnteConfig = getLocalFonnteConfig();
+          const targetGiziPhone = (fonnteConfig?.targetNumber || '081573570843').trim();
+          const cleanGizi = targetGiziPhone.replace(/[^0-9]/g, '');
+          const targetGiziWa = cleanGizi.startsWith('0') ? `62${cleanGizi.slice(1)}` : cleanGizi.startsWith('62') ? cleanGizi : `62${cleanGizi}`;
+          const directWaUrl = `https://api.whatsapp.com/send?phone=${targetGiziWa}&text=${encodeURIComponent(res.waMessage)}`;
           window.open(directWaUrl, '_blank');
         } catch {}
       }
@@ -480,19 +484,27 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <a
-                          href={`https://api.whatsapp.com/send?phone=6283822156432&text=${encodeURIComponent(
-                            ord.whatsappNotification?.message ||
-                            `Halo Dapur Gizi, saya ingin konfirmasi pesanan ${ord.orderNumber} untuk Ruangan: ${ord.roomName} an. ${ord.patientName}.`
-                          )}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                          title="Kirim atau konfirmasi pesanan ke WhatsApp Dapur Gizi (0838-2215-6432)"
-                        >
-                          <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>Kirim ke WA Gizi</span>
-                        </a>
+                        {(() => {
+                          const fonnteConfig = getLocalFonnteConfig();
+                          const targetNum = (ord.whatsappNotification?.targetNumber || fonnteConfig?.targetNumber || '081573570843').trim();
+                          const cleanTarget = targetNum.replace(/[^0-9]/g, '');
+                          const waPhone = cleanTarget.startsWith('0') ? `62${cleanTarget.slice(1)}` : cleanTarget.startsWith('62') ? cleanTarget : `62${cleanTarget}`;
+                          return (
+                            <a
+                              href={`https://api.whatsapp.com/send?phone=${waPhone}&text=${encodeURIComponent(
+                                ord.whatsappNotification?.message ||
+                                `Halo Dapur Gizi, saya ingin konfirmasi pesanan ${ord.orderNumber} untuk Ruangan: ${ord.roomName} an. ${ord.patientName}.`
+                              )}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                              title={`Kirim atau konfirmasi pesanan ke WhatsApp Dapur Gizi (${targetNum})`}
+                            >
+                              <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Kirim ke WA Gizi</span>
+                            </a>
+                          );
+                        })()}
 
                         {ord.simrsSync?.synced ? (
                           <span className="px-2 py-0.5 rounded-md bg-sky-100 text-sky-800 text-[10px] font-bold">
@@ -776,23 +788,9 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                   value={roomName}
                   onChange={(e) => setRoomName(e.target.value)}
                   placeholder="Contoh: Kamar Mawar 201 - Bed 01"
-                  className="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50/50"
+                  className="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                   required
                 />
-                
-                {/* Room Quick Suggestions */}
-                <div className="mt-1 flex flex-wrap gap-1">
-                  {ROOM_PRESETS.slice(0, 3).map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      onClick={() => setRoomName(preset)}
-                      className="text-[10px] text-slate-500 hover:text-emerald-700 bg-slate-100 hover:bg-emerald-50 px-2 py-0.5 rounded cursor-pointer transition-colors"
-                    >
-                      {preset}
-                    </button>
-                  ))}
-                </div>
               </div>
 
               {/* Patient Name Input */}
@@ -804,29 +802,9 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                   type="text"
                   value={patientName}
                   onChange={(e) => setPatientName(e.target.value)}
-                  placeholder="Nama lengkap pasien..."
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  placeholder="Masukkan nama lengkap pasien..."
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                 />
-              </div>
-
-              {/* Patient Registration Number (SIMRS DB) */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-bold text-slate-700">
-                    No. Registrasi Pasien (SIMRS)
-                  </label>
-                  <span className="text-[10px] text-slate-400 font-normal">Opsional</span>
-                </div>
-                <input
-                  type="text"
-                  value={registrationNo}
-                  onChange={(e) => setRegistrationNo(e.target.value)}
-                  placeholder="Contoh: REG-20260908-001"
-                  className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50/60"
-                />
-                <p className="text-[10px] text-slate-400 mt-1">
-                  Digunakan untuk sinkronisasi otomatis ke database PostgreSQL SIMRS.
-                </p>
               </div>
 
               {/* Phone / WhatsApp Input */}
@@ -841,7 +819,7 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
                     placeholder="Contoh: 081234567890"
-                    className="w-full pl-8 pr-3 py-2 text-xs font-mono rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full pl-8 pr-3 py-2 text-xs font-mono rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                     required
                   />
                 </div>
@@ -960,7 +938,7 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
               </button>
 
               <div className="flex items-center justify-center gap-1 text-[11px] text-slate-400 text-center">
-                <span>Pesanan otomatis tersimpan &amp; diteruskan ke WhatsApp Dapur Gizi (0838-2215-6432)</span>
+                <span>Pesanan otomatis tersimpan &amp; diteruskan ke WhatsApp Dapur Gizi</span>
               </div>
             </div>
 

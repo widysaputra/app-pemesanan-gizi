@@ -88,7 +88,7 @@ let simrsConfigState = {
 
 let fonnteConfigState = {
   token: (process.env.FONNTE_TOKEN || 'irrv1yX7bCHMUXWjHezr').trim(),
-  targetNumber: (process.env.FONNTE_TARGET_PHONE || '083822156432').trim(),
+  targetNumber: (process.env.FONNTE_TARGET_PHONE || '081573570843').trim(),
   sendToAdmin: true,
   sendToPatient: true,
   isConfigured: true,
@@ -1197,7 +1197,7 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
       let fonnteResponse: any = null;
 
       const effectiveTokenFonnte = (body.fonnteConfig?.token || fonnteConfigState.token || 'irrv1yX7bCHMUXWjHezr').trim();
-      const adminTarget = (body.fonnteConfig?.targetNumber || fonnteConfigState.targetNumber || '083822156432').trim();
+      const adminTarget = (body.fonnteConfig?.targetNumber || fonnteConfigState.targetNumber || '081573570843').trim();
 
       if (effectiveTokenFonnte) {
         const targetList: string[] = [];
