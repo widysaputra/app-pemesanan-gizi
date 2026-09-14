@@ -1,0 +1,281 @@
+[
+  {
+    "id": "ord-1789358482315",
+    "orderNumber": "GZ-20260914-04",
+    "registrationNo": "REG-2026-0004",
+    "createdAt": "2026-09-14T04:01:22.315Z",
+    "roomName": "test",
+    "patientName": "tes",
+    "phoneNumber": "rese",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110419140",
+        "name": "Roti bakar + telur + teh hangat",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789110365112",
+        "name": "Nasi Kuning + telur + orek tempe + timun",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 20000,
+    "totalCalories": 300,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-14T04:01:22.315Z",
+        "note": "Pesanan dibuat oleh tes dari test."
+      }
+    ],
+    "whatsappNotification": {
+      "sent": false,
+      "targetNumber": "081573570843",
+      "statusText": "Gagal kirim otomatis via Fonnte: Perangkat WhatsApp di Fonnte berstatus DISCONNECT (belum scan QR code atau sesi WhatsApp di HP terputus). Silakan buka https://md.fonnte.com > menu Device > klik Connect / Scan QR Code untuk menghubungkan WhatsApp.",
+      "fonnteResponse": {
+        "reason": "request invalid on disconnected device",
+        "requestid": 730571761,
+        "status": false
+      },
+      "timestamp": "2026-09-14T04:01:22.588Z",
+      "message": "🏥 *PESANAN MENU RUMAH SAKIT*\n━━━━━━━━━━━━━━━━━━━━━\n🚪 *Nama Kamar*: test\n👤 *Nama Pasien*: tes\n📱 *Nomor Telepon*: rese\n🍽️ *Waktu Makan*: Makan SIANG\n🔖 *No. Pesanan*: GZ-20260914-04\n⏰ *Waktu Pesan*: 04.01 WIB\n\n📋 *MENU YANG DIPESAN*:\n  1. *Roti bakar + telur + teh hangat* x 1 porsi = Rp 10.000\n  2. *Nasi Kuning + telur + orek tempe + timun* x 1 porsi = Rp 10.000\n\n💰 *Total Biaya*: *Rp 20.000*\n🔥 *Total Kalori*: 300 kkal\n\n📝 *Catatan Khusus*:\n- Tidak ada catatan khusus -\n━━━━━━━━━━━━━━━━━━━━━\n_Pesanan telah terkirim langsung ke Dapur Gizi Rumah Sakit via SIAPMAKAN_"
+    },
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL & X-AUTH-TOKEN)",
+      "timestamp": "2026-09-14T04:01:22.765Z",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi",
+      "response": {
+        "status": "success",
+        "message": "Pesanan gizi berhasil disimpan ke SIMRS PostgreSQL.",
+        "data": {
+          "noregistrasi": "REG-2026-0004",
+          "order_number": "GZ-20260914-04",
+          "no_pesanan": "GZ-20260914-04",
+          "total_items": 2
+        }
+      }
+    }
+  },
+  {
+    "id": "ord-1789358312392",
+    "orderNumber": "GZ-20260914-03",
+    "registrationNo": "REG-2026-0003",
+    "createdAt": "2026-09-14T03:58:32.392Z",
+    "roomName": "test",
+    "patientName": "test",
+    "phoneNumber": "tes",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110391032",
+        "name": "Bubur ayam lengkap",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 150,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-14T03:58:32.392Z",
+        "note": "Pesanan dibuat oleh test dari test."
+      }
+    ],
+    "whatsappNotification": {
+      "sent": false,
+      "targetNumber": "081573570843",
+      "statusText": "Gagal kirim otomatis via Fonnte: Perangkat WhatsApp di Fonnte berstatus DISCONNECT (belum scan QR code atau sesi WhatsApp di HP terputus). Silakan buka https://md.fonnte.com > menu Device > klik Connect / Scan QR Code untuk menghubungkan WhatsApp.",
+      "fonnteResponse": {
+        "reason": "request invalid on disconnected device",
+        "requestid": 730563950,
+        "status": false
+      },
+      "timestamp": "2026-09-14T03:58:32.821Z",
+      "message": "🏥 *PESANAN MENU RUMAH SAKIT*\n━━━━━━━━━━━━━━━━━━━━━\n🚪 *Nama Kamar*: test\n👤 *Nama Pasien*: test\n📱 *Nomor Telepon*: tes\n🍽️ *Waktu Makan*: Makan SIANG\n🔖 *No. Pesanan*: GZ-20260914-03\n⏰ *Waktu Pesan*: 03.58 WIB\n\n📋 *MENU YANG DIPESAN*:\n  1. *Bubur ayam lengkap* x 1 porsi = Rp 10.000\n\n💰 *Total Biaya*: *Rp 10.000*\n🔥 *Total Kalori*: 150 kkal\n\n📝 *Catatan Khusus*:\n- Tidak ada catatan khusus -\n━━━━━━━━━━━━━━━━━━━━━\n_Pesanan telah terkirim langsung ke Dapur Gizi Rumah Sakit via SIAPMAKAN_"
+    },
+    "simrsSync": {
+      "synced": false,
+      "statusText": "Gagal kirim SIMRS: Gagal menyimpan pesanan gizi: SQLSTATE[23505]: Unique violation: 7 ERROR:  duplicate key value violates unique constraint \"rego_pesanan_gizi_t_order_number_key\"\nDETAIL:  Key (order_number)=(GZ-20260914-03) already exists. (SQL: insert into \"rego_pesanan_gizi_t\" (\"noregistrasi\", \"order_number\", \"no_pesanan\", \"room_name\", \"patient_name\", \"phone_number\", \"meal_time\", \"total_price\", \"total_calories\", \"patient_notes\", \"order_status\", \"items_json\", \"tgl_pesanan\", \"updated_at\") values (REG-2026-0003, GZ-20260914-03, GZ-20260914-03, test, test, tes, siang, 10000, 150, , baru, [{\"id_menu\":\"menu-1789110391032\",\"menuItemId\":\"menu-1789110391032\",\"name\":\"Bubur ayam lengkap\",\"nama_menu\":\"Bubur ayam lengkap\",\"portion\":1,\"jumlah_porsi\":1,\"price\":10000,\"harga_satuan\":10000,\"category\":\"makanan_utama\",\"kategori\":\"makanan_utama\",\"calories\":150,\"kalori\":150}], 2026-09-14 10:58:33, 2026-09-14 10:58:33))",
+      "timestamp": "2026-09-14T03:58:33.309Z",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi",
+      "error": "Gagal menyimpan pesanan gizi: SQLSTATE[23505]: Unique violation: 7 ERROR:  duplicate key value violates unique constraint \"rego_pesanan_gizi_t_order_number_key\"\nDETAIL:  Key (order_number)=(GZ-20260914-03) already exists. (SQL: insert into \"rego_pesanan_gizi_t\" (\"noregistrasi\", \"order_number\", \"no_pesanan\", \"room_name\", \"patient_name\", \"phone_number\", \"meal_time\", \"total_price\", \"total_calories\", \"patient_notes\", \"order_status\", \"items_json\", \"tgl_pesanan\", \"updated_at\") values (REG-2026-0003, GZ-20260914-03, GZ-20260914-03, test, test, tes, siang, 10000, 150, , baru, [{\"id_menu\":\"menu-1789110391032\",\"menuItemId\":\"menu-1789110391032\",\"name\":\"Bubur ayam lengkap\",\"nama_menu\":\"Bubur ayam lengkap\",\"portion\":1,\"jumlah_porsi\":1,\"price\":10000,\"harga_satuan\":10000,\"category\":\"makanan_utama\",\"kategori\":\"makanan_utama\",\"calories\":150,\"kalori\":150}], 2026-09-14 10:58:33, 2026-09-14 10:58:33))"
+    }
+  },
+  {
+    "id": "ord-101",
+    "orderNumber": "GZ-20260908-01",
+    "registrationNo": "REG-20260908-001",
+    "createdAt": "2026-09-14T03:30:25.790Z",
+    "roomName": "Kamar Mawar 201 - Bed 01",
+    "patientName": "Ny. Siti Rahmawati",
+    "phoneNumber": "081298765432",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1",
+        "name": "Nasi Putih Pulen Organik",
+        "portion": 1,
+        "price": 6000,
+        "category": "makanan_utama",
+        "calories": 175
+      },
+      {
+        "menuItemId": "menu-5",
+        "name": "Ayam Panggang Bumbu Kuning Non-MSG",
+        "portion": 1,
+        "price": 22000,
+        "category": "lauk_hewani",
+        "calories": 185
+      },
+      {
+        "menuItemId": "menu-11",
+        "name": "Sayur Bening Bayam Jagung Manis",
+        "portion": 1,
+        "price": 9000,
+        "category": "sayuran",
+        "calories": 45
+      },
+      {
+        "menuItemId": "menu-14",
+        "name": "Potongan Pepaya & Melon Manis Segar",
+        "portion": 1,
+        "price": 8000,
+        "category": "buah_snack",
+        "calories": 60
+      }
+    ],
+    "totalPrice": 45000,
+    "totalCalories": 465,
+    "patientNotes": "Mohon kuah sayur agak hangat, jangan terlalu pedas.",
+    "status": "diantar",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-14T03:30:25.790Z",
+        "note": "Pesanan dikirim via tablet kamar."
+      },
+      {
+        "status": "diproses",
+        "timestamp": "2026-09-14T03:40:25.790Z",
+        "note": "Sedang disiapkan oleh Dapur Gizi."
+      },
+      {
+        "status": "diantar",
+        "timestamp": "2026-09-14T04:13:31.625Z",
+        "note": "Diantar pramusaji"
+      }
+    ],
+    "whatsappNotification": {
+      "sent": true,
+      "targetNumber": "081298765432",
+      "statusText": "Berhasil dikirim via Fonnte Gateway",
+      "timestamp": "2026-09-14T03:30:25.790Z",
+      "message": "Notifikasi pesanan berhasil diteruskan ke WhatsApp."
+    },
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-14T03:30:25.790Z",
+      "targetUrl": "http://localhost:8000/api/save-pesanan-gizi",
+      "response": {
+        "status": "success",
+        "message": "Data pesanan gizi berhasil disimpan ke SIMRS."
+      }
+    }
+  },
+  {
+    "id": "ord-102",
+    "orderNumber": "GZ-20260908-02",
+    "registrationNo": "REG-20260908-002",
+    "createdAt": "2026-09-14T03:15:25.790Z",
+    "roomName": "Kamar Melati 304 - Bed 02",
+    "patientName": "Tn. Hendra Gunawan",
+    "phoneNumber": "085712345678",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-2",
+        "name": "Nasi Merah Berserat Tinggi",
+        "portion": 1,
+        "price": 8000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-6",
+        "name": "Sup Ikan Kakap Kuah Bening",
+        "portion": 1,
+        "price": 26000,
+        "category": "lauk_hewani",
+        "calories": 140
+      },
+      {
+        "menuItemId": "menu-9",
+        "name": "Tahu Kukus Sutra Isi Sayur",
+        "portion": 1,
+        "price": 7000,
+        "category": "lauk_nabati",
+        "calories": 85
+      },
+      {
+        "menuItemId": "menu-16",
+        "name": "Teh Hijau Hangat Madu Murni",
+        "portion": 1,
+        "price": 7000,
+        "category": "minuman",
+        "calories": 35
+      }
+    ],
+    "totalPrice": 48000,
+    "totalCalories": 410,
+    "patientNotes": "Bebas santan dan tanpa penyedap rasa.",
+    "status": "diantar",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-14T03:15:25.790Z"
+      },
+      {
+        "status": "diproses",
+        "timestamp": "2026-09-14T03:30:25.790Z"
+      },
+      {
+        "status": "diantar",
+        "timestamp": "2026-09-14T03:45:25.790Z",
+        "note": "Baki makanan diantar pramusaji."
+      }
+    ],
+    "whatsappNotification": {
+      "sent": true,
+      "targetNumber": "085712345678",
+      "statusText": "Berhasil dikirim via Fonnte Gateway",
+      "timestamp": "2026-09-14T03:15:25.790Z",
+      "message": "Notifikasi pesanan berhasil diteruskan ke WhatsApp."
+    },
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-14T03:15:25.790Z",
+      "targetUrl": "http://localhost:8000/api/save-pesanan-gizi",
+      "response": {
+        "status": "success",
+        "message": "Data pesanan gizi berhasil disimpan ke SIMRS."
+      }
+    }
+  }
+]

@@ -9,6 +9,9 @@ import {
 } from '../types';
 import { realtimeService } from '../services/api';
 import { MenuEditModal } from './MenuEditModal';
+import { OrderRecapSection } from './OrderRecapSection';
+import { EtiketModal } from './EtiketModal';
+import { exportOrdersToExcel } from '../utils/excelExport';
 import { getValidMenuImage, getCategoryFallbackImage } from '../utils/imageHelper';
 import { 
   Utensils, 
@@ -51,7 +54,9 @@ import {
   KeyRound,
   Smartphone,
   Wifi,
-  WifiOff
+  WifiOff,
+  FileSpreadsheet,
+  Printer
 } from 'lucide-react';
 import {
   SQL_PESANAN_GIZI_TABLE,
@@ -70,7 +75,7 @@ interface AdminDashboardProps {
   onResetDemo?: () => Promise<void>;
 }
 
-type AdminTab = 'menu' | 'orders' | 'fonnte' | 'simrs' | 'security';
+type AdminTab = 'menu' | 'orders' | 'recap' | 'fonnte' | 'simrs' | 'security';
 
 const CATEGORY_LABELS: Record<string, string> = {
   all: 'Semua Kategori',
@@ -110,6 +115,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // Orders Management States
   const [orderStatusFilter, setOrderStatusFilter] = useState<string>('all');
   const [searchOrderQuery, setSearchOrderQuery] = useState<string>('');
+  const [savedStatusOrderId, setSavedStatusOrderId] = useState<string | null>(null);
+  const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
+  const [selectedEtiketOrder, setSelectedEtiketOrder] = useState<HospitalOrder | null>(null);
+
+  // Status Change Handler with zero-latency response & feedback
+  const handleOrderStatusChange = async (orderId: string, newStatus: OrderStatus) => {
+    setUpdatingOrderId(orderId);
+    try {
+      await onUpdateStatus(orderId, newStatus);
+      setSavedStatusOrderId(orderId);
+      setTimeout(() => {
+        setSavedStatusOrderId((cur) => (cur === orderId ? null : cur));
+      }, 2500);
+    } catch (err) {
+      console.error('Gagal update status:', err);
+    } finally {
+      setUpdatingOrderId(null);
+    }
+  };
 
   // Fonnte Settings States
   const [fonnteToken, setFonnteToken] = useState<string>('');
@@ -665,6 +689,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </button>
 
           <button
+            onClick={() => setActiveTab('recap')}
+            className={`px-3.5 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+              activeTab === 'recap'
+                ? 'bg-white text-emerald-800 shadow-xs ring-1 ring-emerald-400'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+            title="Buka rekapitulasi pesanan & export Microsoft Excel"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+            <span>Rekap &amp; Excel</span>
+            <span className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-100 text-emerald-800 font-extrabold font-mono">
+              XLSX
+            </span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('fonnte')}
             className={`px-3.5 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
               activeTab === 'fonnte'
@@ -985,33 +1025,59 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {activeTab === 'orders' && (
         <div className="space-y-4">
           
-          {/* Orders Filter Bar */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex flex-col md:flex-row items-center justify-between gap-3">
-            <div className="relative w-full md:w-72">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-              <input
-                type="text"
-                value={searchOrderQuery}
-                onChange={(e) => setSearchOrderQuery(e.target.value)}
-                placeholder="Cari kamar, pasien, atau no. pesanan..."
-                className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
+          {/* Orders Filter & Export Action Bar */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex flex-col lg:flex-row items-center justify-between gap-3">
+            <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+              <div className="relative w-full sm:w-64">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  value={searchOrderQuery}
+                  onChange={(e) => setSearchOrderQuery(e.target.value)}
+                  placeholder="Cari kamar, pasien, atau no. pesanan..."
+                  className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto">
+                {['all', 'baru', 'diproses', 'diantar', 'selesai', 'dibatalkan'].map((st) => (
+                  <button
+                    key={st}
+                    onClick={() => setOrderStatusFilter(st)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold capitalize whitespace-nowrap transition-colors cursor-pointer ${
+                      orderStatusFilter === st
+                        ? 'bg-slate-900 text-white'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {st === 'all' ? 'Semua Status' : st}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto">
-              {['all', 'baru', 'diproses', 'diantar', 'selesai', 'dibatalkan'].map((st) => (
-                <button
-                  key={st}
-                  onClick={() => setOrderStatusFilter(st)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold capitalize whitespace-nowrap transition-colors cursor-pointer ${
-                    orderStatusFilter === st
-                      ? 'bg-slate-900 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  {st === 'all' ? 'Semua Status' : st}
-                </button>
-              ))}
+            {/* Excel Export & Full Recap Buttons */}
+            <div className="flex items-center gap-2 w-full lg:w-auto justify-end">
+              <button
+                type="button"
+                onClick={() => exportOrdersToExcel(filteredOrders, { title: 'Daftar Pesanan Masuk SiapMakan' })}
+                disabled={filteredOrders.length === 0}
+                className="px-3.5 py-2 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white shadow-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                title="Ekspor daftar pesanan yang sedang difilter ke Microsoft Excel (.xlsx)"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Export ke Excel</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('recap')}
+                className="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Buka modul rekapan & laporan analitik"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                <span className="hidden sm:inline">Rekap Detail &rarr;</span>
+              </button>
             </div>
           </div>
 
@@ -1074,25 +1140,85 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <span>{order.phoneNumber}</span>
                           <ExternalLink className="w-2.5 h-2.5 opacity-60" />
                         </a>
+
+                        <button
+                          type="button"
+                          onClick={() => setSelectedEtiketOrder(order)}
+                          className="inline-flex items-center gap-1 text-xs font-bold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-2.5 py-0.5 rounded-lg transition-colors cursor-pointer"
+                          title="Lihat dan Cetak Etiket Baki Makan"
+                        >
+                          <Printer className="w-3 h-3 text-slate-500" />
+                          <span>Etiket Baki</span>
+                        </button>
                       </div>
                     </div>
 
-                    {/* Right: Order Status Selector */}
-                    <div className="flex items-center gap-3">
+                    {/* Right: Order Status Selector & Quick Actions */}
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-slate-500 font-medium">Status:</span>
-                        <select
-                          value={order.status}
-                          onChange={(e) => onUpdateStatus(order.id, e.target.value as OrderStatus)}
-                          className={`text-xs font-bold px-3 py-1.5 rounded-xl border cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500 ${statusInfo.bg}`}
-                        >
-                          <option value="baru">Baru</option>
-                          <option value="diproses">Sedang Disiapkan</option>
-                          <option value="diantar">Sedang Diantar</option>
-                          <option value="selesai">Selesai Diterima</option>
-                          <option value="dibatalkan">Dibatalkan</option>
-                        </select>
+                        <span className="text-xs text-slate-500 font-semibold">Status:</span>
+                        <div className="relative">
+                          <select
+                            value={order.status}
+                            onChange={(e) => handleOrderStatusChange(order.id, e.target.value as OrderStatus)}
+                            disabled={updatingOrderId === order.id}
+                            className={`text-xs font-bold px-3 py-1.5 rounded-xl border cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors ${statusInfo.bg} ${updatingOrderId === order.id ? 'opacity-60' : ''}`}
+                            title="Pilih status (otomatis langsung tersimpan saat dipilih)"
+                          >
+                            <option value="baru">Baru</option>
+                            <option value="diproses">Sedang Disiapkan</option>
+                            <option value="diantar">Sedang Diantar</option>
+                            <option value="selesai">Selesai Diterima</option>
+                            <option value="dibatalkan">Dibatalkan</option>
+                          </select>
+                        </div>
                       </div>
+
+                      {/* Quick Status One-Click Action Buttons */}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {order.status === 'baru' && (
+                          <button
+                            type="button"
+                            onClick={() => handleOrderStatusChange(order.id, 'diproses')}
+                            disabled={updatingOrderId === order.id}
+                            className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-amber-500 hover:bg-amber-600 active:scale-95 text-white shadow-xs transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                            title="Klik untuk langsung ubah status ke 'Sedang Disiapkan'"
+                          >
+                            <span>⏳ Siapkan</span>
+                          </button>
+                        )}
+                        {(order.status === 'baru' || order.status === 'diproses') && (
+                          <button
+                            type="button"
+                            onClick={() => handleOrderStatusChange(order.id, 'diantar')}
+                            disabled={updatingOrderId === order.id}
+                            className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-blue-600 hover:bg-blue-700 active:scale-95 text-white shadow-xs transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                            title="Klik untuk langsung ubah status ke 'Sedang Diantar'"
+                          >
+                            <span>🛵 Antar</span>
+                          </button>
+                        )}
+                        {order.status !== 'selesai' && order.status !== 'dibatalkan' && (
+                          <button
+                            type="button"
+                            onClick={() => handleOrderStatusChange(order.id, 'selesai')}
+                            disabled={updatingOrderId === order.id}
+                            className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white shadow-xs transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                            title="Klik untuk langsung tandai pesanan 'Selesai Diterima'"
+                          >
+                            <Check className="w-3 h-3 text-white" />
+                            <span>Selesai</span>
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Instant Live Saved Badge */}
+                      {savedStatusOrderId === order.id && (
+                        <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300 animate-pulse">
+                          <Check className="w-3 h-3 text-emerald-600" />
+                          <span>Status Terupdate!</span>
+                        </div>
+                      )}
                     </div>
 
                   </div>
@@ -1199,6 +1325,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           )}
 
         </div>
+      )}
+
+      {/* ========================================================
+          TAB: REKAPITULASI PESANAN & EXPORT EXCEL
+          ======================================================== */}
+      {activeTab === 'recap' && (
+        <OrderRecapSection
+          orders={orders}
+          onOpenEtiket={(ord) => setSelectedEtiketOrder(ord)}
+        />
       )}
 
       {/* ========================================================
@@ -2392,6 +2528,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         onClose={() => setIsMenuModalOpen(false)}
         onSave={handleSaveMenuItem}
       />
+
+      {/* Etiket Baki Makan Modal */}
+      {selectedEtiketOrder && (
+        <EtiketModal
+          order={selectedEtiketOrder}
+          onClose={() => setSelectedEtiketOrder(null)}
+        />
+      )}
 
     </div>
   );

@@ -1143,11 +1143,49 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
     }
 
     // 6. Orders API (/api/orders)
-    if (parsedPath === '/api/orders') {
-      if (method === 'GET') {
-        return res.json(vercelOrders);
+    if (parsedPath.startsWith('/api/orders')) {
+      // 6a. PATCH /api/orders/:id/status
+      if (parsedPath.includes('/status') && (method === 'PATCH' || method === 'POST')) {
+        const parts = parsedPath.split('/');
+        // e.g. ['', 'api', 'orders', 'order-123', 'status']
+        const orderId = parts[3] || body.id;
+        const status = body.status;
+        const note = body.note;
+
+        const order = vercelOrders.find(o => o.id === orderId);
+        if (!order) {
+          return res.status(404).json({ error: 'Pesanan tidak ditemukan' });
+        }
+
+        if (status) {
+          order.status = status;
+          if (!order.statusHistory) order.statusHistory = [];
+          order.statusHistory.push({
+            status,
+            timestamp: new Date().toISOString(),
+            note: note || `Status diubah menjadi ${status}`,
+          });
+        }
+        return res.json(order);
       }
-      if (method === 'POST') {
+
+      // 6b. DELETE /api/orders/:id
+      if (method === 'DELETE') {
+        const parts = parsedPath.split('/');
+        const orderId = parts[3] || body.id;
+        const idx = vercelOrders.findIndex(o => o.id === orderId);
+        if (idx !== -1) {
+          vercelOrders.splice(idx, 1);
+          return res.json({ success: true, removedId: orderId });
+        }
+        return res.status(404).json({ error: 'Pesanan tidak ditemukan' });
+      }
+
+      if (parsedPath === '/api/orders') {
+        if (method === 'GET') {
+          return res.json(vercelOrders);
+        }
+        if (method === 'POST') {
         const { roomName, patientName, phoneNumber, registrationNo, mealTime, items, patientNotes } = body;
       const formattedItems = Array.isArray(items) ? items : [];
       let totalPrice = 0;
@@ -1367,14 +1405,15 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
 
       vercelOrders.unshift(newOrder);
 
-      return res.status(201).json({
-        order: newOrder,
-        waMessage: newOrder.whatsappNotification.message,
-        waSent: newOrder.whatsappNotification.sent,
-        waStatusText: newOrder.whatsappNotification.statusText,
-        simrsSynced: newOrder.simrsSync.synced,
-        simrsStatusText: newOrder.simrsSync.statusText,
-      });
+        return res.status(201).json({
+          order: newOrder,
+          waMessage: newOrder.whatsappNotification.message,
+          waSent: newOrder.whatsappNotification.sent,
+          waStatusText: newOrder.whatsappNotification.statusText,
+          simrsSynced: newOrder.simrsSync.synced,
+          simrsStatusText: newOrder.simrsSync.statusText,
+        });
+        }
       }
     }
 

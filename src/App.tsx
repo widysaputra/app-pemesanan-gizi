@@ -210,9 +210,32 @@ export default function App() {
     return await realtimeService.createOrder(orderPayload);
   };
 
-  // Status update handler
+  // Status update handler (Instant Optimistic UI update + background sync)
   const handleUpdateStatus = async (orderId: string, status: OrderStatus, note?: string) => {
-    await realtimeService.updateOrderStatus(orderId, status, note);
+    // 1. Instantly update React state (0ms latency for dropdown or quick buttons)
+    const nowIso = new Date().toISOString();
+    setOrders((prev) =>
+      prev.map((o) => {
+        if (o.id === orderId) {
+          return {
+            ...o,
+            status,
+            statusHistory: [
+              ...(o.statusHistory || []),
+              { status, timestamp: nowIso, note: note || `Status diubah menjadi ${status}` }
+            ]
+          };
+        }
+        return o;
+      })
+    );
+
+    // 2. Persist to API & BroadcastChannel
+    try {
+      await realtimeService.updateOrderStatus(orderId, status, note);
+    } catch (err) {
+      console.warn('Status update API warning:', err);
+    }
   };
 
   // Toggle menu item availability
