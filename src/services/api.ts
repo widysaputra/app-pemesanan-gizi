@@ -1733,6 +1733,22 @@ export class HospitalRealtimeService {
       ? resolveSimrsSingleMenuUrl(targetUrl) 
       : resolveSimrsBatchMenuUrl(targetUrl);
 
+    const enrichedItems = items.map(m => {
+      const img = m.image || (m as any).foto_url || (m as any).gambar_url || '';
+      return {
+        ...m,
+        id_menu: m.id,
+        nama_menu: m.name,
+        harga: m.price,
+        kalori: m.calories,
+        foto_url: img,
+        gambar_url: img,
+        image: img,
+        foto: img,
+        gambar: img,
+      };
+    });
+
     // 1. Coba sinkronisasi via backend server terlebih dahulu
     try {
       const res = await fetch('/api/simrs/sync-menu', {
@@ -1742,8 +1758,8 @@ export class HospitalRealtimeService {
           apiUrl: syncUrl, 
           apiKey: targetToken, 
           isSingle: isSingleMenuEndpoint,
-          menuItems: items,
-          items: items,
+          menuItems: enrichedItems,
+          items: enrichedItems,
         }),
       });
       const contentType = res.headers.get('content-type') || '';
@@ -1882,7 +1898,7 @@ export class HospitalRealtimeService {
             status_tersedia: m.isAvailable,
             is_tersedia: m.isAvailable,
           })),
-          items: items,
+          items: enrichedItems,
         }),
       });
       const latency = `${Date.now() - start}ms`;

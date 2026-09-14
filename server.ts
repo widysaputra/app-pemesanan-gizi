@@ -772,33 +772,34 @@ async function syncOrderToSimrs(
 }
 
 // Helper: Map a MenuItem to standardized payload format for SIMRS Medifirst2000
-function mapMenuItemForSimrs(m: MenuItem) {
-  const img = m.image || '';
+function mapMenuItemForSimrs(m: any) {
+  const img = m.image || m.foto_url || m.gambar_url || m.foto || m.gambar || m.url_foto || m.url_gambar || '';
   return {
-    id: m.id,
-    id_menu: m.id,
-    kd_menu: m.id,
-    name: m.name,
-    nama: m.name,
-    nama_menu: m.name,
-    category: m.category,
-    kategori: m.category,
-    price: m.price,
-    harga: m.price,
-    harga_satuan: m.price,
-    calories: m.calories,
-    kalori: m.calories,
-    protein: m.protein,
-    carbs: m.carbs,
-    karbohidrat: m.carbs,
-    fat: m.fat,
-    lemak: m.fat,
-    sodium: m.sodium,
-    natrium: m.sodium,
-    mealTimes: m.mealTimes,
-    waktu_makan: m.mealTimes,
-    description: m.description,
-    deskripsi: m.description,
+    ...m,
+    id: String(m.id || m.id_menu || ''),
+    id_menu: String(m.id || m.id_menu || ''),
+    kd_menu: String(m.id || m.id_menu || ''),
+    name: String(m.name || m.nama_menu || m.nama || 'Menu SIMRS'),
+    nama: String(m.name || m.nama_menu || m.nama || 'Menu SIMRS'),
+    nama_menu: String(m.name || m.nama_menu || m.nama || 'Menu SIMRS'),
+    category: m.category || m.kategori || 'makanan_utama',
+    kategori: m.category || m.kategori || 'makanan_utama',
+    price: parsePgNumber(m.price ?? m.harga ?? 0),
+    harga: parsePgNumber(m.price ?? m.harga ?? 0),
+    harga_satuan: parsePgNumber(m.price ?? m.harga ?? 0),
+    calories: parsePgNumber(m.calories ?? m.kalori ?? 0),
+    kalori: parsePgNumber(m.calories ?? m.kalori ?? 0),
+    protein: parsePgNumber(m.protein ?? 0),
+    carbs: parsePgNumber(m.carbs ?? m.karbohidrat ?? 0),
+    karbohidrat: parsePgNumber(m.carbs ?? m.karbohidrat ?? 0),
+    fat: parsePgNumber(m.fat ?? m.lemak ?? 0),
+    lemak: parsePgNumber(m.fat ?? m.lemak ?? 0),
+    sodium: parsePgNumber(m.sodium ?? m.natrium ?? 0),
+    natrium: parsePgNumber(m.sodium ?? m.natrium ?? 0),
+    mealTimes: m.mealTimes || m.waktu_makan || ['pagi', 'siang', 'malam'],
+    waktu_makan: m.mealTimes || m.waktu_makan || ['pagi', 'siang', 'malam'],
+    description: String(m.description || m.deskripsi || ''),
+    deskripsi: String(m.description || m.deskripsi || ''),
     foto_url: img,
     gambar_url: img,
     image: img,
@@ -1879,7 +1880,7 @@ app.post('/api/simrs/fetch-menu', async (req, res) => {
   });
 
 app.post('/api/simrs/sync-menu', async (req, res) => {
-    const { apiUrl, apiKey, menuItems: clientItems } = req.body;
+    const { apiUrl, apiKey, menuItems: clientItems, items: alternativeItems } = req.body;
     const rawTargetUrl = (apiUrl || simrsSettings.apiUrl || 'https://rsbsaonline.com/service/medifirst2000/emr/sync-batch-menu').trim();
     const targetToken = (apiKey && typeof apiKey === 'string' && apiKey.trim() !== '')
       ? apiKey.trim()
@@ -1889,8 +1890,12 @@ app.post('/api/simrs/sync-menu', async (req, res) => {
       return res.status(400).json({ error: 'URL Endpoint API Laravel SIMRS wajib diisi' });
     }
 
-    if (Array.isArray(clientItems) && clientItems.length > 0) {
-      menuItems = clientItems;
+    const incomingItems = (Array.isArray(clientItems) && clientItems.length > 0)
+      ? clientItems
+      : (Array.isArray(alternativeItems) && alternativeItems.length > 0 ? alternativeItems : null);
+
+    if (incomingItems) {
+      menuItems = incomingItems.map(mapMenuItemForSimrs);
       savePersistentMenuItems(menuItems);
       broadcastEvent('init', { orders, menuItems });
     }
