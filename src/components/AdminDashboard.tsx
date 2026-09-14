@@ -70,7 +70,7 @@ interface AdminDashboardProps {
   onResetDemo?: () => Promise<void>;
 }
 
-type AdminTab = 'menu' | 'orders' | 'fonnte' | 'simrs';
+type AdminTab = 'menu' | 'orders' | 'fonnte' | 'simrs' | 'security';
 
 const CATEGORY_LABELS: Record<string, string> = {
   all: 'Semua Kategori',
@@ -149,13 +149,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // Admin Password Management State
   const [currentAdminPassword, setCurrentAdminPassword] = useState<string>(() => {
-    return (typeof window !== 'undefined' && localStorage.getItem('nutrihospital_admin_pwd')) || 'admin123';
+    const local = (typeof window !== 'undefined' && localStorage.getItem('nutrihospital_admin_pwd')) || '';
+    return local === 'admin123' ? '' : local;
   });
   const [newPasswordVal, setNewPasswordVal] = useState<string>('');
   const [confirmPasswordVal, setConfirmPasswordVal] = useState<string>('');
+  const [showNewPassword, setShowNewPassword] = useState<boolean>(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState<boolean>(false);
   const [pwdNotice, setPwdNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const handleUpdateAdminPassword = (e: React.FormEvent) => {
+  const handleUpdateAdminPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPasswordVal.trim()) {
       setPwdNotice({ type: 'error', text: 'Password baru tidak boleh kosong!' });
@@ -165,18 +168,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setPwdNotice({ type: 'error', text: 'Password minimal 4 karakter!' });
       return;
     }
+    if (newPasswordVal.trim().toLowerCase() === 'admin123') {
+      setPwdNotice({ type: 'error', text: 'Kata sandi admin123 telah dinonaktifkan! Silakan gunakan kata sandi lain.' });
+      return;
+    }
     if (newPasswordVal !== confirmPasswordVal) {
       setPwdNotice({ type: 'error', text: 'Konfirmasi password baru tidak cocok!' });
       return;
     }
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('nutrihospital_admin_pwd', newPasswordVal.trim());
+
+    setIsUpdatingPassword(true);
+    try {
+      const res = await realtimeService.updateAdminPassword(newPasswordVal.trim());
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('nutrihospital_admin_pwd', newPasswordVal.trim());
+      }
+      setCurrentAdminPassword(newPasswordVal.trim());
+      setNewPasswordVal('');
+      setConfirmPasswordVal('');
+      setPwdNotice({ type: 'success', text: res.message || 'Kunci sandi admin berhasil diperbarui dan berlaku di seluruh perangkat!' });
+      setTimeout(() => setPwdNotice(null), 5000);
+    } catch (err: any) {
+      setPwdNotice({ type: 'error', text: err.message || 'Gagal memperbarui sandi admin' });
+    } finally {
+      setIsUpdatingPassword(false);
     }
-    setCurrentAdminPassword(newPasswordVal.trim());
-    setNewPasswordVal('');
-    setConfirmPasswordVal('');
-    setPwdNotice({ type: 'success', text: 'Kata sandi admin berhasil diperbarui!' });
-    setTimeout(() => setPwdNotice(null), 4000);
   };
 
   // Load Fonnte & SIMRS Config on mount
@@ -208,6 +224,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }
       } catch (err) {
         console.warn('Could not fetch SIMRS config', err);
+      }
+
+      try {
+        const pwdData = await realtimeService.getAdminPassword();
+        if (pwdData && pwdData.currentPassword) {
+          setCurrentAdminPassword(pwdData.currentPassword);
+        }
+      } catch (err) {
+        console.warn('Could not fetch admin password', err);
       }
     };
     fetchConfigs();
@@ -584,17 +609,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               ADMINISTRATOR
             </span>
             <span className="text-xs text-slate-500 font-medium">Instalasi Gizi RS</span>
+            <button
+              onClick={() => setActiveTab('security')}
+              className="ml-1.5 inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-lg transition-colors cursor-pointer"
+              title="Klik untuk membuka menu ganti kunci sandi admin"
+            >
+              <KeyRound className="w-3.5 h-3.5 text-amber-600" />
+              <span>Ganti Kunci Admin</span>
+            </button>
           </div>
           <h2 className="text-xl font-black text-slate-900 mt-1">
             Dashboard Manajemen Menu &amp; Integrasi WhatsApp
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Atur ketersediaan menu, ubah harga satuan (Rp), pantau pesanan kamar, dan hubungkan Fonnte WhatsApp Gateway.
+            Atur ketersediaan menu, ubah harga satuan (Rp), pantau pesanan kamar, hubungkan Fonnte WhatsApp Gateway, dan kelola kata sandi admin.
           </p>
         </div>
 
         {/* Tab Buttons */}
-        <div className="flex items-center bg-slate-100 p-1.5 rounded-xl border border-slate-200 shrink-0">
+        <div className="flex items-center bg-slate-100 p-1.5 rounded-xl border border-slate-200 shrink-0 flex-wrap gap-1">
           <button
             onClick={() => setActiveTab('menu')}
             className={`px-3.5 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
@@ -653,8 +686,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             }`}
           >
             <Database className="w-4 h-4 text-indigo-600" />
-            <span>Database SIMRS (Postgre)</span>
+            <span>Database SIMRS</span>
             <span className={`w-2 h-2 rounded-full ${isSimrsConfigured ? 'bg-indigo-500' : 'bg-slate-300'}`}></span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('security')}
+            className={`px-3.5 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+              activeTab === 'security'
+                ? 'bg-white text-amber-800 shadow-xs ring-1 ring-amber-300'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <KeyRound className="w-4 h-4 text-amber-600" />
+            <span>Kunci Admin</span>
           </button>
         </div>
       </div>
@@ -1436,14 +1481,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
                   <span className="text-[11px] text-slate-500">
-                    Kata sandi saat ini: <code className="bg-slate-100 px-1.5 py-0.5 rounded font-mono text-slate-700">{currentAdminPassword}</code>
+                    Kata sandi saat ini: <code className="bg-slate-100 px-1.5 py-0.5 rounded font-mono text-slate-700">{currentAdminPassword || '(Belum diatur)'}</code>
                   </span>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                    disabled={isUpdatingPassword}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
                   >
                     <Lock className="w-3.5 h-3.5" />
-                    <span>Perbarui Kata Sandi</span>
+                    <span>{isUpdatingPassword ? 'Menyimpan...' : 'Perbarui Kata Sandi'}</span>
                   </button>
                 </div>
               </form>
@@ -2179,6 +2225,161 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
             </div>
 
+          </div>
+
+        </div>
+      )}
+
+      {/* ========================================================
+          TAB 5: KEAMANAN & KUNCI ADMIN
+          ======================================================== */}
+      {activeTab === 'security' && (
+        <div className="space-y-6">
+          
+          {/* Header Card */}
+          <div className="bg-gradient-to-r from-amber-700 to-amber-900 rounded-2xl p-6 text-white shadow-xs space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center border border-white/20">
+                <KeyRound className="w-5 h-5 text-amber-300" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">Keamanan &amp; Kunci Sandi Administrator</h3>
+                <p className="text-xs text-amber-100/90">
+                  Ubah kata sandi untuk melindungi dashboard instalasi gizi. Kata sandi ini disimpan di server dan berlaku untuk semua perangkat.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Password Change Card */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-5 max-w-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-slate-900 text-sm">Ganti Kata Sandi Admin</h4>
+                  <p className="text-xs text-slate-500">Masukkan kata sandi baru untuk menggantikan sandi lama.</p>
+                </div>
+              </div>
+              <div className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Tersimpan di Server</span>
+              </div>
+            </div>
+
+            {pwdNotice && (
+              <div className={`p-3.5 rounded-xl text-xs flex items-center gap-2.5 ${
+                pwdNotice.type === 'success'
+                  ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+                  : 'bg-rose-50 border border-rose-200 text-rose-800'
+              }`}>
+                <CheckCircle className="w-4 h-4 shrink-0" />
+                <span className="font-medium">{pwdNotice.text}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleUpdateAdminPassword} className="space-y-4">
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Kata Sandi Baru
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showNewPassword ? 'text' : 'password'}
+                      value={newPasswordVal}
+                      onChange={(e) => setNewPasswordVal(e.target.value)}
+                      placeholder="Masukkan kata sandi baru (minimal 4 karakter)..."
+                      className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500 pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    >
+                      {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Ulangi Kata Sandi Baru
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showNewPassword ? 'text' : 'password'}
+                      value={confirmPasswordVal}
+                      onChange={(e) => setConfirmPasswordVal(e.target.value)}
+                      placeholder="Ketik ulang kata sandi baru untuk konfirmasi..."
+                      className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500 pr-10"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1 text-xs text-slate-600">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">Kata sandi saat ini:</span>
+                  <div className="flex items-center gap-2">
+                    <code className="bg-white px-2 py-0.5 rounded border border-slate-200 font-mono font-bold text-slate-800">
+                      {currentAdminPassword ? (showNewPassword ? currentAdminPassword : '••••••••') : '(Belum diatur)'}
+                    </code>
+                    {currentAdminPassword && (
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        className="text-[11px] text-amber-700 hover:underline cursor-pointer font-medium"
+                      >
+                        {showNewPassword ? 'Sembunyikan' : 'Tampilkan'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNewPasswordVal('');
+                    setConfirmPasswordVal('');
+                    setPwdNotice(null);
+                  }}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdatingPassword}
+                  className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 active:scale-95 text-white text-xs font-bold shadow-sm transition-all cursor-pointer flex items-center gap-2 disabled:opacity-50"
+                >
+                  {isUpdatingPassword ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Menyimpan ke Server...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Simpan Kunci Sandi Baru</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+
+            <div className="border-t border-slate-100 pt-4 text-xs text-slate-500 space-y-1.5">
+              <div className="font-bold text-slate-700">Catatan Keamanan:</div>
+              <ul className="list-disc list-inside space-y-1 text-[11px] text-slate-500">
+                <li>Kata sandi ini digunakan untuk masuk ke Dashboard Admin pada menu header kanan atas.</li>
+                <li>Setelah disimpan, perubahan langsung aktif seketika di semua laptop, PC, dan smartphone perawat/staf instalasi gizi.</li>
+                <li>Pastikan mencatat atau mengingat kata sandi ini dengan baik demi keamanan akses sistem instalasi gizi.</li>
+              </ul>
+            </div>
           </div>
 
         </div>

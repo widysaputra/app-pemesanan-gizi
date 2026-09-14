@@ -2153,6 +2153,64 @@ export class HospitalRealtimeService {
     }
   }
 
+  // --- ADMIN SECURITY & PASSWORD ---
+  async getAdminPassword(): Promise<{ currentPassword: string; hasPassword?: boolean }> {
+    try {
+      const res = await fetch('/api/admin/password');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.currentPassword) {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('nutrihospital_admin_pwd', data.currentPassword);
+          }
+          return data;
+        }
+        if (typeof window !== 'undefined' && data.currentPassword === '') {
+          localStorage.removeItem('nutrihospital_admin_pwd');
+        }
+        return data;
+      }
+    } catch {}
+    const local = (typeof window !== 'undefined' && localStorage.getItem('nutrihospital_admin_pwd')) || '';
+    return { currentPassword: local, hasPassword: local.length > 0 };
+  }
+
+  async updateAdminPassword(newPassword: string): Promise<{ success: boolean; message: string }> {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('nutrihospital_admin_pwd', newPassword.trim());
+    }
+    try {
+      const res = await fetch('/api/admin/password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newPassword: newPassword.trim() }),
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch {}
+    return { success: true, message: 'Kata sandi berhasil disimpan!' };
+  }
+
+  async verifyAdminPassword(password: string): Promise<boolean> {
+    try {
+      const res = await fetch('/api/admin/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: password.trim() }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && typeof window !== 'undefined') {
+          localStorage.setItem('nutrihospital_admin_pwd', password.trim());
+        }
+        return Boolean(data.success);
+      }
+    } catch {}
+    const local = (typeof window !== 'undefined' && localStorage.getItem('nutrihospital_admin_pwd')) || '';
+    return Boolean(local && password.trim() === local);
+  }
+
   async resetDemo(): Promise<void> {
     try {
       await fetch('/api/reset-demo', { method: 'POST' });

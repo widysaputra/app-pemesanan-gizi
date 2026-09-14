@@ -273,6 +273,46 @@ if (!fs.existsSync(FONNTE_CONFIG_FILE)) {
   savePersistentFonnteSettings(fonnteSettings);
 }
 
+// --- Admin Password Security Persistence ---
+const ADMIN_SECURITY_FILE = path.join(process.cwd(), 'admin_security.json');
+
+function loadAdminPassword(): string {
+  try {
+    if (fs.existsSync(ADMIN_SECURITY_FILE)) {
+      const data = JSON.parse(fs.readFileSync(ADMIN_SECURITY_FILE, 'utf-8'));
+      if (data && typeof data.password === 'string' && data.password.trim().length > 0) {
+        const pwd = data.password.trim();
+        if (pwd !== 'admin123') {
+          return pwd;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[Security] Gagal membaca admin_security.json:', err);
+  }
+  return '';
+}
+
+let currentServerAdminPassword = loadAdminPassword();
+
+function saveAdminPassword(pwd: string) {
+  try {
+    fs.writeFileSync(ADMIN_SECURITY_FILE, JSON.stringify({ password: pwd, updatedAt: new Date().toISOString() }, null, 2), 'utf-8');
+  } catch (err) {
+    console.warn('[Security] Gagal menyimpan admin_security.json:', err);
+  }
+}
+
+// Clear out admin123 if present in file
+if (fs.existsSync(ADMIN_SECURITY_FILE)) {
+  try {
+    const data = JSON.parse(fs.readFileSync(ADMIN_SECURITY_FILE, 'utf-8'));
+    if (data?.password === 'admin123') {
+      saveAdminPassword('');
+    }
+  } catch {}
+}
+
 // URL Resolvers for Hospital SIMRS endpoints (RSBSA Online Medifirst2000)
 function resolveSimrsOrderUrl(inputUrl?: string): string {
   const defaultUrl = 'https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi';
@@ -2409,6 +2449,53 @@ app.post('/api/simrs/sync-menu', async (req, res) => {
     savePersistentOrders(orders);
     broadcastEvent('order_deleted', { id });
     res.json({ success: true, removedId: id });
+  });
+
+  // --- Admin Security & Password API ---
+  app.get('/api/admin/password', (req, res) => {
+    res.json({
+      success: true,
+      hasPassword: currentServerAdminPassword.length > 0,
+      currentPassword: currentServerAdminPassword,
+    });
+  });
+
+  app.post('/api/admin/password', (req, res) => {
+    const { newPassword } = req.body;
+    if (!newPassword || typeof newPassword !== 'string' || newPassword.trim().length < 4) {
+      return res.status(400).json({ success: false, message: 'Kata sandi minimal 4 karakter!' });
+    }
+    if (newPassword.trim().toLowerCase() === 'admin123') {
+      return res.status(400).json({ success: false, message: 'Kata sandi admin123 telah dinonaktifkan! Silakan gunakan kata sandi lain.' });
+    }
+    currentServerAdminPassword = newPassword.trim();
+    saveAdminPassword(currentServerAdminPassword);
+    console.log('[Security] Kata sandi admin berhasil diperbarui di server');
+    res.json({ success: true, message: 'Kata sandi admin berhasil disimpan di server!' });
+  });
+
+  app.post('/api/admin/verify', (req, res) => {
+    const { password } = req.body;
+    const input = (password || '').trim();
+    if (!input) {
+      return res.json({ success: false, message: 'Kata sandi tidak boleh kosong.' });
+    }
+    if (input.toLowerCase() === 'admin123') {
+      return res.json({ success: false, message: 'Kata sandi admin123 telah dinonaktifkan.' });
+    }
+    // Jika belum ada password yang disetel (atau setelah penghapusan admin123),
+    // input pertama yang dimasukkan otomatis langsung menjadi kata sandi admin resmi
+    if (!currentServerAdminPassword) {
+      if (input.length < 4) {
+        return res.json({ success: false, message: 'Kata sandi baru minimal 4 karakter!' });
+      }
+      currentServerAdminPassword = input;
+      saveAdminPassword(currentServerAdminPassword);
+      console.log('[Security] Kata sandi admin baru berhasil dibuat dan disimpan');
+      return res.json({ success: true, isNewlySet: true, message: 'Kata sandi admin baru berhasil disimpan!' });
+    }
+    const isValid = input === currentServerAdminPassword;
+    res.json({ success: isValid });
   });
 
   // Reset Demo Data

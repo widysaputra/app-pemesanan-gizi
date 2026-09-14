@@ -40,8 +40,10 @@ export default function App() {
   const [showPasswordText, setShowPasswordText] = useState<boolean>(false);
   const [loginError, setLoginError] = useState<string>('');
   const [adminPassword, setAdminPassword] = useState<string>(() => {
-    return (typeof window !== 'undefined' && localStorage.getItem('nutrihospital_admin_pwd')) || 'admin123';
+    const local = (typeof window !== 'undefined' && localStorage.getItem('nutrihospital_admin_pwd')) || '';
+    return local === 'admin123' ? '' : local;
   });
+  const [hasServerPassword, setHasServerPassword] = useState<boolean>(false);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [orders, setOrders] = useState<HospitalOrder[]>([]);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
@@ -79,6 +81,15 @@ export default function App() {
           saveLocalCachedMenu(simrsRes.data);
         }
       }).catch((e) => console.warn('[Auto-Sync SIMRS]:', e));
+
+      // 4. Sinkronisasikan kunci sandi admin dari server
+      realtimeService.getAdminPassword().then((pwdData) => {
+        if (pwdData) {
+          const pwd = pwdData.currentPassword === 'admin123' ? '' : (pwdData.currentPassword || '');
+          setAdminPassword(pwd);
+          setHasServerPassword(Boolean(pwd && pwd.length > 0));
+        }
+      }).catch(() => {});
     } catch (err) {
       console.warn('Network load fallback triggered:', err);
       setMenuItems(realtimeService.getLocalMenu());
@@ -228,17 +239,23 @@ export default function App() {
     }
   };
 
-  const handleAdminLogin = (e?: React.FormEvent) => {
+  const handleAdminLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!adminPasswordInput.trim()) {
+    const input = adminPasswordInput.trim();
+    if (!input) {
       setLoginError('Silakan masukkan kata sandi admin.');
       return;
     }
 
-    if (adminPasswordInput.trim() === adminPassword) {
+    const isValid = await realtimeService.verifyAdminPassword(input);
+
+    if (isValid || (adminPassword && input === adminPassword)) {
       setIsAdminAuthenticated(true);
+      setAdminPassword(input);
+      setHasServerPassword(true);
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('nutrihospital_admin_auth', 'true');
+        localStorage.setItem('nutrihospital_admin_pwd', input);
       }
       setShowAdminLoginModal(false);
       setAdminPasswordInput('');
@@ -250,7 +267,7 @@ export default function App() {
       });
       setTimeout(() => setToastMessage(null), 3000);
     } else {
-      setLoginError('Kata sandi salah! Coba lagi (Kata sandi default: admin123)');
+      setLoginError('Kata sandi salah! Silakan periksa kembali kata sandi Anda.');
     }
   };
 
@@ -461,7 +478,7 @@ export default function App() {
             <form onSubmit={handleAdminLogin} className="py-4 space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Kata Sandi Admin
+                  {!hasServerPassword && !adminPassword ? 'Buat Kata Sandi Admin Baru' : 'Kata Sandi Admin'}
                 </label>
                 <div className="relative">
                   <input
@@ -471,7 +488,7 @@ export default function App() {
                       setAdminPasswordInput(e.target.value);
                       if (loginError) setLoginError('');
                     }}
-                    placeholder="Masukkan password admin..."
+                    placeholder={!hasServerPassword && !adminPassword ? 'Tentukan kata sandi baru (min. 4 karakter)...' : 'Masukkan password admin...'}
                     autoFocus
                     className="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
                   />
@@ -494,13 +511,22 @@ export default function App() {
                 )}
               </div>
 
-              {/* Password Hint Box */}
-              <div className="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-xl flex items-start gap-2 text-emerald-900 text-xs">
-                <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <div className="text-[11px] leading-relaxed">
-                  Kata sandi default: <code className="font-bold bg-white px-1.5 py-0.5 rounded border border-emerald-300 text-emerald-800">admin123</code>
+              {/* Password Notice Box */}
+              {!hasServerPassword && !adminPassword ? (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2 text-amber-900 text-xs">
+                  <KeyRound className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div className="text-[11px] leading-relaxed">
+                    Sandi lama telah dinonaktifkan. Masukkan kata sandi pilihan Anda untuk mengamankan akses admin.
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-start gap-2 text-slate-700 text-xs">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <div className="text-[11px] leading-relaxed">
+                    Akses terlindungi kata sandi administrator.
+                  </div>
+                </div>
+              )}
 
               <div className="flex items-center gap-2 pt-1">
                 <button
@@ -518,7 +544,7 @@ export default function App() {
                   className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   <Unlock className="w-3.5 h-3.5" />
-                  <span>Buka Admin</span>
+                  <span>{!hasServerPassword && !adminPassword ? 'Simpan Sandi & Masuk' : 'Buka Admin'}</span>
                 </button>
               </div>
             </form>
