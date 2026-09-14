@@ -58,14 +58,6 @@ export interface HospitalOrder {
   patientNotes?: string;
   status: OrderStatus;
   statusHistory: StatusHistoryEntry[];
-  whatsappNotification?: {
-    sent: boolean;
-    targetNumber?: string;
-    statusText: string;
-    fonnteResponse?: any;
-    timestamp: string;
-    message: string;
-  };
   simrsSync?: {
     synced: boolean;
     statusText: string;
@@ -74,14 +66,6 @@ export interface HospitalOrder {
     response?: any;
     error?: string;
   };
-}
-
-export interface FonnteSettings {
-  token: string;
-  targetNumber: string; // Nomor WA Dapur / Admin RS
-  sendToAdmin: boolean;
-  sendToPatient: boolean;
-  isConfigured: boolean;
 }
 
 export interface SimrsSettings {

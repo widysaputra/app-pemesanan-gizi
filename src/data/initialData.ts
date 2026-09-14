@@ -27,13 +27,6 @@ export const INITIAL_ORDERS: HospitalOrder[] = [
       { status: 'baru', timestamp: new Date(Date.now() - 25 * 60 * 1000).toISOString(), note: 'Pesanan dikirim via tablet kamar.' },
       { status: 'diproses', timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(), note: 'Sedang disiapkan oleh Dapur Gizi.' },
     ],
-    whatsappNotification: {
-      sent: true,
-      targetNumber: '081298765432',
-      statusText: 'Berhasil dikirim via Fonnte Gateway',
-      timestamp: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
-      message: 'Notifikasi pesanan berhasil diteruskan ke WhatsApp.',
-    },
     simrsSync: {
       synced: true,
       statusText: 'Tersimpan di SIMRS (PostgreSQL)',
@@ -66,13 +59,6 @@ export const INITIAL_ORDERS: HospitalOrder[] = [
       { status: 'diproses', timestamp: new Date(Date.now() - 25 * 60 * 1000).toISOString() },
       { status: 'diantar', timestamp: new Date(Date.now() - 10 * 60 * 1000).toISOString(), note: 'Baki makanan diantar pramusaji.' },
     ],
-    whatsappNotification: {
-      sent: true,
-      targetNumber: '085712345678',
-      statusText: 'Berhasil dikirim via Fonnte Gateway',
-      timestamp: new Date(Date.now() - 40 * 60 * 1000).toISOString(),
-      message: 'Notifikasi pesanan berhasil diteruskan ke WhatsApp.',
-    },
     simrsSync: {
       synced: true,
       statusText: 'Tersimpan di SIMRS (PostgreSQL)',

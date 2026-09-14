@@ -25,7 +25,7 @@ import {
   ChevronRight,
   RefreshCw
 } from 'lucide-react';
-import { realtimeService, getLocalFonnteConfig } from '../services/api';
+import { realtimeService } from '../services/api';
 import { OrderSuccessModal } from './OrderSuccessModal';
 import { getValidMenuImage, getCategoryFallbackImage } from '../utils/imageHelper';
 
@@ -40,7 +40,7 @@ interface PatientDashboardProps {
     mealTime: MealTime;
     items: { menuItemId: string; name: string; portion: number; price: number; category: string; calories: number }[];
     patientNotes?: string;
-  }) => Promise<{ order: HospitalOrder; waMessage: string; waSent: boolean; waStatusText: string; simrsSynced?: boolean; simrsStatusText?: string }>;
+  }) => Promise<{ order: HospitalOrder; waMessage?: string; waSent?: boolean; waStatusText?: string; simrsSynced?: boolean; simrsStatusText?: string }>;
 }
 
 const CATEGORY_TABS: { key: string; label: string }[] = [
@@ -228,19 +228,25 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
         patientNotes: patientNotes.trim(),
       });
 
+      const messageContent = res.waMessage || `*PESANAN GIZI RUMAH SAKIT*\nNo. Pesanan: ${res.order.orderNumber}\nPasien: ${res.order.patientName}\nRuangan: ${res.order.roomName}\nWaktu Makan: ${res.order.mealTime}\n\n*Rincian Menu:*\n${itemsPayload.map(it => `- ${it.name} (${it.portion}x)`).join('\n')}\n\nTotal: Rp ${(res.order.totalPrice || 0).toLocaleString('id-ID')}\nCatatan: ${res.order.patientNotes || '-'}`;
+
       // Show success modal with WhatsApp details
-      setSuccessModalData(res);
+      setSuccessModalData({
+        order: res.order,
+        waMessage: messageContent,
+        waSent: Boolean(res.waSent),
+        waStatusText: res.waStatusText || 'Siap dikirim ke WhatsApp Dapur Gizi',
+      });
       setTray({});
       setPatientNotes('');
 
       // Auto-trigger direct WhatsApp link to Dapur Gizi
-      if (res?.waMessage) {
+      if (messageContent) {
         try {
-          const fonnteConfig = getLocalFonnteConfig();
-          const targetGiziPhone = (fonnteConfig?.targetNumber || '081573570843').trim();
+          const targetGiziPhone = '081573570843';
           const cleanGizi = targetGiziPhone.replace(/[^0-9]/g, '');
           const targetGiziWa = cleanGizi.startsWith('0') ? `62${cleanGizi.slice(1)}` : cleanGizi.startsWith('62') ? cleanGizi : `62${cleanGizi}`;
-          const directWaUrl = `https://api.whatsapp.com/send?phone=${targetGiziWa}&text=${encodeURIComponent(res.waMessage)}`;
+          const directWaUrl = `https://api.whatsapp.com/send?phone=${targetGiziWa}&text=${encodeURIComponent(messageContent)}`;
           window.open(directWaUrl, '_blank');
         } catch {}
       }
@@ -490,14 +496,12 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
 
                       <div className="flex items-center gap-2">
                         {(() => {
-                          const fonnteConfig = getLocalFonnteConfig();
-                          const targetNum = (ord.whatsappNotification?.targetNumber || fonnteConfig?.targetNumber || '081573570843').trim();
+                          const targetNum = '081573570843';
                           const cleanTarget = targetNum.replace(/[^0-9]/g, '');
                           const waPhone = cleanTarget.startsWith('0') ? `62${cleanTarget.slice(1)}` : cleanTarget.startsWith('62') ? cleanTarget : `62${cleanTarget}`;
                           return (
                             <a
                               href={`https://api.whatsapp.com/send?phone=${waPhone}&text=${encodeURIComponent(
-                                ord.whatsappNotification?.message ||
                                 `Halo Dapur Gizi, saya ingin konfirmasi pesanan ${ord.orderNumber} untuk Ruangan: ${ord.roomName} an. ${ord.patientName}.`
                               )}`}
                               target="_blank"

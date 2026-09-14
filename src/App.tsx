@@ -148,7 +148,7 @@ export default function App() {
         // Floating toast alert
         setToastMessage({
           title: 'Pesanan Masuk!',
-          desc: `${newOrder.patientName} (${newOrder.roomName}) memesan menu. WhatsApp Fonnte diteruskan.`,
+          desc: `${newOrder.patientName} (${newOrder.roomName}) memesan menu baru.`,
         });
         setTimeout(() => {
           setToastMessage(null);
@@ -316,7 +316,7 @@ export default function App() {
         <div className="text-center space-y-3">
           <div className="w-12 h-12 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
           <p className="text-sm font-semibold text-slate-700">
-            Memuat Sistem NutriHospital &amp; Gateway WhatsApp...
+            Memuat Sistem SiapMakan...
           </p>
         </div>
       </div>
@@ -420,7 +420,7 @@ export default function App() {
             <button
               onClick={() => setShowHelpModal(true)}
               className="p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
-              title="Informasi & Cara Kerja WhatsApp Fonnte"
+              title="Informasi & Panduan Aplikasi"
             >
               <HelpCircle className="w-4 h-4 text-slate-500" />
             </button>
@@ -573,7 +573,7 @@ export default function App() {
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <MessageCircle className="w-5 h-5 text-emerald-600" />
-                <h3 className="font-bold text-slate-900 text-base">Panduan Sistem &amp; WhatsApp Fonnte</h3>
+                <h3 className="font-bold text-slate-900 text-base">Panduan Sistem SiapMakan</h3>
               </div>
               <button
                 onClick={() => setShowHelpModal(false)}
@@ -585,7 +585,7 @@ export default function App() {
 
             <div className="py-4 text-xs text-slate-600 space-y-3 leading-relaxed">
               <p>
-                Konsep aplikasi telah diperbarui khusus sesuai kebutuhan Anda dengan <strong>2 Dashboard Utama</strong>:
+                Aplikasi <strong>SiapMakan</strong> menyediakan <strong>2 Dashboard Utama</strong>:
               </p>
               
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2 text-slate-800">
@@ -594,8 +594,9 @@ export default function App() {
                   <ul className="list-disc pl-4 mt-0.5 space-y-0.5 text-[11px] text-slate-600">
                     <li>Ubah &amp; atur harga satuan makanan (Rp) secara langsung.</li>
                     <li>Atur ketersediaan menu (Tersedia / Habis) atau tambah menu baru.</li>
-                    <li>Integrasi Token Fonnte WhatsApp &amp; uji coba kirim pesan tes live.</li>
-                    <li>Pantau pesanan masuk dan update status pesanan.</li>
+                    <li>Pantau pesanan masuk secara realtime dan update status pesanan.</li>
+                    <li>Menu Rekapan Pesanan Masuk &amp; Ekspor laporan ke format Microsoft Excel (.xlsx).</li>
+                    <li>Integrasi SIMRS (PostgreSQL &amp; Laravel API).</li>
                   </ul>
                 </div>
                 <div>
@@ -610,7 +611,7 @@ export default function App() {
               </div>
 
               <p className="text-[11px] text-slate-500">
-                Pesan WhatsApp otomatis berisi: <strong>Nama Kamar</strong>, <strong>Daftar Menu yang Dipesan</strong>, <strong>Nomor Telepon</strong>, dan <strong>Total Biaya</strong>.
+                Data pesanan tersimpan secara terstruktur dan terintegrasi secara realtime.
               </p>
             </div>
 

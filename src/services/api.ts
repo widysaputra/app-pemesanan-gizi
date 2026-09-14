@@ -1,4 +1,4 @@
-import { HospitalOrder, MenuItem, FonnteSettings, MealTime, OrderStatus } from '../types';
+import { HospitalOrder, MenuItem, MealTime, OrderStatus } from '../types';
 import {
   getLocalCachedMenu,
   saveLocalCachedMenu,
@@ -22,7 +22,6 @@ try {
 
 // --- LOCAL STORAGE KEYS FOR HOSTING ENVIRONMENTS (VERCEL / STATIC / STANDALONE) ---
 const SIMRS_CONFIG_KEY = 'nutri_hospital_simrs_config';
-const FONNTE_CONFIG_KEY = 'nutri_hospital_fonnte_config';
 
 export function resolveSimrsOrderUrl(baseUrl?: string): string {
   const defaultUrl = 'https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi';
@@ -143,74 +142,6 @@ export function saveLocalSimrsConfig(settings: {
     }
   } catch (e) {
     console.warn('Gagal menyimpan konfigurasi SIMRS ke localStorage:', e);
-  }
-  return updated;
-}
-
-export function getLocalFonnteConfig(): {
-  token: string;
-  tokenMasked: string;
-  targetNumber: string;
-  sendToAdmin: boolean;
-  sendToPatient: boolean;
-  isConfigured: boolean;
-} {
-  const DEFAULT_TOKEN = 'irrv1yX7bCHMUXWjHezr';
-  const DEFAULT_TARGET = '081573570843';
-
-  try {
-    const raw = typeof window !== 'undefined' ? localStorage.getItem(FONNTE_CONFIG_KEY) : null;
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      const token = (parsed.token || DEFAULT_TOKEN).trim();
-      const targetNumber = (parsed.targetNumber || DEFAULT_TARGET).trim();
-      return {
-        token,
-        tokenMasked: token ? `${token.slice(0, 3)}••••${token.slice(-3)}` : '',
-        targetNumber,
-        sendToAdmin: parsed.sendToAdmin !== false,
-        sendToPatient: parsed.sendToPatient !== false,
-        isConfigured: Boolean(token && token.trim().length > 3),
-      };
-    }
-  } catch (e) {
-    console.warn('Gagal membaca konfigurasi Fonnte dari localStorage:', e);
-  }
-  return {
-    token: DEFAULT_TOKEN,
-    tokenMasked: `${DEFAULT_TOKEN.slice(0, 3)}••••${DEFAULT_TOKEN.slice(-3)}`,
-    targetNumber: DEFAULT_TARGET,
-    sendToAdmin: true,
-    sendToPatient: true,
-    isConfigured: true,
-  };
-}
-
-export function saveLocalFonnteConfig(settings: {
-  token?: string;
-  targetNumber?: string;
-  sendToAdmin?: boolean;
-  sendToPatient?: boolean;
-}) {
-  const current = getLocalFonnteConfig();
-  const newToken = settings.token !== undefined ? settings.token.trim() : current.token;
-  const newTarget = settings.targetNumber !== undefined ? settings.targetNumber.trim() : current.targetNumber;
-
-  const updated = {
-    token: newToken,
-    tokenMasked: newToken ? `${newToken.slice(0, 3)}••••${newToken.slice(-3)}` : current.tokenMasked,
-    targetNumber: newTarget,
-    sendToAdmin: settings.sendToAdmin !== undefined ? settings.sendToAdmin : current.sendToAdmin,
-    sendToPatient: settings.sendToPatient !== undefined ? settings.sendToPatient : current.sendToPatient,
-    isConfigured: Boolean(newToken && newToken.trim().length > 3),
-  };
-
-  try {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(FONNTE_CONFIG_KEY, JSON.stringify(updated));
-    }
-  } catch (e) {
-    console.warn('Gagal menyimpan konfigurasi Fonnte ke localStorage:', e);
   }
   return updated;
 }
@@ -773,9 +704,8 @@ export class HospitalRealtimeService {
     mealTime: MealTime;
     items: { menuItemId: string; name: string; portion: number; price: number; category: string; calories: number }[];
     patientNotes?: string;
-  }): Promise<{ order: HospitalOrder; waMessage: string; waSent: boolean; waStatusText: string; simrsSynced?: boolean; simrsStatusText?: string }> {
+  }): Promise<{ order: HospitalOrder; simrsSynced?: boolean; simrsStatusText?: string }> {
     const simrsConfig = getLocalSimrsConfig();
-    const fonnteConfig = getLocalFonnteConfig();
 
     try {
       const res = await fetch('/api/orders', {
@@ -784,40 +714,11 @@ export class HospitalRealtimeService {
         body: JSON.stringify({
           ...payload,
           simrsConfig,
-          fonnteConfig,
         }),
       });
       if (res.ok) {
         const result = await res.json();
         if (result && result.order && result.order.id) {
-          // Jika backend belum berhasil kirim WhatsApp tapi client memiliki token, kirim langsung dari browser
-          if (!result.waSent && fonnteConfig.token) {
-            try {
-              const target = fonnteConfig.targetNumber || '081573570843';
-              const formData = new URLSearchParams();
-              formData.append('target', target);
-              formData.append('message', result.waMessage || result.order.whatsappNotification?.message || `Pesanan Gizi ${result.order.orderNumber} berhasil dibuat.`);
-              formData.append('countryCode', '62');
-
-              const directRes = await fetch('https://api.fonnte.com/send', {
-                method: 'POST',
-                headers: { Authorization: fonnteConfig.token },
-                body: formData,
-              });
-              const directData = await directRes.json();
-              if (directData.status === true || directData.status === 'true') {
-                result.waSent = true;
-                result.waStatusText = `Terkirim langsung ke WhatsApp Admin Gizi (${target}) via Fonnte Gateway`;
-                if (result.order.whatsappNotification) {
-                  result.order.whatsappNotification.sent = true;
-                  result.order.whatsappNotification.statusText = result.waStatusText;
-                }
-              }
-            } catch (wErr) {
-              console.warn('[Fonnte Client] Dispatch fallback error:', wErr);
-            }
-          }
-
           // Jika backend belum tersinkronisasi ke SIMRS, jalankan sync sekarang
           if (!result.order.simrsSync?.synced && simrsConfig.autoSyncOnOrder && simrsConfig.apiUrl) {
             try {
@@ -849,58 +750,6 @@ export class HospitalRealtimeService {
     const totalPrice = payload.items.reduce((sum, i) => sum + i.price * i.portion, 0);
     const totalCalories = payload.items.reduce((sum, i) => sum + i.calories * i.portion, 0);
 
-    const menuLines = payload.items
-      .map((it, idx) => `  ${idx + 1}. *${it.name}* x ${it.portion} porsi = Rp ${(it.price * it.portion).toLocaleString('id-ID')}`)
-      .join('\n');
-
-    const waOrderMessage = `🏥 *PESANAN MENU RUMAH SAKIT*\n` +
-      `━━━━━━━━━━━━━━━━━━━━━\n` +
-      `🚪 *Nama Kamar*: ${payload.roomName}\n` +
-      `👤 *Nama Pasien*: ${payload.patientName || 'Pasien Rawat Inap'}\n` +
-      `📱 *Nomor Telepon*: ${payload.phoneNumber}\n` +
-      `🍽️ *Waktu Makan*: Makan ${payload.mealTime.toUpperCase()}\n` +
-      `🔖 *No. Pesanan*: ${orderNumber}\n` +
-      `⏰ *Waktu Pesan*: ${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB\n\n` +
-      `📋 *MENU YANG DIPESAN*:\n${menuLines}\n\n` +
-      `💰 *Total Biaya*: *Rp ${totalPrice.toLocaleString('id-ID')}*\n` +
-      `🔥 *Total Kalori*: ${totalCalories} kkal\n\n` +
-      `📝 *Catatan Khusus*:\n${payload.patientNotes ? `"${payload.patientNotes}"` : '- Tidak ada catatan khusus -'}\n` +
-      `━━━━━━━━━━━━━━━━━━━━━\n` +
-      `_Pesanan telah terkirim langsung ke Dapur Gizi Rumah Sakit via NutriHospital (Fonnte Gateway)_`;
-
-    let waSent = false;
-    let waStatusText = 'Menyiapkan pengiriman ke WhatsApp Admin Gizi';
-
-    if (fonnteConfig.token) {
-      try {
-        const targetList = [fonnteConfig.targetNumber || '081573570843'];
-        const cleanPat = (payload.phoneNumber || '').replace(/[^0-9]/g, '');
-        const cleanAdm = (fonnteConfig.targetNumber || '081573570843').replace(/[^0-9]/g, '');
-        if (fonnteConfig.sendToPatient && cleanPat && cleanPat !== cleanAdm) {
-          targetList.push(payload.phoneNumber);
-        }
-        const formData = new URLSearchParams();
-        formData.append('target', targetList.join(','));
-        formData.append('message', waOrderMessage);
-        formData.append('countryCode', '62');
-
-        const directRes = await fetch('https://api.fonnte.com/send', {
-          method: 'POST',
-          headers: { Authorization: fonnteConfig.token },
-          body: formData,
-        });
-        const directData = await directRes.json();
-        if (directData.status === true || directData.status === 'true') {
-          waSent = true;
-          waStatusText = `Terkirim langsung ke WhatsApp Admin Gizi (${fonnteConfig.targetNumber || '081573570843'}) via Fonnte Gateway`;
-        } else {
-          waStatusText = `Gagal kirim otomatis via Fonnte: ${directData.reason || directData.detail || 'Perangkat disconnect'}`;
-        }
-      } catch (err: any) {
-        waStatusText = `Gagal kirim WhatsApp: ${err.message}`;
-      }
-    }
-
     const newOrder: HospitalOrder = {
       id: 'ord-' + Date.now(),
       orderNumber,
@@ -918,13 +767,6 @@ export class HospitalRealtimeService {
       statusHistory: [
         { status: 'baru', timestamp: now.toISOString(), note: 'Pesanan dibuat di sistem' }
       ],
-      whatsappNotification: {
-        sent: waSent,
-        targetNumber: fonnteConfig.targetNumber || '081573570843',
-        statusText: waStatusText,
-        timestamp: now.toISOString(),
-        message: waOrderMessage,
-      },
       simrsSync: {
         synced: false,
         statusText: 'Menghubungkan ke SIMRS...'
@@ -951,9 +793,6 @@ export class HospitalRealtimeService {
 
     return {
       order: newOrder,
-      waMessage: waOrderMessage,
-      waSent,
-      waStatusText,
       simrsSynced,
       simrsStatusText
     };
@@ -1958,198 +1797,6 @@ export class HospitalRealtimeService {
         message: errorMsg,
         error: errorMsg,
       };
-    }
-  }
-
-  // --- FONNTE WHATSAPP APIS ---
-  async getFonnteConfig(): Promise<{
-    tokenMasked: string;
-    targetNumber: string;
-    sendToAdmin: boolean;
-    sendToPatient: boolean;
-    isConfigured: boolean;
-  }> {
-    const local = getLocalFonnteConfig();
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
-      const res = await fetch('/api/fonnte/config', { signal: controller.signal });
-      clearTimeout(timeoutId);
-
-      const contentType = res.headers.get('content-type') || '';
-      if (res.ok && contentType.includes('application/json')) {
-        const data = await res.json();
-        if (data.isConfigured || !local.isConfigured) {
-          return data;
-        }
-      }
-    } catch {
-      // Fallback to local
-    }
-
-    return {
-      tokenMasked: local.tokenMasked,
-      targetNumber: local.targetNumber,
-      sendToAdmin: local.sendToAdmin,
-      sendToPatient: local.sendToPatient,
-      isConfigured: local.isConfigured,
-    };
-  }
-
-  async saveFonnteConfig(settings: {
-    token?: string;
-    targetNumber?: string;
-    sendToAdmin?: boolean;
-    sendToPatient?: boolean;
-  }): Promise<any> {
-    const savedLocal = saveLocalFonnteConfig(settings);
-
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2500);
-      const res = await fetch('/api/fonnte/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings),
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-
-      const contentType = res.headers.get('content-type') || '';
-      if (res.ok && contentType.includes('application/json')) {
-        return await res.json();
-      }
-    } catch {
-      // Vercel / offline fallback
-    }
-
-    return {
-      success: true,
-      message: 'Pengaturan WhatsApp Fonnte berhasil disimpan di browser!',
-      config: {
-        tokenMasked: savedLocal.tokenMasked,
-        targetNumber: savedLocal.targetNumber,
-        sendToAdmin: savedLocal.sendToAdmin,
-        sendToPatient: savedLocal.sendToPatient,
-        isConfigured: savedLocal.isConfigured,
-      },
-    };
-  }
-
-  async testFonnteWhatsApp(targetPhone: string, testToken?: string): Promise<{
-    success: boolean;
-    message: string;
-    data?: any;
-    error?: string;
-  }> {
-    const local = getLocalFonnteConfig();
-    const token = testToken !== undefined ? testToken : local.token;
-
-    // 1. Coba via backend
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
-      const res = await fetch('/api/fonnte/test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ targetPhone, testToken: token }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-
-      const contentType = res.headers.get('content-type') || '';
-      if (contentType.includes('application/json')) {
-        const backendRes = await res.json();
-        return {
-          success: Boolean(backendRes.success),
-          message: backendRes.message || backendRes.error || (backendRes.success ? 'Pesan berhasil dikirim!' : 'Gagal mengirim pesan'),
-          error: backendRes.error,
-          data: backendRes.data,
-        };
-      }
-    } catch {
-      // Vercel / offline fallback
-    }
-
-    // 2. Uji langsung ke API Fonnte jika token tersedia
-    if (!token) {
-      throw new Error('Fonnte Token belum diisi. Masukkan token Fonnte Anda.');
-    }
-
-    const formattedTarget = targetPhone.replace(/[^0-9]/g, '');
-    try {
-      const formData = new URLSearchParams();
-      formData.append('target', formattedTarget);
-      formData.append('message', `*UJI COBA NOTIFIKASI GIZI RS*\n\nKoneksi WhatsApp Gateway Fonnte berhasil aktif untuk instalasi gizi rumah sakit. Waktu: ${new Date().toLocaleTimeString('id-ID')}`);
-      formData.append('countryCode', '62');
-
-      const res = await fetch('https://api.fonnte.com/send', {
-        method: 'POST',
-        headers: {
-          Authorization: token,
-        },
-        body: formData,
-      });
-      const data = await res.json();
-      if (res.ok && (data.status === true || data.status === 'true')) {
-        return {
-          success: true,
-          message: 'Pesan uji coba WhatsApp berhasil dikirim via Fonnte Gateway!',
-          data,
-        };
-      } else {
-        let errorText = data.reason || data.message || 'Fonnte menolak pengiriman pesan';
-        if (data.reason === 'request invalid on disconnected device' || String(data.reason).includes('disconnected device')) {
-          errorText = 'Perangkat WhatsApp di Fonnte berstatus DISCONNECT (belum scan QR code atau sesi terputus). Silakan buka https://md.fonnte.com dan scan QR code pada device Anda.';
-        }
-        return {
-          success: false,
-          message: errorText,
-          error: errorText,
-          data,
-        };
-      }
-    } catch (err: any) {
-      const errorText = `Gagal mengirim WhatsApp langsung: ${err.message}. Pastikan CORS diizinkan atau gunakan backend server.`;
-      return {
-        success: false,
-        message: errorText,
-        error: errorText,
-      };
-    }
-  }
-
-  async getFonnteDeviceStatus(token?: string): Promise<{
-    success: boolean;
-    data?: any;
-    error?: string;
-  }> {
-    const local = getLocalFonnteConfig();
-    const effectiveToken = token !== undefined && token.trim() !== '' ? token.trim() : local.token;
-    if (!effectiveToken) {
-      return { success: false, error: 'Token Fonnte belum diatur' };
-    }
-
-    try {
-      const res = await fetch('/api/fonnte/device', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: effectiveToken }),
-      });
-      if (res.ok) {
-        return await res.json();
-      }
-    } catch {}
-
-    try {
-      const direct = await fetch('https://api.fonnte.com/device', {
-        method: 'POST',
-        headers: { Authorization: effectiveToken },
-      });
-      const data = await direct.json();
-      return { success: true, data };
-    } catch (e: any) {
-      return { success: false, error: e.message || 'Gagal mengecek status device Fonnte' };
     }
   }
 

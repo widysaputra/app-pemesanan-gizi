@@ -4,7 +4,6 @@ import {
   HospitalOrder, 
   OrderStatus, 
   MenuCategory,
-  FonnteSettings,
   SimrsSettings 
 } from '../types';
 import { realtimeService } from '../services/api';
@@ -56,7 +55,9 @@ import {
   Wifi,
   WifiOff,
   FileSpreadsheet,
-  Printer
+  Printer,
+  Save,
+  X
 } from 'lucide-react';
 import {
   SQL_PESANAN_GIZI_TABLE,
@@ -75,7 +76,7 @@ interface AdminDashboardProps {
   onResetDemo?: () => Promise<void>;
 }
 
-type AdminTab = 'menu' | 'orders' | 'recap' | 'fonnte' | 'simrs' | 'security';
+type AdminTab = 'menu' | 'orders' | 'recap' | 'simrs' | 'security';
 
 const CATEGORY_LABELS: Record<string, string> = {
   all: 'Semua Kategori',
@@ -118,6 +119,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [savedStatusOrderId, setSavedStatusOrderId] = useState<string | null>(null);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
   const [selectedEtiketOrder, setSelectedEtiketOrder] = useState<HospitalOrder | null>(null);
+  const [pendingStatusMap, setPendingStatusMap] = useState<Record<string, OrderStatus>>({});
 
   // Status Change Handler with zero-latency response & feedback
   const handleOrderStatusChange = async (orderId: string, newStatus: OrderStatus) => {
@@ -125,6 +127,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     try {
       await onUpdateStatus(orderId, newStatus);
       setSavedStatusOrderId(orderId);
+      setPendingStatusMap((prev) => {
+        const next = { ...prev };
+        delete next[orderId];
+        return next;
+      });
       setTimeout(() => {
         setSavedStatusOrderId((cur) => (cur === orderId ? null : cur));
       }, 2500);
@@ -135,27 +142,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  // Fonnte Settings States
-  const [fonnteToken, setFonnteToken] = useState<string>('');
-  const [fonnteTarget, setFonnteTarget] = useState<string>('083822156432');
-  const [sendToAdmin, setSendToAdmin] = useState<boolean>(true);
-  const [sendToPatient, setSendToPatient] = useState<boolean>(true);
-  const [showToken, setShowToken] = useState<boolean>(false);
-  const [isFonnteLoaded, setIsFonnteLoaded] = useState<boolean>(false);
-  const [fonnteNotice, setFonnteNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [isSavingFonnte, setIsSavingFonnte] = useState<boolean>(false);
-
-  // Fonnte Test Tool & Device Health
-  const [testPhone, setTestPhone] = useState<string>('083822156432');
-  const [isTestingFonnte, setIsTestingFonnte] = useState<boolean>(false);
-  const [testResult, setTestResult] = useState<any | null>(null);
-  const [isCheckingDevice, setIsCheckingDevice] = useState<boolean>(false);
-  const [deviceStatusResult, setDeviceStatusResult] = useState<any | null>(null);
-
   // SIMRS (PostgreSQL & Laravel API) Integration States
   const [simrsApiUrl, setSimrsApiUrl] = useState<string>('http://localhost:8000/api/save-pesanan-gizi');
   const [simrsApiKey, setSimrsApiKey] = useState<string>('');
   const [simrsApiKeyMasked, setSimrsApiKeyMasked] = useState<string>('');
+  const [showToken, setShowToken] = useState<boolean>(false);
   const [hasServerToken, setHasServerToken] = useState<boolean>(false);
   const [simrsAuthHeaderType, setSimrsAuthHeaderType] = useState<'X-AUTH-TOKEN' | 'Bearer' | 'Both'>('X-AUTH-TOKEN');
   const [simrsAutoSync, setSimrsAutoSync] = useState<boolean>(true);
@@ -219,21 +210,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  // Load Fonnte & SIMRS Config on mount
+  // Load SIMRS Config on mount
   React.useEffect(() => {
     const fetchConfigs = async () => {
-      try {
-        const config = await realtimeService.getFonnteConfig();
-        if (config) {
-          setFonnteTarget(config.targetNumber || '083822156432');
-          setSendToAdmin(config.sendToAdmin !== false);
-          setSendToPatient(config.sendToPatient !== false);
-          setIsFonnteLoaded(true);
-        }
-      } catch (err) {
-        console.warn('Could not fetch Fonnte config', err);
-      }
-
       try {
         const simrsConfig = await realtimeService.getSimrsConfig();
         if (simrsConfig) {
@@ -359,75 +338,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const handleSaveQuickPrice = async (id: string) => {
     await realtimeService.updateMenuItem(id, { price: quickPriceValue });
     setQuickPriceEditId(null);
-  };
-
-  // Handlers for Fonnte Settings
-  const handleSaveFonnteSettings = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSavingFonnte(true);
-    setFonnteNotice(null);
-    try {
-      const payload: any = {
-        targetNumber: fonnteTarget,
-        sendToAdmin,
-        sendToPatient,
-      };
-      if (fonnteToken.trim()) {
-        payload.token = fonnteToken.trim();
-      }
-      await realtimeService.saveFonnteConfig(payload);
-      setFonnteNotice({
-        type: 'success',
-        text: 'Pengaturan WhatsApp Fonnte berhasil disimpan & diaktifkan!',
-      });
-      setFonnteToken('');
-    } catch (err: any) {
-      setFonnteNotice({
-        type: 'error',
-        text: err.message || 'Gagal menyimpan konfigurasi Fonnte.',
-      });
-    } finally {
-      setIsSavingFonnte(false);
-    }
-  };
-
-  const handleTestFonnte = async () => {
-    if (!testPhone.trim() && !fonnteTarget.trim()) {
-      alert('Masukkan nomor WhatsApp tujuan uji coba');
-      return;
-    }
-    setIsTestingFonnte(true);
-    setTestResult(null);
-    try {
-      const phoneToTest = testPhone.trim() || fonnteTarget.trim();
-      const res = await realtimeService.testFonnteWhatsApp(phoneToTest, fonnteToken.trim() || undefined);
-      setTestResult({
-        success: Boolean(res.success),
-        message: res.message || res.error || (res.success ? 'Pesan uji coba berhasil dikirim via Fonnte Gateway!' : 'Gagal mengirim pesan'),
-        data: res.data,
-      });
-    } catch (err: any) {
-      setTestResult({ success: false, message: err.message });
-    } finally {
-      setIsTestingFonnte(false);
-    }
-  };
-
-  const handleCheckDeviceStatus = async () => {
-    setIsCheckingDevice(true);
-    setDeviceStatusResult(null);
-    try {
-      const res = await realtimeService.getFonnteDeviceStatus(fonnteToken.trim() || undefined);
-      if (res.success) {
-        setDeviceStatusResult({ success: true, data: res.data });
-      } else {
-        setDeviceStatusResult({ success: false, error: res.error || 'Gagal mengecek status perangkat Fonnte.' });
-      }
-    } catch (err: any) {
-      setDeviceStatusResult({ success: false, error: err.message || 'Gagal memeriksa status perangkat.' });
-    } finally {
-      setIsCheckingDevice(false);
-    }
   };
 
   // Handlers for SIMRS Integration (PostgreSQL + Laravel)
@@ -643,10 +553,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </button>
           </div>
           <h2 className="text-xl font-black text-slate-900 mt-1">
-            Dashboard Manajemen Menu &amp; Integrasi WhatsApp
+            Dashboard Manajemen Menu &amp; Instalasi Gizi
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Atur ketersediaan menu, ubah harga satuan (Rp), pantau pesanan kamar, hubungkan Fonnte WhatsApp Gateway, dan kelola kata sandi admin.
+            Atur ketersediaan menu, ubah harga satuan (Rp), pantau pesanan kamar, integrasi SIMRS, dan kelola kata sandi admin.
           </p>
         </div>
 
@@ -702,19 +612,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <span className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-100 text-emerald-800 font-extrabold font-mono">
               XLSX
             </span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('fonnte')}
-            className={`px-3.5 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
-              activeTab === 'fonnte'
-                ? 'bg-white text-emerald-700 shadow-xs ring-1 ring-emerald-300'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <MessageCircle className="w-4 h-4 text-emerald-600" />
-            <span>Integrasi Fonnte</span>
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
           </button>
 
           <button
@@ -1084,7 +981,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           {/* Orders Cards List */}
           <div className="space-y-3">
             {filteredOrders.map((order) => {
-              const statusInfo = STATUS_BADGES[order.status] || STATUS_BADGES.baru;
+              const currentPendingStatus = pendingStatusMap[order.id] || order.status;
+              const isStatusModified = pendingStatusMap[order.id] !== undefined && pendingStatusMap[order.id] !== order.status;
+              const statusInfo = STATUS_BADGES[currentPendingStatus] || STATUS_BADGES.baru;
               
               // Clean phone for WhatsApp Web direct link
               const cleanPhone = order.phoneNumber.replace(/[^0-9]/g, '');
@@ -1153,17 +1052,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </div>
                     </div>
 
-                    {/* Right: Order Status Selector & Quick Actions */}
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
+                    {/* Right: Order Status Selector & Save / Quick Actions */}
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 flex-wrap">
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-slate-500 font-semibold">Status:</span>
                         <div className="relative">
                           <select
-                            value={order.status}
-                            onChange={(e) => handleOrderStatusChange(order.id, e.target.value as OrderStatus)}
+                            value={currentPendingStatus}
+                            onChange={(e) => {
+                              const newStatus = e.target.value as OrderStatus;
+                              setPendingStatusMap((prev) => ({
+                                ...prev,
+                                [order.id]: newStatus,
+                              }));
+                            }}
                             disabled={updatingOrderId === order.id}
                             className={`text-xs font-bold px-3 py-1.5 rounded-xl border cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors ${statusInfo.bg} ${updatingOrderId === order.id ? 'opacity-60' : ''}`}
-                            title="Pilih status (otomatis langsung tersimpan saat dipilih)"
+                            title="Pilih status pesanan di dropdown"
                           >
                             <option value="baru">Baru</option>
                             <option value="diproses">Sedang Disiapkan</option>
@@ -1174,47 +1079,78 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </div>
                       </div>
 
-                      {/* Quick Status One-Click Action Buttons */}
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        {order.status === 'baru' && (
+                      {/* Tombol Simpan Perubahan Status (Muncul saat dropdown diubah) */}
+                      {isStatusModified ? (
+                        <div className="flex items-center gap-1.5 animate-in fade-in zoom-in-95 duration-150">
                           <button
                             type="button"
-                            onClick={() => handleOrderStatusChange(order.id, 'diproses')}
+                            onClick={() => handleOrderStatusChange(order.id, currentPendingStatus)}
                             disabled={updatingOrderId === order.id}
-                            className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-amber-500 hover:bg-amber-600 active:scale-95 text-white shadow-xs transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                            title="Klik untuk langsung ubah status ke 'Sedang Disiapkan'"
+                            className="px-3 py-1.5 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white shadow-sm transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 ring-2 ring-emerald-300"
+                            title="Klik untuk menyimpan perubahan status"
                           >
-                            <span>⏳ Siapkan</span>
+                            <Save className="w-3.5 h-3.5" />
+                            <span>{updatingOrderId === order.id ? 'Menyimpan...' : 'Simpan'}</span>
                           </button>
-                        )}
-                        {(order.status === 'baru' || order.status === 'diproses') && (
                           <button
                             type="button"
-                            onClick={() => handleOrderStatusChange(order.id, 'diantar')}
+                            onClick={() => {
+                              setPendingStatusMap((prev) => {
+                                const next = { ...prev };
+                                delete next[order.id];
+                                return next;
+                              });
+                            }}
                             disabled={updatingOrderId === order.id}
-                            className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-blue-600 hover:bg-blue-700 active:scale-95 text-white shadow-xs transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                            title="Klik untuk langsung ubah status ke 'Sedang Diantar'"
+                            className="px-2.5 py-1.5 text-xs font-semibold rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 transition-all cursor-pointer"
+                            title="Batalkan perubahan pilihan status"
                           >
-                            <span>🛵 Antar</span>
+                            <X className="w-3.5 h-3.5" />
                           </button>
-                        )}
-                        {order.status !== 'selesai' && order.status !== 'dibatalkan' && (
-                          <button
-                            type="button"
-                            onClick={() => handleOrderStatusChange(order.id, 'selesai')}
-                            disabled={updatingOrderId === order.id}
-                            className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white shadow-xs transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                            title="Klik untuk langsung tandai pesanan 'Selesai Diterima'"
-                          >
-                            <Check className="w-3 h-3 text-white" />
-                            <span>Selesai</span>
-                          </button>
-                        )}
-                      </div>
+                        </div>
+                      ) : (
+                        /* Quick Status One-Click Action Buttons */
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {order.status === 'baru' && (
+                            <button
+                              type="button"
+                              onClick={() => handleOrderStatusChange(order.id, 'diproses')}
+                              disabled={updatingOrderId === order.id}
+                              className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-amber-500 hover:bg-amber-600 active:scale-95 text-white shadow-xs transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                              title="Klik untuk langsung ubah status ke 'Sedang Disiapkan'"
+                            >
+                              <span>⏳ Siapkan</span>
+                            </button>
+                          )}
+                          {(order.status === 'baru' || order.status === 'diproses') && (
+                            <button
+                              type="button"
+                              onClick={() => handleOrderStatusChange(order.id, 'diantar')}
+                              disabled={updatingOrderId === order.id}
+                              className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-blue-600 hover:bg-blue-700 active:scale-95 text-white shadow-xs transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                              title="Klik untuk langsung ubah status ke 'Sedang Diantar'"
+                            >
+                              <span>🛵 Antar</span>
+                            </button>
+                          )}
+                          {order.status !== 'selesai' && order.status !== 'dibatalkan' && (
+                            <button
+                              type="button"
+                              onClick={() => handleOrderStatusChange(order.id, 'selesai')}
+                              disabled={updatingOrderId === order.id}
+                              className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white shadow-xs transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                              title="Klik untuk langsung tandai pesanan 'Selesai Diterima'"
+                            >
+                              <Check className="w-3 h-3 text-white" />
+                              <span>Selesai</span>
+                            </button>
+                          )}
+                        </div>
+                      )}
 
                       {/* Instant Live Saved Badge */}
                       {savedStatusOrderId === order.id && (
-                        <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300 animate-pulse">
+                        <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300 animate-pulse">
                           <Check className="w-3 h-3 text-emerald-600" />
                           <span>Status Terupdate!</span>
                         </div>
@@ -1270,7 +1206,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <div className="flex items-center gap-1.5 text-emerald-800">
                           <MessageCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                           <span className="text-[11px] font-semibold truncate">
-                            {order.whatsappNotification?.statusText || 'Status WhatsApp: Disiapkan'}
+                            Direct Chat WhatsApp Pasien
                           </span>
                         </div>
                         <a
@@ -1279,7 +1215,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           rel="noopener noreferrer"
                           className="text-[11px] font-bold text-emerald-700 hover:underline shrink-0"
                         >
-                          Kirim WA Ulang &rarr;
+                          Kirim Pesan WA &rarr;
                         </a>
                       </div>
 
@@ -1338,465 +1274,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       )}
 
       {/* ========================================================
-          TAB 3: INTEGRASI WHATSAPP FONNTE
-          ======================================================== */}
-      {activeTab === 'fonnte' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          {/* Left 2 Cols: Settings Form & Instructions */}
-          <div className="lg:col-span-2 space-y-4">
-            
-            {/* Guide Card */}
-            <div className="bg-gradient-to-br from-emerald-900 to-teal-950 text-white rounded-2xl p-5 shadow-md space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-emerald-500/20 rounded-xl text-emerald-300">
-                  <MessageCircle className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-base text-white">Panduan Integrasi WhatsApp Fonnte</h3>
-                  <p className="text-xs text-emerald-200">Gateway WhatsApp Resmi &amp; Otomatis untuk Notifikasi Pesanan Pasien</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 text-xs">
-                <div className="bg-white/10 p-3 rounded-xl border border-white/10">
-                  <div className="font-bold text-emerald-300 mb-1">1. Buat Akun Fonnte</div>
-                  <p className="text-slate-200 text-[11px] leading-relaxed">
-                    Kunjungi <a href="https://fonnte.com" target="_blank" rel="noreferrer" className="underline text-emerald-300 font-bold">fonnte.com</a> dan daftar akun gratis.
-                  </p>
-                </div>
-                <div className="bg-white/10 p-3 rounded-xl border border-white/10">
-                  <div className="font-bold text-emerald-300 mb-1">2. Scan WhatsApp</div>
-                  <p className="text-slate-200 text-[11px] leading-relaxed">
-                    Masuk ke menu <strong>Device</strong> di Fonnte lalu scan QR WhatsApp Rumah Sakit / Dapur.
-                  </p>
-                </div>
-                <div className="bg-white/10 p-3 rounded-xl border border-white/10">
-                  <div className="font-bold text-emerald-300 mb-1">3. Salin Token API</div>
-                  <p className="text-slate-200 text-[11px] leading-relaxed">
-                    Salin <strong>Token</strong> yang ada di dashboard Fonnte lalu tempelkan pada kolom formulir di bawah.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Fonnte Configuration Form */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div>
-                  <h4 className="font-bold text-slate-900 text-sm">Konfigurasi Token Fonnte</h4>
-                  <p className="text-xs text-slate-500">Kredensial disimpan aman di server backend untuk mengirim pesan WhatsApp.</p>
-                </div>
-                <div className="flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 font-bold">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Fonnte API v1</span>
-                </div>
-              </div>
-
-              {fonnteNotice && (
-                <div className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
-                  fonnteNotice.type === 'success'
-                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                    : 'bg-rose-50 text-rose-800 border border-rose-200'
-                }`}>
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{fonnteNotice.text}</span>
-                </div>
-              )}
-
-              <form onSubmit={handleSaveFonnteSettings} className="space-y-4">
-                {/* Token Input */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Token API Fonnte
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showToken ? 'text' : 'password'}
-                      value={fonnteToken}
-                      onChange={(e) => setFonnteToken(e.target.value)}
-                      placeholder="Masukkan token Fonnte (contoh: aB12cDeF34gH56...)"
-                      className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowToken(!showToken)}
-                      className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
-                    >
-                      {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  <p className="text-[11px] text-slate-400 mt-1">
-                    Token ini digunakan untuk mengirim pesan otomatis saat pasien menekan tombol pesan.
-                  </p>
-                </div>
-
-                {/* Target Number */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Nomor WhatsApp Tujuan Dapur / Staf Gizi RS
-                  </label>
-                  <input
-                    type="text"
-                    value={fonnteTarget}
-                    onChange={(e) => setFonnteTarget(e.target.value)}
-                    placeholder="Contoh: 08123456789 atau 628123456789"
-                    className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    required
-                  />
-                  <p className="text-[11px] text-slate-400 mt-1">
-                    Setiap ada pasien memesan menu, pesan rincian pesanan akan langsung dikirimkan ke nomor WhatsApp ini.
-                  </p>
-                </div>
-
-                {/* Options */}
-                <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2">
-                  <label className="flex items-center gap-2.5 text-xs text-slate-700 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={sendToAdmin}
-                      onChange={(e) => setSendToAdmin(e.target.checked)}
-                      className="rounded text-emerald-600 focus:ring-emerald-500"
-                    />
-                    <span className="font-semibold">Kirim notifikasi otomatis ke WhatsApp Dapur / Petugas Gizi</span>
-                  </label>
-                  <label className="flex items-center gap-2.5 text-xs text-slate-700 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={sendToPatient}
-                      onChange={(e) => setSendToPatient(e.target.checked)}
-                      className="rounded text-emerald-600 focus:ring-emerald-500"
-                    />
-                    <span className="font-semibold">Kirim juga salinan konfirmasi ke WhatsApp Pasien Pemesan</span>
-                  </label>
-                </div>
-
-                <div className="pt-2 flex justify-end">
-                  <button
-                    type="submit"
-                    disabled={isSavingFonnte}
-                    className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
-                  >
-                    <ShieldCheck className="w-4 h-4" />
-                    <span>{isSavingFonnte ? 'Menyimpan...' : 'Simpan Pengaturan Fonnte'}</span>
-                  </button>
-                </div>
-              </form>
-            </div>
-
-            {/* Test WhatsApp Delivery Console */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-3">
-              <div className="flex items-center gap-2">
-                <Send className="w-4 h-4 text-emerald-600" />
-                <h4 className="font-bold text-slate-900 text-sm">Uji Coba Pengiriman Pesan WhatsApp (Live Test)</h4>
-              </div>
-              <p className="text-xs text-slate-500">
-                Kirimkan pesan uji coba langsung ke nomor WhatsApp Anda untuk memverifikasi apakah akun Fonnte sudah aktif dan terhubung dengan benar.
-              </p>
-
-              <div className="flex flex-col sm:flex-row gap-2 pt-1">
-                <input
-                  type="text"
-                  value={testPhone}
-                  onChange={(e) => setTestPhone(e.target.value)}
-                  placeholder={`Nomor penerima (default: ${fonnteTarget})`}
-                  className="flex-1 px-3 py-2 text-xs font-mono rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-                <button
-                  onClick={handleTestFonnte}
-                  disabled={isTestingFonnte}
-                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer shrink-0 flex items-center justify-center gap-1.5 disabled:opacity-50"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>{isTestingFonnte ? 'Mengirim...' : 'Kirim Pesan Tes'}</span>
-                </button>
-              </div>
-
-              {testResult && (
-                <div className={`p-3 rounded-xl text-xs font-mono space-y-1.5 ${
-                  testResult.success
-                    ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
-                    : 'bg-rose-50 border border-rose-200 text-rose-800'
-                }`}>
-                  <div className="font-bold text-xs">
-                    {testResult.success ? '✅ Berhasil!' : '❌ Gagal:'} {testResult.message}
-                  </div>
-                  {testResult.data && (
-                    <pre className="text-[10px] overflow-x-auto pt-1 text-slate-700 bg-white/70 p-2 rounded">
-                      {JSON.stringify(testResult.data, null, 2)}
-                    </pre>
-                  )}
-
-                  {/* If failure is caused by disconnected device, provide clear step-by-step resolution */}
-                  {!testResult.success && (
-                    (testResult.message?.toLowerCase().includes('disconnect') ||
-                     testResult.message?.toLowerCase().includes('terputus') ||
-                     testResult.data?.reason?.includes('disconnected device'))
-                  ) && (
-                    <div className="mt-2 p-3 bg-amber-50 border border-amber-300 rounded-xl text-xs font-sans text-amber-950 space-y-2">
-                      <div className="font-bold flex items-center gap-1.5 text-amber-900">
-                        <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                        <span>Penyebab: Perangkat WhatsApp di Fonnte Berstatus "DISCONNECT"</span>
-                      </div>
-                      <p className="text-[11px] text-amber-900 leading-relaxed">
-                        Fonnte berfungsi sebagai jembatan WhatsApp Web. Karena perangkat belum terhubung atau sesi WhatsApp di HP terputus, Fonnte menolak pengiriman pesan dengan alasan <code>request invalid on disconnected device</code>.
-                      </p>
-                      <div className="bg-white/90 p-2.5 rounded-lg border border-amber-200 text-[11px] space-y-1 text-slate-800">
-                        <div className="font-bold text-slate-900">Langkah Menghubungkan (Scan QR Fonnte):</div>
-                        <ol className="list-decimal list-inside space-y-1 text-slate-700">
-                          <li>Buka situs <a href="https://md.fonnte.com" target="_blank" rel="noreferrer" className="text-emerald-700 font-bold underline">https://md.fonnte.com</a> lalu login ke akun Anda.</li>
-                          <li>Masuk ke menu <strong>Device</strong> &rarr; cari nama device Anda (misal: <em>app-pemesanan-gizi</em> / <em>6281394947002</em>).</li>
-                          <li>Klik tombol <strong>Connect</strong> atau <strong>Scan QR</strong> hingga QR Code tampil di layar laptop/komputer.</li>
-                          <li>Buka WhatsApp di HP Anda (<strong>{testPhone || fonnteTarget || '083822156432'}</strong>) &rarr; Pengaturan / Titik Tiga &rarr; <strong>Perangkat Tertaut (Linked Devices) &rarr; Tautkan Perangkat</strong>.</li>
-                          <li>Arahkan kamera HP ke QR Code tersebut sampai status di Fonnte berubah hijau: <span className="text-emerald-700 font-bold">"Connect"</span>.</li>
-                          <li>Setelah itu, klik tombol <strong>"Kirim Pesan Tes"</strong> lagi dan pesan akan langsung masuk!</li>
-                        </ol>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Admin Password Management Card */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center">
-                    <KeyRound className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-slate-900 text-sm">Keamanan &amp; Kata Sandi Akun Admin</h4>
-                    <p className="text-xs text-slate-500">Atur kata sandi yang digunakan untuk membuka Dashboard Admin.</p>
-                  </div>
-                </div>
-                <div className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 flex items-center gap-1.5">
-                  <Lock className="w-3 h-3 text-emerald-600" />
-                  <span>Proteksi Sandi Aktif</span>
-                </div>
-              </div>
-
-              {pwdNotice && (
-                <div className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
-                  pwdNotice.type === 'success'
-                    ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
-                    : 'bg-rose-50 border border-rose-200 text-rose-800'
-                }`}>
-                  <CheckCircle className="w-4 h-4 shrink-0" />
-                  <span>{pwdNotice.text}</span>
-                </div>
-              )}
-
-              <form onSubmit={handleUpdateAdminPassword} className="space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Kata Sandi Baru
-                    </label>
-                    <input
-                      type="password"
-                      value={newPasswordVal}
-                      onChange={(e) => setNewPasswordVal(e.target.value)}
-                      placeholder="Masukkan kata sandi baru..."
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Ulangi Kata Sandi Baru
-                    </label>
-                    <input
-                      type="password"
-                      value={confirmPasswordVal}
-                      onChange={(e) => setConfirmPasswordVal(e.target.value)}
-                      placeholder="Konfirmasi kata sandi baru..."
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
-                  <span className="text-[11px] text-slate-500">
-                    Kata sandi saat ini: <code className="bg-slate-100 px-1.5 py-0.5 rounded font-mono text-slate-700">{currentAdminPassword || '(Belum diatur)'}</code>
-                  </span>
-                  <button
-                    type="submit"
-                    disabled={isUpdatingPassword}
-                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
-                  >
-                    <Lock className="w-3.5 h-3.5" />
-                    <span>{isUpdatingPassword ? 'Menyimpan...' : 'Perbarui Kata Sandi'}</span>
-                  </button>
-                </div>
-              </form>
-            </div>
-
-          </div>
-
-          {/* Right Col: Live WhatsApp Message Template Preview & Device Health */}
-          <div className="space-y-4">
-            {/* Live Device Status Card */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Smartphone className="w-4 h-4 text-emerald-600" />
-                  <h4 className="font-bold text-slate-900 text-sm">Status Perangkat Fonnte (Device)</h4>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleCheckDeviceStatus}
-                  disabled={isCheckingDevice}
-                  className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
-                  title="Cek apakah WhatsApp di Fonnte Connect atau Disconnect"
-                >
-                  <RefreshCw className={`w-3 h-3 ${isCheckingDevice ? 'animate-spin' : ''}`} />
-                  <span>{isCheckingDevice ? 'Mengecek...' : 'Cek Status'}</span>
-                </button>
-              </div>
-
-              <p className="text-xs text-slate-500">
-                Memverifikasi apakah perangkat WhatsApp rumah sakit di Fonnte sudah ditautkan (Connect) atau masih terputus (Disconnect).
-              </p>
-
-              {deviceStatusResult ? (
-                deviceStatusResult.success ? (
-                  <div className="space-y-2.5">
-                    <div className={`p-3 rounded-xl border text-xs flex items-center justify-between ${
-                      deviceStatusResult.data?.device_status === 'connect'
-                        ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-                        : 'bg-rose-50 border-rose-200 text-rose-900'
-                    }`}>
-                      <div className="flex items-center gap-2">
-                        {deviceStatusResult.data?.device_status === 'connect' ? (
-                          <Wifi className="w-4 h-4 text-emerald-600 shrink-0" />
-                        ) : (
-                          <WifiOff className="w-4 h-4 text-rose-600 shrink-0" />
-                        )}
-                        <div>
-                          <div className="font-bold uppercase tracking-wide text-[11px]">
-                            Status: {deviceStatusResult.data?.device_status || 'Unknown'}
-                          </div>
-                          <div className="text-[11px] opacity-80">
-                            Device: {deviceStatusResult.data?.device || '-'} ({deviceStatusResult.data?.name || '-'})
-                          </div>
-                        </div>
-                      </div>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        deviceStatusResult.data?.device_status === 'connect'
-                          ? 'bg-emerald-200 text-emerald-800'
-                          : 'bg-rose-200 text-rose-800'
-                      }`}>
-                        {deviceStatusResult.data?.device_status === 'connect' ? 'ONLINE' : 'OFFLINE'}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                      <div>
-                        <span className="text-slate-400 block text-[10px]">Paket Fonnte:</span>
-                        <span className="font-semibold text-slate-800">{deviceStatusResult.data?.package || 'Free'}</span>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 block text-[10px]">Sisa Kuota:</span>
-                        <span className="font-semibold text-slate-800">{deviceStatusResult.data?.quota || '0'} pesan</span>
-                      </div>
-                      <div className="col-span-2 pt-1 border-t border-slate-200">
-                        <span className="text-slate-400 block text-[10px]">Masa Aktif Paket:</span>
-                        <span className="font-semibold text-slate-800">{deviceStatusResult.data?.expired || '-'}</span>
-                      </div>
-                    </div>
-
-                    {deviceStatusResult.data?.device_status === 'disconnect' && (
-                      <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900 space-y-1">
-                        <div className="font-bold flex items-center gap-1 text-amber-800">
-                          <AlertCircle className="w-3.5 h-3.5" />
-                          <span>Perangkat Belum Ditautkan</span>
-                        </div>
-                        <p className="text-[10px] leading-relaxed">
-                          Pesan tidak akan masuk selama device disconnect. Silakan login ke <a href="https://md.fonnte.com" target="_blank" rel="noreferrer" className="underline font-bold text-emerald-700">md.fonnte.com</a> &rarr; menu Device &rarr; klik <strong>Connect</strong> &rarr; lalu scan QR dengan WhatsApp HP Anda.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800">
-                    <div className="font-bold">Gagal memeriksa status:</div>
-                    <div className="text-[11px] mt-0.5">{deviceStatusResult.error}</div>
-                  </div>
-                )
-              ) : (
-                <div className="p-3 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-center space-y-1">
-                  <span className="text-xs text-slate-500">Klik tombol di atas untuk melihat status koneksi perangkat Fonnte secara langsung.</span>
-                </div>
-              )}
-            </div>
-
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
-              <div className="flex items-center gap-2">
-                <MessageCircle className="w-4 h-4 text-emerald-600" />
-                <h4 className="font-bold text-slate-900 text-sm">Pratinjau Format Pesan WhatsApp</h4>
-              </div>
-              <p className="text-xs text-slate-500">
-                Pesan WhatsApp yang dikirimkan ke Fonnte otomatis memuat informasi lengkap: Nama Kamar, Menu yang Dipesan, No. Telepon, dan Total Biaya.
-              </p>
-
-              {/* Mock WhatsApp Chat Bubble */}
-              <div className="bg-[#EFEAE2] p-4 rounded-2xl border border-slate-300 shadow-inner">
-                <div className="bg-white p-3.5 rounded-2xl rounded-tl-xs shadow-xs text-xs space-y-2 text-slate-800 font-sans leading-relaxed">
-                  <div className="font-bold text-emerald-700">🏥 PESANAN MENU RUMAH SAKIT</div>
-                  <div className="border-b border-slate-200 pb-1 text-[11px] space-y-0.5">
-                    <div>🚪 <strong>Nama Kamar:</strong> Kamar Mawar 201 - Bed 01</div>
-                    <div>👤 <strong>Nama Pasien:</strong> Ny. Siti Rahmawati</div>
-                    <div>📱 <strong>No. Telepon:</strong> 081298765432</div>
-                    <div>🍽️ <strong>Waktu Makan:</strong> Makan SIANG</div>
-                    <div>🔖 <strong>No. Pesanan:</strong> GZ-20260908-01</div>
-                  </div>
-
-                  <div className="text-[11px] space-y-1">
-                    <div className="font-bold text-slate-900">📋 DAFTAR MENU YANG DIPESAN:</div>
-                    <div className="pl-1 text-slate-700">1. Nasi Putih Pulen Organik x 1 porsi</div>
-                    <div className="pl-1 text-slate-700">2. Ayam Panggang Bumbu Kuning x 1 porsi</div>
-                    <div className="pl-1 text-slate-700">3. Sayur Bening Bayam Jagung x 1 porsi</div>
-                  </div>
-
-                  <div className="border-t border-slate-200 pt-1 text-[11px] space-y-0.5">
-                    <div>💰 <strong>Total Tagihan:</strong> <span className="text-emerald-700 font-bold">Rp 37.000</span></div>
-                    <div>🔥 <strong>Total Kalori:</strong> 405 kkal</div>
-                    <div>📝 <strong>Catatan:</strong> "Kuah sayur hangat, tanpa pedas"</div>
-                  </div>
-
-                  <div className="text-[9px] text-slate-400 text-right pt-1">
-                    12:30 WIB &bull; Terkirim via NutriHospital Fonnte
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-3 bg-slate-50 rounded-xl text-[11px] text-slate-600 border border-slate-200 space-y-1">
-                <div className="font-bold text-slate-800">💡 Tips Penggunaan:</div>
-                <p>
-                  Setiap pesanan yang dibuat oleh pasien akan otomatis diproses dan dikirimkan langsung ke nomor WhatsApp Admin Dapur Gizi melalui integrasi gateway Fonnte.
-                </p>
-              </div>
-
-              {onResetDemo && (
-                <div className="pt-2">
-                  <button
-                    onClick={onResetDemo}
-                    className="w-full py-2 px-3 text-xs text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 font-semibold rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    <span>Reset Data Menu &amp; Pesanan Demo</span>
-                  </button>
-                </div>
-              )}
-
-            </div>
-          </div>
-
-        </div>
-      )}
-
-      {/* ========================================================
-          TAB 4: INTEGRASI DATABASE SIMRS (POSTGRESQL & LARAVEL)
+          TAB 3: INTEGRASI DATABASE SIMRS (POSTGRESQL & LARAVEL)
           ======================================================== */}
       {activeTab === 'simrs' && (
         <div className="space-y-6">

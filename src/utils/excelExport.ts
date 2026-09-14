@@ -306,7 +306,7 @@ export function exportOrdersToExcel(
       { value: 'Total Biaya (Rp)', styleId: 'HeaderStyle' },
       { value: 'Status Pesanan', styleId: 'HeaderStyle' },
       { value: 'Catatan Khusus', styleId: 'HeaderStyle' },
-      { value: 'Notifikasi WA', styleId: 'HeaderStyle' },
+      { value: 'No. Registrasi SIMRS', styleId: 'HeaderStyle' },
       { value: 'Status SIMRS', styleId: 'HeaderStyle' },
     ],
   ];
@@ -332,7 +332,7 @@ export function exportOrdersToExcel(
       { value: Number(ord.totalPrice) || 0, type: 'Number', styleId: 'DataCurrency' },
       { value: STATUS_INDONESIA[ord.status] || ord.status, styleId: 'DataCenter' },
       { value: ord.patientNotes || '-', styleId: 'DataLeft' },
-      { value: ord.whatsappNotification?.sent ? 'Terkirim' : 'Belum / Gagal', styleId: 'DataCenter' },
+      { value: ord.registrationNo || '-', styleId: 'DataCenter' },
       { value: ord.simrsSync?.synced ? 'Tersimpan SIMRS' : (ord.simrsSync?.statusText || 'Belum Sync'), styleId: 'DataCenter' },
     ]);
   });

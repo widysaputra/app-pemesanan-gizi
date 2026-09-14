@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { HospitalOrder } from '../types';
-import { getLocalFonnteConfig } from '../services/api';
 import { CheckCircle2, MessageCircle, Copy, Check, X, ShieldCheck, ExternalLink } from 'lucide-react';
 
 interface OrderSuccessModalProps {
@@ -22,8 +21,7 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
 
   if (!isOpen || !order) return null;
 
-  const fonnteConfig = getLocalFonnteConfig();
-  const rawTarget = (order.whatsappNotification?.targetNumber || fonnteConfig?.targetNumber || '081573570843').trim();
+  const rawTarget = '081573570843';
   const cleanPhone = rawTarget.replace(/[^0-9]/g, '');
   const giziPhoneWaTarget = cleanPhone.startsWith('0') ? `62${cleanPhone.slice(1)}` : cleanPhone.startsWith('62') ? cleanPhone : `62${cleanPhone}`;
   const giziPhoneFormatted = rawTarget;
