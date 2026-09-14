@@ -413,11 +413,13 @@ export async function autoFetchSimrsMenuFromServer(): Promise<MenuItem[]> {
           menuItems.push(newMenu);
           hasChanges = true;
         } else {
-          // Jika sudah ada, pertahankan data lokal yang sudah disesuaikan admin
+          // Jika sudah ada, utamakan gambar asli dari SIMRS jika tersedia
           const existing = menuItems[existingIdx];
-          const preservedImage = (existing.image && existing.image.trim() !== '') ? existing.image : newMenu.image;
+          const hasRealNewImage = Boolean(newMenu.image && newMenu.image.trim() !== '' && !newMenu.image.includes('unsplash.com'));
+          const finalImage = hasRealNewImage ? newMenu.image : (existing.image || newMenu.image);
           const preservedPrice = existing.price !== undefined ? existing.price : newMenu.price;
-          menuItems[existingIdx] = { ...newMenu, ...existing, image: preservedImage, price: preservedPrice, id: existing.id };
+          menuItems[existingIdx] = { ...newMenu, ...existing, image: finalImage, price: preservedPrice, id: existing.id };
+          hasChanges = true;
         }
       });
       if (hasChanges) {
@@ -771,6 +773,7 @@ async function syncOrderToSimrs(
 
 // Helper: Map a MenuItem to standardized payload format for SIMRS Medifirst2000
 function mapMenuItemForSimrs(m: MenuItem) {
+  const img = m.image || '';
   return {
     id: m.id,
     id_menu: m.id,
@@ -796,17 +799,17 @@ function mapMenuItemForSimrs(m: MenuItem) {
     waktu_makan: m.mealTimes,
     description: m.description,
     deskripsi: m.description,
-    image: m.image,
-    gambar: m.image,
-    gambar_url: m.image,
-    foto: m.image,
-    foto_url: m.image,
-    image_url: m.image,
-    url_gambar: m.image,
-    url_foto: m.image,
-    photo: m.image,
-    photo_url: m.image,
-    img: m.image,
+    foto_url: img,
+    gambar_url: img,
+    image: img,
+    gambar: img,
+    foto: img,
+    image_url: img,
+    url_gambar: img,
+    url_foto: img,
+    photo: img,
+    photo_url: img,
+    img: img,
     isAvailable: m.isAvailable !== false,
     is_tersedia: m.isAvailable !== false,
     status: m.isAvailable !== false ? 1 : 0,
@@ -979,6 +982,11 @@ async function syncMenuToSimrs(
       harga: first.harga || 0,
       calories: first.calories || 0,
       kalori: first.kalori || 0,
+      foto_url: first.foto_url || first.image || '',
+      gambar_url: first.gambar_url || first.image || '',
+      image: first.image || '',
+      foto: first.foto || first.image || '',
+      gambar: first.gambar || first.image || '',
       total: mappedItems.length,
       total_count: mappedItems.length,
       synced_at: new Date().toISOString(),
@@ -1117,14 +1125,16 @@ async function startServer() {
 
   // Admin: Create Menu Item & automatically sync to SIMRS (save-master-menu)
   app.post('/api/menu', async (req, res) => {
-    const { name, price, category, mealTimes, calories, protein, carbs, fat, sodium, description, image, isAvailable, simrsApiUrl, simrsApiKey } = req.body;
+    const { name, price, category, mealTimes, calories, protein, carbs, fat, sodium, description, image, foto_url, gambar_url, isAvailable, simrsApiUrl, simrsApiKey } = req.body;
 
     if (!name || name.trim() === '') {
       return res.status(400).json({ error: 'Nama menu wajib diisi' });
     }
 
+    const finalImage = (image || foto_url || gambar_url || '').trim() || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80';
+
     const newItem: MenuItem = {
-      id: `menu-${Date.now()}`,
+      id: req.body.id ? String(req.body.id) : `menu-${Date.now()}`,
       name: name.trim(),
       price: Number(price) >= 0 ? Number(price) : 0,
       category: category || 'makanan_utama',
@@ -1135,13 +1145,14 @@ async function startServer() {
       fat: Number(fat) || 2,
       sodium: Number(sodium) || 20,
       description: description?.trim() || '',
-      image: image?.trim() || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+      image: finalImage,
       isAvailable: isAvailable !== false,
     };
 
     menuItems.unshift(newItem);
     savePersistentMenuItems(menuItems);
     broadcastEvent('menu_update', { item: newItem, action: 'create' });
+    broadcastEvent('init', { orders, menuItems });
 
     // Otomatis simpan master menu ke SIMRS (save-master-menu)
     const targetUrl = resolveSimrsSingleMenuUrl(simrsApiUrl || simrsSettings.apiUrl);
@@ -1171,27 +1182,47 @@ async function startServer() {
   // Admin: Update Menu Item (Price, Name, Availability, Description, Photo, etc.)
   app.patch('/api/menu/:id', async (req, res) => {
     const { id } = req.params;
-    const item = menuItems.find(m => m.id === id);
-    if (!item) {
-      return res.status(404).json({ error: 'Menu tidak ditemukan' });
-    }
+    let item = menuItems.find(m => String(m.id) === String(id) || (req.body.name && m.name && m.name.trim().toLowerCase() === String(req.body.name).trim().toLowerCase()));
+    
+    const { name, price, category, mealTimes, calories, protein, carbs, fat, sodium, description, image, foto_url, gambar_url, isAvailable, simrsApiUrl, simrsApiKey } = req.body;
+    const resolvedImage = image ?? foto_url ?? gambar_url;
 
-    const { name, price, category, mealTimes, calories, protein, carbs, fat, sodium, description, image, isAvailable, simrsApiUrl, simrsApiKey } = req.body;
-    if (name !== undefined) item.name = name.trim();
-    if (price !== undefined) item.price = Math.max(0, Number(price));
-    if (category !== undefined) item.category = category;
-    if (mealTimes !== undefined && Array.isArray(mealTimes)) item.mealTimes = mealTimes;
-    if (calories !== undefined) item.calories = Number(calories);
-    if (protein !== undefined) item.protein = Number(protein);
-    if (carbs !== undefined) item.carbs = Number(carbs);
-    if (fat !== undefined) item.fat = Number(fat);
-    if (sodium !== undefined) item.sodium = Number(sodium);
-    if (description !== undefined) item.description = description;
-    if (image !== undefined) item.image = image.trim();
-    if (isAvailable !== undefined) item.isAvailable = Boolean(isAvailable);
+    if (!item) {
+      // Upsert: buat item baru jika belum ada di server
+      item = {
+        id: String(id || `menu-${Date.now()}`),
+        name: name ? String(name).trim() : 'Menu Gizi',
+        price: price !== undefined ? Math.max(0, Number(price)) : 0,
+        category: category || 'makanan_utama',
+        mealTimes: Array.isArray(mealTimes) && mealTimes.length > 0 ? mealTimes : ['pagi', 'siang', 'malam'],
+        calories: calories !== undefined ? Number(calories) : 100,
+        protein: protein !== undefined ? Number(protein) : 0,
+        carbs: carbs !== undefined ? Number(carbs) : 0,
+        fat: fat !== undefined ? Number(fat) : 0,
+        sodium: sodium !== undefined ? Number(sodium) : 0,
+        description: description !== undefined ? String(description).trim() : '',
+        image: resolvedImage !== undefined ? String(resolvedImage).trim() : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+        isAvailable: isAvailable !== false,
+      };
+      menuItems.unshift(item);
+    } else {
+      if (name !== undefined) item.name = String(name).trim();
+      if (price !== undefined) item.price = Math.max(0, Number(price));
+      if (category !== undefined) item.category = category;
+      if (mealTimes !== undefined && Array.isArray(mealTimes)) item.mealTimes = mealTimes;
+      if (calories !== undefined) item.calories = Number(calories);
+      if (protein !== undefined) item.protein = Number(protein);
+      if (carbs !== undefined) item.carbs = Number(carbs);
+      if (fat !== undefined) item.fat = Number(fat);
+      if (sodium !== undefined) item.sodium = Number(sodium);
+      if (description !== undefined) item.description = String(description).trim();
+      if (resolvedImage !== undefined && resolvedImage !== null) item.image = String(resolvedImage).trim();
+      if (isAvailable !== undefined) item.isAvailable = Boolean(isAvailable);
+    }
 
     savePersistentMenuItems(menuItems);
     broadcastEvent('menu_update', { item, action: 'update' });
+    broadcastEvent('init', { orders, menuItems });
 
     // Otomatis sinkronisasi pembaruan ke SIMRS (save-master-menu)
     const targetUrl = resolveSimrsSingleMenuUrl(simrsApiUrl || simrsSettings.apiUrl);
@@ -1810,7 +1841,7 @@ app.post('/api/simrs/fetch-menu', async (req, res) => {
           fat: parsePgNumber(m.lemak_gram ?? m.lemak ?? m.fat, 0),
           sodium: parsePgNumber(m.natrium_mg ?? m.natrium ?? m.sodium, 0),
           description: String(m.deskripsi || m.description || ''),
-          image: m.image || m.gambar_url || m.foto_url || m.gambar || m.foto || m.url_gambar || m.url_foto || m.photo || m.photo_url || m.img || m.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+          image: m.foto_url || m.gambar_url || m.image || m.gambar || m.foto || m.url_gambar || m.url_foto || m.photo || m.photo_url || m.img || m.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
           isAvailable: parsePgBoolean(m.tersedia ?? m.isAvailable ?? true),
         };
       });
@@ -1820,9 +1851,8 @@ app.post('/api/simrs/fetch-menu', async (req, res) => {
         const existingIdx = menuItems.findIndex(m => m.id === newMenu.id || m.name.toLowerCase() === newMenu.name.toLowerCase());
         if (existingIdx !== -1) {
           const existing = menuItems[existingIdx];
-          const isNewBase64 = newMenu.image && newMenu.image.startsWith('data:image');
-          const isExistingBase64 = existing.image && existing.image.startsWith('data:image');
-          const finalImage = isNewBase64 ? newMenu.image : (isExistingBase64 ? existing.image : (newMenu.image || existing.image));
+          const hasRealNewImage = Boolean(newMenu.image && newMenu.image.trim() !== '' && !newMenu.image.includes('unsplash.com'));
+          const finalImage = hasRealNewImage ? newMenu.image : (existing.image || newMenu.image);
           menuItems[existingIdx] = { ...existing, ...newMenu, image: finalImage, id: existing.id };
         } else {
           menuItems.push(newMenu);
@@ -1835,7 +1865,7 @@ app.post('/api/simrs/fetch-menu', async (req, res) => {
       res.json({
         success: true,
         message: `Berhasil mengambil ${transformedMenus.length} menu dari SIMRS`,
-        data: transformedMenus,
+        data: menuItems,
         totalMenu: menuItems.length
       });
 
@@ -1922,18 +1952,90 @@ app.post('/api/simrs/sync-menu', async (req, res) => {
         message: 'Parameter id_menu dan nama_menu wajib dikirim.',
       });
     }
+
+    const img = req.body.foto_url || req.body.gambar_url || req.body.image || req.body.foto || req.body.gambar || '';
+    let existing = menuItems.find(m => String(m.id) === String(targetId) || m.name.toLowerCase() === String(targetName).trim().toLowerCase());
+    if (existing) {
+      existing.name = String(targetName).trim();
+      if (req.body.harga !== undefined || req.body.price !== undefined) existing.price = Number(req.body.harga ?? req.body.price);
+      if (img) existing.image = String(img).trim();
+      if (req.body.kategori || req.body.category) existing.category = req.body.kategori || req.body.category;
+      if (req.body.deskripsi || req.body.description) existing.description = String(req.body.deskripsi || req.body.description).trim();
+      if (req.body.kalori || req.body.calories) existing.calories = Number(req.body.kalori || req.body.calories);
+    } else {
+      existing = {
+        id: String(targetId),
+        name: String(targetName).trim(),
+        price: Number(req.body.harga ?? req.body.price ?? 0),
+        category: req.body.kategori || req.body.category || 'makanan_utama',
+        mealTimes: req.body.waktu_makan || req.body.mealTimes || ['pagi', 'siang', 'malam'],
+        calories: Number(req.body.kalori || req.body.calories || 100),
+        protein: Number(req.body.protein || 0),
+        carbs: Number(req.body.karbohidrat || req.body.carbs || 0),
+        fat: Number(req.body.lemak || req.body.fat || 0),
+        sodium: Number(req.body.natrium || req.body.sodium || 0),
+        description: String(req.body.deskripsi || req.body.description || '').trim(),
+        image: img ? String(img).trim() : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+        isAvailable: req.body.is_tersedia !== false && req.body.isAvailable !== false,
+      };
+      menuItems.unshift(existing);
+    }
+    savePersistentMenuItems(menuItems);
+    broadcastEvent('menu_update', { item: existing, action: 'update' });
+    broadcastEvent('init', { orders, menuItems });
+
     return res.json({
       status: 'success',
       message: `Master menu '${targetName}' berhasil disimpan ke master_menu_gizi_m (PostgreSQL).`,
       id_menu: targetId,
+      foto_url: img ? 'Tersimpan (Base64/URL)' : 'Kosong',
       authHeaderReceived: receivedAuthToken ? 'X-AUTH-TOKEN terverifikasi' : 'Tanpa header token',
       timestamp: new Date().toISOString(),
     });
   });
 
   app.post('/api/sync-batch-menu', (req, res) => {
-    const items = req.body.menu_items || req.body.items || [];
+    const rawItems = req.body.menu_items || req.body.items || req.body.data || [];
+    const items = Array.isArray(rawItems) ? rawItems : [];
     const receivedAuthToken = (req.headers['x-auth-token'] as string) || (req.headers['authorization'] as string);
+
+    if (items.length > 0) {
+      items.forEach((it: any) => {
+        const itId = it.id || it.id_menu;
+        const itName = it.name || it.nama_menu || it.nama;
+        const itImg = it.foto_url || it.gambar_url || it.image || it.gambar || it.foto || '';
+        if (!itId || !itName) return;
+
+        let exist = menuItems.find(m => String(m.id) === String(itId) || m.name.toLowerCase() === String(itName).trim().toLowerCase());
+        if (exist) {
+          exist.name = String(itName).trim();
+          if (it.price !== undefined || it.harga !== undefined) exist.price = Number(it.price ?? it.harga);
+          if (itImg) exist.image = String(itImg).trim();
+          if (it.category || it.kategori) exist.category = it.category || it.kategori;
+          if (it.description || it.deskripsi) exist.description = String(it.description || it.deskripsi).trim();
+        } else {
+          exist = {
+            id: String(itId),
+            name: String(itName).trim(),
+            price: Number(it.price ?? it.harga ?? 0),
+            category: it.category || it.kategori || 'makanan_utama',
+            mealTimes: it.mealTimes || it.waktu_makan || ['pagi', 'siang', 'malam'],
+            calories: Number(it.calories || it.kalori || 100),
+            protein: Number(it.protein || 0),
+            carbs: Number(it.carbs || it.karbohidrat || 0),
+            fat: Number(it.fat || it.lemak || 0),
+            sodium: Number(it.sodium || it.natrium || 0),
+            description: String(it.description || it.deskripsi || '').trim(),
+            image: itImg ? String(itImg).trim() : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+            isAvailable: it.isAvailable !== false && it.is_tersedia !== false,
+          };
+          menuItems.push(exist);
+        }
+      });
+      savePersistentMenuItems(menuItems);
+      broadcastEvent('init', { orders, menuItems });
+    }
+
     return res.json({
       status: 'success',
       message: `Berhasil menyinkronkan ${items.length} master menu gizi ke tabel master_menu_gizi_m (PostgreSQL).`,

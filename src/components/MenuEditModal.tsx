@@ -191,7 +191,9 @@ export const MenuEditModal: React.FC<MenuEditModalProps> = ({
         img.onload = () => {
           try {
             const canvas = document.createElement('canvas');
-            const maxDim = 800; // Optimal resolution for fast hospital loading
+            // Optimal 480px resolution for crisp hospital food thumbnails while keeping Base64 ~25KB - 40KB
+            // This prevents QuotaExceededError in browser localStorage and ensures fast network sync
+            const maxDim = 480;
             let width = img.width;
             let height = img.height;
             if (width > height && width > maxDim) {
@@ -205,11 +207,13 @@ export const MenuEditModal: React.FC<MenuEditModalProps> = ({
             canvas.height = height;
             const ctx = canvas.getContext('2d');
             if (ctx) {
+              ctx.imageSmoothingEnabled = true;
+              ctx.imageSmoothingQuality = 'high';
               ctx.drawImage(img, 0, 0, width, height);
-              const compressed = canvas.toDataURL('image/jpeg', 0.85);
+              const compressed = canvas.toDataURL('image/jpeg', 0.75);
               setImage(compressed);
 
-              // Auto-save to custom gallery
+              // Auto-save to custom gallery (limit to latest 8 to preserve localStorage quota)
               const newItem: CustomImageItem = {
                 id: `img-${Date.now()}`,
                 name: uploadTitle.trim() || name.trim() || defaultName,
@@ -218,7 +222,7 @@ export const MenuEditModal: React.FC<MenuEditModalProps> = ({
                 dateAdded: Date.now(),
               };
               const updated = [newItem, ...customGallery.filter((g) => g.url !== compressed)];
-              saveCustomGallery(updated.slice(0, 30));
+              saveCustomGallery(updated.slice(0, 8));
               setImageInputMode('presets');
               setGalleryCategoryFilter('custom');
             } else {

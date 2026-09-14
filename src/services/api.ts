@@ -284,7 +284,7 @@ export class HospitalRealtimeService {
       ]);
 
       if (Array.isArray(menuRes) && menuRes.length > 0) {
-        const hash = JSON.stringify(menuRes.map(m => `${m.id}-${m.price}-${m.isAvailable}-${m.name}`));
+        const hash = JSON.stringify(menuRes.map(m => `${m.id}-${m.price}-${m.isAvailable}-${m.name}-${(m.image || '').slice(0, 30)}-${(m.image || '').length}`));
         if (hash !== this.lastMenuHash) {
           this.lastMenuHash = hash;
           saveLocalCachedMenu(menuRes);
@@ -380,12 +380,18 @@ export class HospitalRealtimeService {
           const data = JSON.parse(e.data);
           if (data.item) {
             const currentMenu = getLocalCachedMenu();
+            const isMatch = (m: any) => String(m.id) === String(data.item.id) || (m.name && data.item.name && m.name.trim().toLowerCase() === data.item.name.trim().toLowerCase());
             if (data.action === 'delete') {
-              saveLocalCachedMenu(currentMenu.filter(m => m.id !== data.item.id));
+              saveLocalCachedMenu(currentMenu.filter(m => !isMatch(m)));
             } else if (data.action === 'create') {
-              saveLocalCachedMenu([data.item, ...currentMenu.filter(m => m.id !== data.item.id)]);
+              saveLocalCachedMenu([data.item, ...currentMenu.filter(m => !isMatch(m))]);
             } else {
-              saveLocalCachedMenu(currentMenu.map(m => m.id === data.item.id ? { ...m, ...data.item } : m));
+              const hasMatch = currentMenu.some(m => isMatch(m));
+              if (hasMatch) {
+                saveLocalCachedMenu(currentMenu.map(m => isMatch(m) ? { ...m, ...data.item } : m));
+              } else {
+                saveLocalCachedMenu([data.item, ...currentMenu]);
+              }
             }
           }
           this.notifyListeners('menu_update', data);
@@ -571,7 +577,12 @@ export class HospitalRealtimeService {
           this.notifyListeners('menu_update', { item: sanitizedItem, action: 'update' });
           this.broadcastLocal('menu_update', { item: sanitizedItem, action: 'update' });
           const currentMenu = getLocalCachedMenu();
-          saveLocalCachedMenu(currentMenu.map(m => m.id === menuId ? sanitizedItem : m));
+          const isMatch = (m: any) => String(m.id) === String(menuId) || String(m.id) === String(sanitizedItem.id) || (m.name && sanitizedItem.name && m.name.trim().toLowerCase() === sanitizedItem.name.trim().toLowerCase());
+          const hasExisting = currentMenu.some(isMatch);
+          const updatedList = hasExisting 
+            ? currentMenu.map(m => isMatch(m) ? sanitizedItem : m)
+            : [sanitizedItem, ...currentMenu];
+          saveLocalCachedMenu(updatedList);
           return sanitizedItem;
         }
       }
@@ -581,18 +592,21 @@ export class HospitalRealtimeService {
 
     const currentMenu = getLocalCachedMenu();
     let updatedItem: MenuItem | null = null;
+    const isTarget = (m: any) => String(m.id) === String(menuId) || (updates.name && m.name && m.name.trim().toLowerCase() === String(updates.name).trim().toLowerCase());
     const updatedMenu = currentMenu.map(m => {
-      if (m.id === menuId) {
+      if (isTarget(m)) {
+        const resolvedImage = updates.image ?? (updates as any).foto_url ?? (updates as any).gambar_url ?? m.image;
         updatedItem = {
           ...m,
           ...updates,
           id: m.id,
-          name: updates.name !== undefined ? String(updates.name) : m.name,
+          name: updates.name !== undefined ? String(updates.name).trim() : m.name,
           price: updates.price !== undefined ? Math.max(0, Number(updates.price)) : m.price,
-          description: updates.description !== undefined ? String(updates.description) : m.description,
+          description: updates.description !== undefined ? String(updates.description).trim() : m.description,
           category: updates.category || m.category,
           mealTimes: updates.mealTimes || m.mealTimes,
           isAvailable: updates.isAvailable !== undefined ? Boolean(updates.isAvailable) : m.isAvailable,
+          image: resolvedImage ? String(resolvedImage).trim() : m.image,
         };
         return updatedItem;
       }
@@ -1640,7 +1654,7 @@ export class HospitalRealtimeService {
           }
         }
 
-        const rawImg = m.image || m.gambar_url || m.foto_url || m.gambar || m.foto || m.url_gambar || m.url_foto || m.photo || m.photo_url || m.img || m.image_url;
+        const rawImg = m.foto_url || m.gambar_url || m.image || m.gambar || m.foto || m.url_gambar || m.url_foto || m.photo || m.photo_url || m.img || m.image_url;
 
         return {
           id: String(m.menu_id || m.id_menu || m.id || `menu-${Date.now()}-${Math.floor(Math.random() * 1000)}`),
@@ -1667,13 +1681,10 @@ export class HospitalRealtimeService {
           // Menu baru dari SIMRS yang belum ada di katalog lokal
           merged.push(simrsMenu);
         } else {
-          // Update menu yang sudah ada: jika dari SIMRS terdapat base64/foto valid, terapkan ke data lokal
+          // Update menu yang sudah ada: jika dari SIMRS terdapat foto asli, terapkan ke data lokal
           const existing = merged[existingIdx];
-          const isSimrsBase64 = simrsMenu.image && simrsMenu.image.startsWith('data:image');
-          const isExistingBase64 = existing.image && existing.image.startsWith('data:image');
-          const finalImage = isSimrsBase64
-            ? simrsMenu.image
-            : (isExistingBase64 ? existing.image : (simrsMenu.image || existing.image));
+          const hasRealSimrsImage = Boolean(simrsMenu.image && simrsMenu.image.trim() !== '' && !simrsMenu.image.includes('unsplash.com'));
+          const finalImage = hasRealSimrsImage ? simrsMenu.image : (existing.image || simrsMenu.image);
           merged[existingIdx] = {
             ...existing,
             ...simrsMenu,

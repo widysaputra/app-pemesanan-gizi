@@ -6,6 +6,7 @@ import {
   OrderStatus 
 } from './types';
 import { realtimeService } from './services/api';
+import { saveLocalCachedMenu } from './data/initialData';
 import { playHospitalChime } from './utils/audio';
 import { PatientDashboard } from './components/PatientDashboard';
 import { AdminDashboard } from './components/AdminDashboard';
@@ -108,6 +109,7 @@ export default function App() {
         }
         if (Array.isArray(event.data?.menuItems) && event.data.menuItems.length > 0) {
           setMenuItems(event.data.menuItems);
+          saveLocalCachedMenu(event.data.menuItems);
         }
       } else if (event.type === 'new_order') {
         const newOrder: HospitalOrder = event.data.order;
@@ -144,18 +146,27 @@ export default function App() {
         
         if (!item || !item.id) return;
 
-        if (action === 'delete') {
-          setMenuItems((prev) => (prev || []).filter((m) => m && m.id !== item.id));
-        } else if (action === 'create') {
-          setMenuItems((prev) => {
-            const list = (prev || []).filter(Boolean);
-            if (list.some((m) => m.id === item.id)) return list;
-            return [item, ...list];
-          });
-        } else {
-          // update or toggle
-          setMenuItems((prev) => (prev || []).map((m) => (m && m.id === item.id ? { ...m, ...item } : m)).filter(Boolean));
-        }
+        const isMatch = (m: MenuItem) => m && (String(m.id) === String(item.id) || (m.name && item.name && m.name.trim().toLowerCase() === item.name.trim().toLowerCase()));
+
+        setMenuItems((prev) => {
+          const list = (prev || []).filter(Boolean);
+          let updated: MenuItem[];
+          if (action === 'delete') {
+            updated = list.filter((m) => !isMatch(m));
+          } else if (action === 'create') {
+            updated = [item, ...list.filter((m) => !isMatch(m))];
+          } else {
+            // update or toggle
+            const hasMatch = list.some((m) => isMatch(m));
+            if (hasMatch) {
+              updated = list.map((m) => (isMatch(m) ? { ...m, ...item } : m));
+            } else {
+              updated = [item, ...list];
+            }
+          }
+          saveLocalCachedMenu(updated);
+          return updated;
+        });
       } else if (event.type === 'order_deleted') {
         const deletedId = event.data.id;
         setOrders((prev) => prev.filter((o) => o.id !== deletedId));

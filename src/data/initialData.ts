@@ -138,9 +138,17 @@ export function saveLocalCachedMenu(menu: MenuItem[]): void {
         isAvailable: m.isAvailable !== false,
         image: m.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
       }));
-    localStorage.setItem(LOCAL_STORAGE_MENU_KEY, JSON.stringify(valid));
-  } catch {
-    // Ignore
+    try {
+      localStorage.setItem(LOCAL_STORAGE_MENU_KEY, JSON.stringify(valid));
+    } catch (storageErr) {
+      console.warn('[LocalStorage] Kuota penuh saat menyimpan menu, membersihkan galeri kustom...', storageErr);
+      // Bersihkan galeri gambar kustom non-esensial untuk membebaskan ruang penyimpanan
+      localStorage.removeItem('nutri_hospital_custom_gallery');
+      // Coba simpan kembali
+      localStorage.setItem(LOCAL_STORAGE_MENU_KEY, JSON.stringify(valid));
+    }
+  } catch (err) {
+    console.error('[LocalStorage] Gagal menyimpan menu ke cache lokal:', err);
   }
 }
 

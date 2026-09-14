@@ -73,6 +73,10 @@ export const SQL_MASTER_MENU_TABLE = `-- =======================================
 -- Lengkap dengan Informasi Nutrisi (Kalori, Protein, Karbohidrat, Lemak, Natrium)
 -- ====================================================================
 
+-- PERINTAH CEPAT (Bila tabel master_menu_gizi_m sudah ada):
+ALTER TABLE IF EXISTS master_menu_gizi_m ADD COLUMN IF NOT EXISTS foto_url TEXT;
+ALTER TABLE IF EXISTS master_menu_gizi_m ADD COLUMN IF NOT EXISTS gambar_url TEXT;
+
 CREATE TABLE IF NOT EXISTS master_menu_gizi_m (
     id_menu VARCHAR(50) PRIMARY KEY,
     nama_menu VARCHAR(150) NOT NULL,
@@ -88,6 +92,7 @@ CREATE TABLE IF NOT EXISTS master_menu_gizi_m (
     waktu_makan JSONB DEFAULT '["pagi", "siang", "malam"]'::jsonb,
     
     deskripsi TEXT,
+    foto_url TEXT,                 -- Menyimpan URL gambar atau String Base64 foto menu
     gambar_url TEXT,
     is_tersedia BOOLEAN DEFAULT TRUE,
     
@@ -373,7 +378,8 @@ class GiziSIMRSController extends Controller
                     'natrium'      => $request->input('natrium', $request->input('sodium', 0)),
                     'waktu_makan'  => json_encode($request->input('waktu_makan', $request->input('mealTimes', ['pagi', 'siang', 'malam']))),
                     'deskripsi'    => $request->input('deskripsi', $request->input('description', '')),
-                    'gambar_url'   => $request->input('gambar_url', $request->input('image', '')),
+                    'foto_url'     => $request->input('foto_url', $request->input('gambar_url', $request->input('image', ''))),
+                    'gambar_url'   => $request->input('foto_url', $request->input('gambar_url', $request->input('image', ''))),
                     'is_tersedia'  => $request->input('is_tersedia', $request->input('isAvailable', true)),
                     'tags_diet'    => json_encode($request->input('tags_diet', [])),
                     'updated_at'   => date('Y-m-d H:i:s'),
@@ -432,7 +438,8 @@ class GiziSIMRSController extends Controller
                         'natrium'      => $item['sodium'] ?? $item['natrium'] ?? 0,
                         'waktu_makan'  => json_encode($item['mealTimes'] ?? $item['waktu_makan'] ?? ['pagi','siang','malam']),
                         'deskripsi'    => $item['description'] ?? $item['deskripsi'] ?? '',
-                        'gambar_url'   => $item['image'] ?? $item['gambar_url'] ?? '',
+                        'foto_url'     => $item['foto_url'] ?? $item['image'] ?? $item['gambar_url'] ?? '',
+                        'gambar_url'   => $item['foto_url'] ?? $item['image'] ?? $item['gambar_url'] ?? '',
                         'is_tersedia'  => $item['isAvailable'] ?? $item['is_tersedia'] ?? true,
                         'updated_at'   => date('Y-m-d H:i:s'),
                         'created_at'   => date('Y-m-d H:i:s')
@@ -544,6 +551,7 @@ class GiziSIMRSController extends Controller
                     'mealTimes'   => $mealTimes,
                     'dietaryTags' => $dietaryTags,
                     'isAvailable' => (bool)($item->tersedia ?? $item->is_tersedia ?? true),
+                    'foto_url'    => (string)($item->foto_url ?? $item->gambar_url ?? $item->image ?? ''),
                     'image'       => $item->foto_url ?? $item->gambar_url ?? $item->image ?? 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
                 ];
             });
