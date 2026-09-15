@@ -243,24 +243,23 @@ namespace App\\Http\\Controllers\\EMR;
 use App\\Http\\Controllers\\Controller;
 use Illuminate\\Http\\Request;
 use Illuminate\\Support\\Facades\\DB;
-use Illuminate\\Support\\Facades\\Schema;
 
 class EMRController extends Controller
 {
     /**
-     * Verifikasi Header X-AUTH-TOKEN
+     * Verifikasi Header X-AUTH-TOKEN (Opsional, jika env diset)
      */
     private function checkAuthToken(Request $request)
     {
-        $expectedToken = env('SIMRS_AUTH_TOKEN', '');
+        $expectedToken = env("SIMRS_AUTH_TOKEN", "");
         if (!empty($expectedToken)) {
-            $receivedToken = $request->header('X-AUTH-TOKEN') 
-                          ?: str_replace('Bearer ', '', $request->header('Authorization', ''));
+            $receivedToken = $request->header("X-AUTH-TOKEN") 
+                          ?: str_replace("Bearer ", "", $request->header("Authorization", ""));
 
             if ($receivedToken !== $expectedToken) {
                 return response()->json([
-                    'status'  => 'unauthorized',
-                    'message' => 'Token autentikasi X-AUTH-TOKEN tidak valid atau tidak disertakan.'
+                    "status"  => "unauthorized",
+                    "message" => "Token autentikasi X-AUTH-TOKEN tidak valid atau tidak disertakan."
                 ], 401);
             }
         }
@@ -271,6 +270,7 @@ class EMRController extends Controller
      * GET /service/medifirst2000/emr/riwayat-pesanan-gizi
      * (atau /api/riwayat-pesanan-gizi)
      * FUNGSI UTAMA UNTUK ADMIN: Mengambil seluruh riwayat pesanan masuk dari tabel rego_pesanan_gizi_t
+     * MENGGUNAKAN \\DB::table("rego_pesanan_gizi_t") LANGSUNG (BEBAS DARI ERROR Schema NOT FOUND)
      */
     public function getRiwayatPesananGizi(Request $request)
     {
@@ -278,50 +278,46 @@ class EMRController extends Controller
         if ($authError) return $authError;
 
         try {
-            // Deteksi nama tabel: rego_pesanan_gizi_t (default) atau fallback
-            $tableName = 'rego_pesanan_gizi_t';
-            if (!Schema::hasTable($tableName)) {
-                $tableName = Schema::hasTable('go_pesanan_gizi_t') ? 'go_pesanan_gizi_t' : 'pesanan_gizi_t';
-            }
+            $query = \\DB::table("rego_pesanan_gizi_t");
 
-            $query = DB::table($tableName);
-
-            // Filter status pesanan (baru, diproses, diantar, selesai, dibatalkan)
-            if ($request->filled('status') && $request->input('status') !== 'all') {
-                $statusCol = Schema::hasColumn($tableName, 'order_status') ? 'order_status' : 'status';
-                $query->where($statusCol, $request->input('status'));
+            // Filter status pesanan jika dikirim
+            if ($request->filled("status") && $request->input("status") !== "all") {
+                $st = $request->input("status");
+                $query->where(function($q) use ($st) {
+                    $q->where("order_status", $st)->orWhere("status", $st);
+                });
             }
 
             // Filter nomor registrasi pasien jika ada
-            if ($request->filled('noregistrasi')) {
-                $query->where('noregistrasi', $request->input('noregistrasi'));
+            if ($request->filled("noregistrasi")) {
+                $query->where("noregistrasi", $request->input("noregistrasi"));
             }
 
             // Filter waktu makan (pagi, siang, malam, snack)
-            if ($request->filled('meal_time') && $request->input('meal_time') !== 'all') {
-                $mealCol = Schema::hasColumn($tableName, 'meal_time') ? 'meal_time' : 'waktu_makan';
-                $query->where($mealCol, $request->input('meal_time'));
+            if ($request->filled("meal_time") && $request->input("meal_time") !== "all") {
+                $mt = $request->input("meal_time");
+                $query->where(function($q) use ($mt) {
+                    $q->where("meal_time", $mt)->orWhere("waktu_makan", $mt);
+                });
             }
 
             // Filter tanggal pesanan
-            if ($request->filled('tgl_awal')) {
-                $dateCol = Schema::hasColumn($tableName, 'tgl_pesanan') ? 'tgl_pesanan' : 'created_at';
-                $query->whereDate($dateCol, '>=', $request->input('tgl_awal'));
+            if ($request->filled("tgl_awal")) {
+                $query->whereDate("tgl_pesanan", ">=", $request->input("tgl_awal"));
             }
-            if ($request->filled('tgl_akhir')) {
-                $dateCol = Schema::hasColumn($tableName, 'tgl_pesanan') ? 'tgl_pesanan' : 'created_at';
-                $query->whereDate($dateCol, '<=', $request->input('tgl_akhir'));
+            if ($request->filled("tgl_akhir")) {
+                $query->whereDate("tgl_pesanan", "<=", $request->input("tgl_akhir"));
             }
 
-            // Urutkan dari pesanan paling baru
-            $sortCol = Schema::hasColumn($tableName, 'created_at') ? 'created_at' : (
-                Schema::hasColumn($tableName, 'tgl_pesanan') ? 'tgl_pesanan' : 'id'
-            );
-            $rawOrders = $query->orderBy($sortCol, 'desc')->limit($request->input('limit', 200))->get();
+            // Urutkan dari pesanan paling baru (ID desc)
+            try {
+                $rawOrders = $query->orderBy("id", "desc")->limit($request->input("limit", 200))->get();
+            } catch (\\Exception $e) {
+                $rawOrders = $query->limit($request->input("limit", 200))->get();
+            }
 
             // Format data ke standar HospitalOrder
             $formattedOrders = $rawOrders->map(function ($o) {
-                // Parsing rincian item pesanan dari items_json / hasil_json
                 $items = [];
                 $rawItems = $o->items_json ?? ($o->hasil_json ?? null);
                 if (!empty($rawItems)) {
@@ -330,72 +326,71 @@ class EMRController extends Controller
                     } elseif (is_string($rawItems)) {
                         $decoded = json_decode($rawItems, true);
                         if (is_array($decoded)) {
-                            $items = isset($decoded['items']) && is_array($decoded['items']) ? $decoded['items'] : $decoded;
+                            $items = isset($decoded["items"]) && is_array($decoded["items"]) ? $decoded["items"] : $decoded;
                         }
                     }
                 }
 
                 $normalizedItems = array_map(function ($it) {
                     return [
-                        'menuItemId' => (string)($it['menuItemId'] ?? $it['id_menu'] ?? $it['id'] ?? 'item'),
-                        'name'       => (string)($it['name'] ?? $it['nama_menu'] ?? 'Menu Makanan'),
-                        'portion'    => (int)($it['portion'] ?? $it['porsi'] ?? $it['jumlah_porsi'] ?? 1),
-                        'price'      => (int)($it['price'] ?? $it['harga'] ?? $it['harga_satuan'] ?? 0),
-                        'category'   => (string)($it['category'] ?? $it['kategori'] ?? 'makanan_utama'),
-                        'calories'   => (int)($it['calories'] ?? $it['kalori'] ?? 100),
+                        "menuItemId" => (string)($it["menuItemId"] ?? $it["id_menu"] ?? $it["id"] ?? "item"),
+                        "name"       => (string)($it["name"] ?? $it["nama_menu"] ?? "Menu Makanan"),
+                        "portion"    => (int)($it["portion"] ?? $it["porsi"] ?? $it["jumlah_porsi"] ?? 1),
+                        "price"      => (int)($it["price"] ?? $it["harga"] ?? $it["harga_satuan"] ?? 0),
+                        "category"   => (string)($it["category"] ?? $it["kategori"] ?? "makanan_utama"),
+                        "calories"   => (int)($it["calories"] ?? $it["kalori"] ?? 100),
                     ];
                 }, $items);
 
-                // Hitung total harga & kalori dari item jika belum tersimpan di tabel
                 $computedPrice = 0;
                 $computedCal = 0;
                 foreach ($normalizedItems as $it) {
-                    $computedPrice += $it['price'] * $it['portion'];
-                    $computedCal += $it['calories'] * $it['portion'];
+                    $computedPrice += $it["price"] * $it["portion"];
+                    $computedCal += $it["calories"] * $it["portion"];
                 }
 
-                $orderNum = (string)($o->order_number ?? ($o->no_pesanan ?? ('GZ-' . ($o->id ?? time()))));
-                $createdAt = $o->tgl_pesanan ?? ($o->created_at ?? date('Y-m-d H:i:s'));
+                $orderNum = (string)($o->order_number ?? ($o->no_pesanan ?? ("GZ-" . ($o->id ?? time()))));
+                $createdAt = $o->tgl_pesanan ?? ($o->created_at ?? date("Y-m-d H:i:s"));
 
                 return [
-                    'id'             => (string)($o->id ?? $orderNum),
-                    'orderNumber'    => $orderNum,
-                    'no_pesanan'     => $orderNum,
-                    'registrationNo' => (string)($o->noregistrasi ?? ''),
-                    'noregistrasi'   => (string)($o->noregistrasi ?? ''),
-                    'createdAt'      => $createdAt,
-                    'tgl_pesanan'    => $createdAt,
-                    'roomName'       => (string)($o->room_name ?? ($o->nomor_kamar ?? ($o->kamar ?? 'Kamar Pasien'))),
-                    'patientName'    => (string)($o->patient_name ?? ($o->nama_pasien ?? 'Pasien')),
-                    'phoneNumber'    => (string)($o->phone_number ?? ($o->telepon ?? '')),
-                    'mealTime'       => (string)($o->meal_time ?? ($o->waktu_makan ?? 'siang')),
-                    'items'          => $normalizedItems,
-                    'totalPrice'     => (int)($o->total_price ?? ($o->total_biaya ?? $computedPrice)),
-                    'totalCalories'  => (int)($o->total_calories ?? ($o->total_kalori ?? $computedCal)),
-                    'patientNotes'   => (string)($o->patient_notes ?? ($o->catatan ?? '')),
-                    'status'         => (string)($o->order_status ?? ($o->status ?? 'baru')),
-                    'simrsSource'    => 'rego_pesanan_gizi_t',
+                    "id"             => (string)($o->id ?? $orderNum),
+                    "orderNumber"    => $orderNum,
+                    "no_pesanan"     => $orderNum,
+                    "registrationNo" => (string)($o->noregistrasi ?? ""),
+                    "noregistrasi"   => (string)($o->noregistrasi ?? ""),
+                    "createdAt"      => $createdAt,
+                    "tgl_pesanan"    => $createdAt,
+                    "roomName"       => (string)($o->room_name ?? ($o->nomor_kamar ?? ($o->kamar ?? "Kamar Pasien"))),
+                    "patientName"    => (string)($o->patient_name ?? ($o->nama_pasien ?? "Pasien")),
+                    "phoneNumber"    => (string)($o->phone_number ?? ($o->telepon ?? "")),
+                    "mealTime"       => (string)($o->meal_time ?? ($o->waktu_makan ?? "siang")),
+                    "items"          => $normalizedItems,
+                    "totalPrice"     => (int)($o->total_price ?? ($o->total_biaya ?? $computedPrice)),
+                    "totalCalories"  => (int)($o->total_calories ?? ($o->total_kalori ?? $computedCal)),
+                    "patientNotes"   => (string)($o->patient_notes ?? ($o->catatan ?? "")),
+                    "status"         => (string)($o->order_status ?? ($o->status ?? "baru")),
+                    "simrsSource"    => "rego_pesanan_gizi_t",
                 ];
             });
 
             return response()->json([
-                'status'      => 'success',
-                'message'     => 'Berhasil mengambil data pesanan gizi dari tabel rego_pesanan_gizi_t SIMRS.',
-                'totalOrders' => count($formattedOrders),
-                'data'        => $formattedOrders
+                "status"      => "success",
+                "message"     => "Berhasil mengambil riwayat pesanan gizi dari tabel rego_pesanan_gizi_t.",
+                "totalOrders" => count($formattedOrders),
+                "data"        => $formattedOrders
             ], 200);
 
         } catch (\\Exception $e) {
             return response()->json([
-                'status'  => 'error',
-                'message' => 'Gagal mengambil riwayat pesanan gizi dari SIMRS: ' . $e->getMessage()
+                "status"  => "error",
+                "message" => "Gagal mengambil riwayat pesanan gizi: " . $e->getMessage()
             ], 500);
         }
     }
 
     /**
      * GET /service/medifirst2000/emr/detail-pesanan-gizi/{order_number}
-     * Mengambil 1 pesanan berdasarkan nomor pesanan
+     * Mengambil 1 pesanan berdasarkan order_number
      */
     public function getDetailPesananGizi($order_number, Request $request)
     {
@@ -403,36 +398,33 @@ class EMRController extends Controller
         if ($authError) return $authError;
 
         try {
-            $tableName = 'rego_pesanan_gizi_t';
-            if (!Schema::hasTable($tableName)) {
-                $tableName = Schema::hasTable('go_pesanan_gizi_t') ? 'go_pesanan_gizi_t' : 'pesanan_gizi_t';
-            }
-
-            $orderCol = Schema::hasColumn($tableName, 'order_number') ? 'order_number' : 'no_pesanan';
-            $order = DB::table($tableName)->where($orderCol, $order_number)->first();
+            $order = \\DB::table("rego_pesanan_gizi_t")
+                ->where("order_number", $order_number)
+                ->orWhere("no_pesanan", $order_number)
+                ->first();
 
             if (!$order) {
                 return response()->json([
-                    'status'  => 'error',
-                    'message' => "Pesanan gizi '{$order_number}' tidak ditemukan di tabel {$tableName}."
+                    "status"  => "error",
+                    "message" => "Pesanan gizi {} tidak ditemukan di tabel rego_pesanan_gizi_t."
                 ], 404);
             }
 
             return response()->json([
-                'status' => 'success',
-                'data'   => $order
+                "status" => "success",
+                "data"   => $order
             ], 200);
         } catch (\\Exception $e) {
             return response()->json([
-                'status'  => 'error',
-                'message' => 'Gagal mengambil detail pesanan: ' . $e->getMessage()
+                "status"  => "error",
+                "message" => "Gagal mengambil detail pesanan: " . $e->getMessage()
             ], 500);
         }
     }
 
     /**
      * GET /service/medifirst2000/emr/rekap-pesanan-gizi
-     * Mengembalikan data agregasi rekapan pesanan langsung dari tabel rego_pesanan_gizi_t
+     * Rekapitulasi pesanan gizi dari PostgreSQL
      */
     public function getRekapPesananGizi(Request $request)
     {
@@ -440,37 +432,32 @@ class EMRController extends Controller
         if ($authError) return $authError;
 
         try {
-            $tableName = 'rego_pesanan_gizi_t';
-            if (!Schema::hasTable($tableName)) {
-                $tableName = Schema::hasTable('go_pesanan_gizi_t') ? 'go_pesanan_gizi_t' : 'pesanan_gizi_t';
+            $query = \\DB::table("rego_pesanan_gizi_t");
+            if ($request->filled("tgl_awal")) {
+                $query->whereDate("tgl_pesanan", ">=", $request->input("tgl_awal"));
             }
-
-            $query = DB::table($tableName);
-            if ($request->filled('tgl_awal')) {
-                $query->whereDate('created_at', '>=', $request->input('tgl_awal'));
-            }
-            if ($request->filled('tgl_akhir')) {
-                $query->whereDate('created_at', '<=', $request->input('tgl_akhir'));
+            if ($request->filled("tgl_akhir")) {
+                $query->whereDate("tgl_pesanan", "<=", $request->input("tgl_akhir"));
             }
 
             $totalOrders = (clone $query)->count();
-            $totalRevenue = (clone $query)->where('order_status', '!=', 'dibatalkan')->sum('total_price');
-            $rekapPerKamar = (clone $query)->select('room_name', DB::raw('count(*) as total_pesanan'), DB::raw('sum(total_price) as total_biaya'))
-                                          ->groupBy('room_name')->orderByDesc('total_pesanan')->get();
-            $rekapPerWaktu = (clone $query)->select('meal_time', DB::raw('count(*) as total_pesanan'), DB::raw('sum(total_price) as total_biaya'))
-                                          ->groupBy('meal_time')->get();
+            $totalRevenue = (clone $query)->where("order_status", "!=", "dibatalkan")->sum("total_price");
+            $rekapPerKamar = (clone $query)->select("room_name", \\DB::raw("count(*) as total_pesanan"), \\DB::raw("sum(total_price) as total_biaya"))
+                                          ->groupBy("room_name")->orderByDesc("total_pesanan")->get();
+            $rekapPerWaktu = (clone $query)->select("meal_time", \\DB::raw("count(*) as total_pesanan"), \\DB::raw("sum(total_price) as total_biaya"))
+                                          ->groupBy("meal_time")->get();
 
             return response()->json([
-                'status'        => 'success',
-                'totalOrders'   => $totalOrders,
-                'totalRevenue'  => (int)$totalRevenue,
-                'rekapPerKamar' => $rekapPerKamar,
-                'rekapPerWaktu' => $rekapPerWaktu
+                "status"        => "success",
+                "totalOrders"   => $totalOrders,
+                "totalRevenue"  => (int)$totalRevenue,
+                "rekapPerKamar" => $rekapPerKamar,
+                "rekapPerWaktu" => $rekapPerWaktu
             ], 200);
         } catch (\\Exception $e) {
             return response()->json([
-                'status'  => 'error',
-                'message' => 'Gagal mengambil rekapan pesanan: ' . $e->getMessage()
+                "status"  => "error",
+                "message" => "Gagal mengambil rekapan pesanan: " . $e->getMessage()
             ], 500);
         }
     }
@@ -484,41 +471,37 @@ class EMRController extends Controller
         $authError = $this->checkAuthToken($request);
         if ($authError) return $authError;
 
-        $orderNumber = $request->input('order_number') ?? ($request->input('no_pesanan') ?? $request->input('orderNumber'));
-        $newStatus   = $request->input('status') ?? $request->input('order_status');
+        $orderNumber = $request->input("order_number") ?? ($request->input("no_pesanan") ?? $request->input("orderNumber"));
+        $newStatus   = $request->input("status") ?? $request->input("order_status");
 
         if (!$orderNumber || !$newStatus) {
             return response()->json([
-                'status'  => 'error',
-                'message' => 'Parameter order_number dan status wajib dikirim.'
+                "status"  => "error",
+                "message" => "Parameter order_number dan status wajib dikirim."
             ], 400);
         }
 
         try {
-            $tableName = 'rego_pesanan_gizi_t';
-            if (!Schema::hasTable($tableName)) {
-                $tableName = Schema::hasTable('go_pesanan_gizi_t') ? 'go_pesanan_gizi_t' : 'pesanan_gizi_t';
-            }
-
-            $orderCol = Schema::hasColumn($tableName, 'order_number') ? 'order_number' : 'no_pesanan';
-            $statusCol = Schema::hasColumn($tableName, 'order_status') ? 'order_status' : 'status';
-
-            DB::table($tableName)->where($orderCol, $orderNumber)->update([
-                $statusCol   => $newStatus,
-                'updated_at' => date('Y-m-d H:i:s')
-            ]);
+            $affected = \\DB::table("rego_pesanan_gizi_t")
+                ->where("order_number", $orderNumber)
+                ->orWhere("no_pesanan", $orderNumber)
+                ->update([
+                    "order_status" => $newStatus,
+                    "updated_at"   => date("Y-m-d H:i:s")
+                ]);
 
             return response()->json([
-                'status'       => 'success',
-                'message'      => "Status pesanan {$orderNumber} berhasil diperbarui menjadi '{$newStatus}'.",
-                'order_number' => $orderNumber,
-                'new_status'   => $newStatus
+                "status"       => "success",
+                "message"      => "Status pesanan {$orderNumber} berhasil diperbarui menjadi {}.",
+                "order_number" => $orderNumber,
+                "new_status"   => $newStatus,
+                "affected"     => $affected
             ], 200);
 
         } catch (\\Exception $e) {
             return response()->json([
-                'status'  => 'error',
-                'message' => 'Gagal memperbarui status pesanan: ' . $e->getMessage()
+                "status"  => "error",
+                "message" => "Gagal memperbarui status pesanan: " . $e->getMessage()
             ], 500);
         }
     }
@@ -532,69 +515,60 @@ class EMRController extends Controller
         $authError = $this->checkAuthToken($request);
         if ($authError) return $authError;
 
-        $noRegistrasi = $request->input('noregistrasi');
-        $orderData    = $request->input('hasil_json');
+        $noRegistrasi = $request->input("noregistrasi");
+        $orderData    = $request->input("hasil_json");
 
         if (!$noRegistrasi || !$orderData) {
             return response()->json([
-                'status'  => 'error',
-                'message' => 'Parameter noregistrasi dan hasil_json wajib dikirim.'
+                "status"  => "error",
+                "message" => "Parameter noregistrasi dan hasil_json wajib dikirim."
             ], 400);
         }
 
         try {
-            $tableName = 'rego_pesanan_gizi_t';
-            if (!Schema::hasTable($tableName)) {
-                $tableName = Schema::hasTable('go_pesanan_gizi_t') ? 'go_pesanan_gizi_t' : 'pesanan_gizi_t';
-            }
-
-            $orderNumber = $orderData['no_pesanan'] 
-                ?? $orderData['orderNumber'] 
-                ?? $orderData['order_number'] 
-                ?? $request->input('no_pesanan') 
-                ?? ('GZ-' . date('YmdHis'));
+            $orderNumber = $orderData["no_pesanan"] 
+                ?? $orderData["orderNumber"] 
+                ?? $orderData["order_number"] 
+                ?? $request->input("no_pesanan") 
+                ?? ("GZ-" . date("YmdHis"));
 
             $headerData = [
-                'noregistrasi'   => $noRegistrasi,
-                'order_number'   => $orderNumber,
-                'room_name'      => $orderData['roomName'] ?? ($orderData['nomor_kamar'] ?? 'Kamar Pasien'),
-                'patient_name'   => $orderData['patientName'] ?? ($orderData['nama_pasien'] ?? null),
-                'phone_number'   => $orderData['phoneNumber'] ?? null,
-                'meal_time'      => $orderData['mealTime'] ?? ($orderData['waktu_makan'] ?? 'siang'),
-                'total_price'    => $orderData['totalPrice'] ?? ($orderData['total_biaya'] ?? 0),
-                'total_calories' => $orderData['totalCalories'] ?? ($orderData['total_kalori'] ?? 0),
-                'patient_notes'  => $orderData['patientNotes'] ?? ($orderData['dietaryNotes'] ?? null),
-                'order_status'   => $orderData['status'] ?? ($orderData['order_status'] ?? 'baru'),
-                'items_json'     => json_encode($orderData['items'] ?? []),
-                'hasil_json'     => json_encode($orderData),
-                'tgl_pesanan'    => date('Y-m-d H:i:s'),
-                'updated_at'     => date('Y-m-d H:i:s'),
-                'created_at'     => date('Y-m-d H:i:s')
+                "noregistrasi"   => $noRegistrasi,
+                "order_number"   => $orderNumber,
+                "no_pesanan"     => $orderNumber,
+                "room_name"      => $orderData["roomName"] ?? ($orderData["nomor_kamar"] ?? "Kamar Pasien"),
+                "patient_name"   => $orderData["patientName"] ?? ($orderData["nama_pasien"] ?? null),
+                "phone_number"   => $orderData["phoneNumber"] ?? null,
+                "meal_time"      => $orderData["mealTime"] ?? ($orderData["waktu_makan"] ?? "siang"),
+                "total_price"    => $orderData["totalPrice"] ?? ($orderData["total_biaya"] ?? 0),
+                "total_calories" => $orderData["totalCalories"] ?? ($orderData["total_kalori"] ?? 0),
+                "patient_notes"  => $orderData["patientNotes"] ?? ($orderData["dietaryNotes"] ?? null),
+                "order_status"   => $orderData["status"] ?? ($orderData["order_status"] ?? "baru"),
+                "items_json"     => json_encode($orderData["items"] ?? []),
+                "hasil_json"     => json_encode($orderData),
+                "tgl_pesanan"    => date("Y-m-d H:i:s"),
+                "updated_at"     => date("Y-m-d H:i:s"),
+                "created_at"     => date("Y-m-d H:i:s")
             ];
 
-            if (Schema::hasColumn($tableName, 'no_pesanan')) {
-                $headerData['no_pesanan'] = $orderNumber;
-            }
-
-            DB::table($tableName)->updateOrInsert(
+            \\DB::table("rego_pesanan_gizi_t")->updateOrInsert(
                 [
-                    'noregistrasi' => $noRegistrasi,
-                    'order_number' => $orderNumber,
+                    "order_number" => $orderNumber,
                 ],
                 $headerData
             );
 
             return response()->json([
-                'status'       => 'success',
-                'message'      => 'Pesanan gizi berhasil disimpan ke tabel rego_pesanan_gizi_t SIMRS!',
-                'orderNumber'  => $orderNumber,
-                'noregistrasi' => $noRegistrasi
+                "status"       => "success",
+                "message"      => "Pesanan gizi berhasil disimpan ke tabel rego_pesanan_gizi_t SIMRS!",
+                "orderNumber"  => $orderNumber,
+                "noregistrasi" => $noRegistrasi
             ], 200);
 
         } catch (\\Exception $e) {
             return response()->json([
-                'status'  => 'error',
-                'message' => 'Gagal menyimpan pesanan ke rego_pesanan_gizi_t: ' . $e->getMessage()
+                "status"  => "error",
+                "message" => "Gagal menyimpan pesanan ke rego_pesanan_gizi_t: " . $e->getMessage()
             ], 500);
         }
     }

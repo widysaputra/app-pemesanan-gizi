@@ -243,6 +243,12 @@ function extractSimrsBaseUrl(inputUrl?: string): string {
   if (!inputUrl || !inputUrl.trim()) return defaultBase;
   let u = inputUrl.trim().replace(/\/+$/, '');
 
+  // Anchor pattern: directly capture the base EMR or API path if present
+  const emrMatch = u.match(/^(https?:\/\/[^\/]+(?:\/[^\/]+)*?\/(?:service\/medifirst2000\/emr|api))(?:\/.*)?$/i);
+  if (emrMatch && emrMatch[1]) {
+    return emrMatch[1];
+  }
+
   // Strip any known endpoint action suffix repeatedly (even if chained)
   const actionPattern = /\/(?:save-pesanan-gizi|update-status-pesanan-gizi|riwayat-pesanan-gizi|rekap-pesanan-gizi|detail-pesanan-gizi|master-menu-gizi|save-master-menu|sync-batch-menu|save-data-mmpi|pesanan-gizi)(?:\/.*)?$/i;
   let safety = 0;
@@ -1707,11 +1713,27 @@ async function startServer() {
       const responseText = await response.text();
 
       if (!response.ok || !contentType.includes('application/json') || (responseText && responseText.trim().startsWith('<'))) {
-        console.warn(`[SIMRS Fetch] Endpoint ${targetUrl} mengembalikan status ${response.status} (${contentType || 'HTML'}). Menggunakan cache pesanan lokal.`);
+        console.warn(`[SIMRS Fetch] Endpoint ${targetUrl} mengembalikan status ${response.status} (${contentType || 'HTML'}).`);
+        
+        let detailedMsg = `Endpoint SIMRS (${targetUrl}) belum aktif atau mengembalikan HTML (HTTP ${response.status}).`;
+        const exMatch = responseText.match(/class=["\']exception_message["\']>([^<]+)</i);
+        const fileMatch = responseText.match(/in\s+<a[^>]*title=["\']([^"\']+)["\']/i) || responseText.match(/in\s+([A-Za-z0-9_\\\/.-]+\.php\s+line\s+\d+)/i);
+        
+        if (exMatch && exMatch[1]) {
+          const cleanEx = exMatch[1].replace(/&#039;/g, "'").replace(/&quot;/g, '"');
+          const atLocation = fileMatch ? ` (${fileMatch[1]})` : '';
+          detailedMsg = `Error Backend SIMRS (HTTP ${response.status}): "${cleanEx}"${atLocation}. Silakan perbaiki controller EMRController.php.`;
+        } else if (response.status === 404) {
+          detailedMsg = `Route '${targetUrl}' belum terdaftar di routes/api.php Laravel SIMRS (HTTP 404).`;
+        } else if (response.status === 500) {
+          detailedMsg = `Server Laravel SIMRS mengalami Internal Error 500 saat mengakses '${targetUrl}'.`;
+        }
+
         return res.json({
           success: false,
           isHtmlResponse: true,
-          message: `Endpoint SIMRS (${targetUrl}) belum aktif atau mengembalikan HTML. Data pesanan lokal tetap aman.`,
+          httpStatus: response.status,
+          message: detailedMsg,
           data: orders,
           totalOrders: orders.length
         });

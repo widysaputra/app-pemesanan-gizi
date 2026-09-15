@@ -33,7 +33,13 @@ export function extractSimrsBaseUrl(inputUrl?: string): string {
   if (!inputUrl || !inputUrl.trim()) return defaultBase;
   let u = inputUrl.trim().replace(/\/+$/, '');
 
-  // Regex pattern matching any known action endpoint
+  // Anchor pattern: directly capture the base EMR or API path if present
+  const emrMatch = u.match(/^(https?:\/\/[^\/]+(?:\/[^\/]+)*?\/(?:service\/medifirst2000\/emr|api))(?:\/.*)?$/i);
+  if (emrMatch && emrMatch[1]) {
+    return emrMatch[1];
+  }
+
+  // Fallback regex pattern matching any known action endpoint
   const actionPattern = /\/(?:save-pesanan-gizi|update-status-pesanan-gizi|riwayat-pesanan-gizi|rekap-pesanan-gizi|detail-pesanan-gizi|master-menu-gizi|save-master-menu|sync-batch-menu|save-data-mmpi|pesanan-gizi)(?:\/.*)?$/i;
   let safety = 0;
   while (actionPattern.test(u) && safety < 10) {
