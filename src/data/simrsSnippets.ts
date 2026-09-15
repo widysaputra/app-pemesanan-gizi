@@ -281,7 +281,7 @@ class EMRController extends Controller
             $query = \\DB::table("rego_pesanan_gizi_t");
 
             // Filter status pesanan jika dikirim
-            if ($request->filled("status") && $request->input("status") !== "all") {
+            if (!empty($request->input("status")) && $request->input("status") !== "all") {
                 $st = $request->input("status");
                 $query->where(function($q) use ($st) {
                     $q->where("order_status", $st)->orWhere("status", $st);
@@ -289,12 +289,12 @@ class EMRController extends Controller
             }
 
             // Filter nomor registrasi pasien jika ada
-            if ($request->filled("noregistrasi")) {
+            if (!empty($request->input("noregistrasi"))) {
                 $query->where("noregistrasi", $request->input("noregistrasi"));
             }
 
             // Filter waktu makan (pagi, siang, malam, snack)
-            if ($request->filled("meal_time") && $request->input("meal_time") !== "all") {
+            if (!empty($request->input("meal_time")) && $request->input("meal_time") !== "all") {
                 $mt = $request->input("meal_time");
                 $query->where(function($q) use ($mt) {
                     $q->where("meal_time", $mt)->orWhere("waktu_makan", $mt);
@@ -302,10 +302,10 @@ class EMRController extends Controller
             }
 
             // Filter tanggal pesanan
-            if ($request->filled("tgl_awal")) {
+            if (!empty($request->input("tgl_awal"))) {
                 $query->whereDate("tgl_pesanan", ">=", $request->input("tgl_awal"));
             }
-            if ($request->filled("tgl_akhir")) {
+            if (!empty($request->input("tgl_akhir"))) {
                 $query->whereDate("tgl_pesanan", "<=", $request->input("tgl_akhir"));
             }
 
@@ -433,10 +433,10 @@ class EMRController extends Controller
 
         try {
             $query = \\DB::table("rego_pesanan_gizi_t");
-            if ($request->filled("tgl_awal")) {
+            if (!empty($request->input("tgl_awal"))) {
                 $query->whereDate("tgl_pesanan", ">=", $request->input("tgl_awal"));
             }
-            if ($request->filled("tgl_akhir")) {
+            if (!empty($request->input("tgl_akhir"))) {
                 $query->whereDate("tgl_pesanan", "<=", $request->input("tgl_akhir"));
             }
 
@@ -872,12 +872,12 @@ class GiziSIMRSController extends Controller
             }
 
             // Filter kategori opsional jika dikirim oleh client
-            if ($request->filled('kategori') && $request->input('kategori') !== 'all') {
+            if (!empty($request->input('kategori')) && $request->input('kategori') !== 'all') {
                 $query->where('kategori', $request->input('kategori'));
             }
 
             // Filter waktu makan opsional (pagi, siang, malam, snack)
-            if ($request->filled('waktu_makan') && $request->input('waktu_makan') !== 'all') {
+            if (!empty($request->input('waktu_makan')) && $request->input('waktu_makan') !== 'all') {
                 $waktu = strtolower($request->input('waktu_makan'));
                 $query->where(function($q) use ($waktu) {
                     $q->where('waktu_makan', 'like', "%{$waktu}%")
@@ -972,28 +972,28 @@ class GiziSIMRSController extends Controller
             $query = DB::table($tableName);
 
             // Filter status pesanan (baru, diproses, diantar, selesai, dibatalkan) jika dikirim
-            if ($request->filled('status') && $request->input('status') !== 'all') {
+            if (!empty($request->input('status')) && $request->input('status') !== 'all') {
                 $statusCol = \\Illuminate\\Support\\Facades\\Schema::hasColumn($tableName, 'order_status') ? 'order_status' : 'status';
                 $query->where($statusCol, $request->input('status'));
             }
 
             // Filter nomor registrasi pasien jika ada
-            if ($request->filled('noregistrasi')) {
+            if (!empty($request->input('noregistrasi'))) {
                 $query->where('noregistrasi', $request->input('noregistrasi'));
             }
 
             // Filter waktu makan (pagi, siang, malam, snack)
-            if ($request->filled('meal_time') && $request->input('meal_time') !== 'all') {
+            if (!empty($request->input('meal_time')) && $request->input('meal_time') !== 'all') {
                 $mealCol = \\Illuminate\\Support\\Facades\\Schema::hasColumn($tableName, 'meal_time') ? 'meal_time' : 'waktu_makan';
                 $query->where($mealCol, $request->input('meal_time'));
             }
 
             // Filter tanggal pesanan
-            if ($request->filled('tgl_awal')) {
+            if (!empty($request->input('tgl_awal'))) {
                 $dateCol = \\Illuminate\\Support\\Facades\\Schema::hasColumn($tableName, 'tgl_pesanan') ? 'tgl_pesanan' : 'created_at';
                 $query->whereDate($dateCol, '>=', $request->input('tgl_awal'));
             }
-            if ($request->filled('tgl_akhir')) {
+            if (!empty($request->input('tgl_akhir'))) {
                 $dateCol = \\Illuminate\\Support\\Facades\\Schema::hasColumn($tableName, 'tgl_pesanan') ? 'tgl_pesanan' : 'created_at';
                 $query->whereDate($dateCol, '<=', $request->input('tgl_akhir'));
             }

@@ -166,18 +166,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           id: 'all',
           success: true,
           text: res.message || `Berhasil mengambil ${res.data?.length || 0} pesanan langsung dari DB SIMRS (rego_pesanan_gizi_t)!`,
+          rawResponse: (res as any).simrsResponse,
+          httpStatus: (res as any).httpStatus || 200,
         });
-      } else if (res && (res as any).isHtmlResponse) {
+      } else {
+        const errorText = (res as any)?.message || (res as any)?.error || 'Gagal menyinkronkan dengan endpoint SIMRS. Data lokal tetap aman.';
+        const rawResp = (res as any)?.simrsResponse || (res as any)?.rawResponse;
         setOrderSyncNotice({
           id: 'all',
           success: false,
-          text: (res as any).message || 'SIMRS mengembalikan halaman HTML. Silakan daftarkan Route::get("riwayat-pesanan-gizi", "EMR\\EMRController@getRiwayatPesananGizi") di routes/api.php Laravel Anda (lihat Tab SIMRS & Database).',
-        });
-      } else if (res && !res.success) {
-        setOrderSyncNotice({
-          id: 'all',
-          success: false,
-          text: (res as any).message || (res as any).error || 'Gagal menyinkronkan dengan endpoint SIMRS. Data lokal tetap aman.',
+          text: errorText,
+          rawResponse: rawResp,
+          httpStatus: (res as any)?.httpStatus,
         });
       }
     } catch (err: any) {
@@ -189,7 +189,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       });
     } finally {
       setTimeout(() => setIsRefreshingOrders(false), 500);
-      setTimeout(() => setOrderSyncNotice(null), 9000);
+      // Biarkan notifikasi error tampil lebih lama (25 detik) agar nyaman dibaca/di-debug
+      setTimeout(() => {
+        setOrderSyncNotice(prev => (prev?.success ? null : prev));
+      }, 25000);
     }
   };
 
@@ -217,7 +220,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [simrsTestResult, setSimrsTestResult] = useState<any | null>(null);
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
   const [syncingOrderId, setSyncingOrderId] = useState<string | null>(null);
-  const [orderSyncNotice, setOrderSyncNotice] = useState<{ id: string; success: boolean; text: string } | null>(null);
+  const [orderSyncNotice, setOrderSyncNotice] = useState<{ id: string; success: boolean; text: string; rawResponse?: any; httpStatus?: number } | null>(null);
   const [activeSqlTab, setActiveSqlTab] = useState<'pesanan_gizi' | 'emr_controller' | 'master_menu' | 'routes' | 'controller' | 'json_payload' | 'mmpi'>('emr_controller');
   const [isSyncingMenu, setIsSyncingMenu] = useState<boolean>(false);
   const [menuSyncNotice, setMenuSyncNotice] = useState<{ success: boolean; text: string; count?: number; latency?: string } | null>(null);
@@ -539,12 +542,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           id: 'all',
           success: true,
           text: (res as any).message || `Berhasil menarik riwayat pesanan dari SIMRS (${res.latency})`,
+          rawResponse: (res as any).simrsResponse,
+          httpStatus: (res as any).httpStatus || 200,
         });
       } else {
+        const errorText = (res as any)?.message || (res as any)?.error || 'Gagal menarik riwayat pesanan dari SIMRS';
+        const rawResp = (res as any)?.simrsResponse || (res as any)?.rawResponse;
         setOrderSyncNotice({
           id: 'all',
           success: false,
-          text: `Gagal menarik riwayat pesanan: ${res.error}`
+          text: errorText,
+          rawResponse: rawResp,
+          httpStatus: (res as any)?.httpStatus,
         });
       }
     } catch (err: any) {
@@ -555,7 +564,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       });
     } finally {
       setSyncingOrderId(null);
-      setTimeout(() => setOrderSyncNotice(null), 5000);
+      setTimeout(() => {
+        setOrderSyncNotice(prev => (prev?.success ? null : prev));
+      }, 25000);
     }
   };
 
@@ -1024,19 +1035,68 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
 
           {orderSyncNotice && (
-            <div className={`p-3 rounded-xl text-xs flex items-start gap-2 ${
+            <div className={`p-4 rounded-xl text-xs space-y-2 border shadow-xs ${
               orderSyncNotice.success
-                ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
-                : 'bg-amber-50 border border-amber-200 text-amber-800'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                : 'bg-amber-50/90 border-amber-300 text-amber-950'
             }`}>
-              {orderSyncNotice.success ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-              ) : (
-                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-              )}
-              <div className="flex-1">
-                <span>{orderSyncNotice.text}</span>
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start gap-2">
+                  {orderSyncNotice.success ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  )}
+                  <div>
+                    <span className="font-semibold">{orderSyncNotice.text}</span>
+                    {orderSyncNotice.httpStatus && (
+                      <span className="ml-2 inline-block px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-200 text-amber-900">
+                        HTTP {orderSyncNotice.httpStatus}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setOrderSyncNotice(null)}
+                  className="text-slate-400 hover:text-slate-700 text-xs px-1 cursor-pointer font-bold"
+                  title="Tutup Notifikasi"
+                >
+                  ✕
+                </button>
               </div>
+
+              {orderSyncNotice.rawResponse && (
+                <div className="mt-2 pt-2 border-t border-amber-200/80">
+                  <div className="flex items-center justify-between text-[11px] font-mono text-slate-700 font-semibold mb-1">
+                    <span>📋 Respon Asli dari Server SIMRS (Live Debug):</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const copyStr = typeof orderSyncNotice.rawResponse === 'object'
+                          ? JSON.stringify(orderSyncNotice.rawResponse, null, 2)
+                          : String(orderSyncNotice.rawResponse);
+                        navigator.clipboard.writeText(copyStr);
+                        setCopiedSection('simrs_error_response');
+                        setTimeout(() => setCopiedSection(null), 2500);
+                      }}
+                      className="text-indigo-600 hover:text-indigo-800 font-sans font-bold text-[10px] px-2 py-0.5 bg-white rounded border border-slate-200 cursor-pointer flex items-center gap-1"
+                    >
+                      {copiedSection === 'simrs_error_response' ? '✓ Tersalin' : 'Salin JSON Error'}
+                    </button>
+                  </div>
+                  <pre className="text-[11px] font-mono p-2.5 bg-slate-900 text-amber-300 rounded-lg overflow-x-auto max-h-48 border border-slate-800 whitespace-pre-wrap leading-relaxed select-all">
+                    {typeof orderSyncNotice.rawResponse === 'object'
+                      ? JSON.stringify(orderSyncNotice.rawResponse, null, 2)
+                      : String(orderSyncNotice.rawResponse)}
+                  </pre>
+                  {typeof orderSyncNotice.rawResponse === 'object' && orderSyncNotice.rawResponse?.message?.includes('Method filled does not exist') && (
+                    <div className="mt-1.5 p-2.5 bg-rose-100/90 border border-rose-300 rounded-lg text-rose-900 text-[11px] font-sans leading-relaxed">
+                      <strong>💡 Penyebab &amp; Solusi:</strong> Versi Laravel/Lumen di SIMRS Anda belum memiliki fungsi <code>$request-&gt;filled(...)</code> (hanya tersedia di Laravel 5.5+). Ganti baris tersebut dengan <code>!empty($request-&gt;input(&#39;...&#39;))</code> atau <code>$request-&gt;has(&#39;...&#39;)</code> di controller EMRController.php.
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
           

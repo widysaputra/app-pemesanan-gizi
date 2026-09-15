@@ -80,14 +80,14 @@ export default function App() {
           setMenuItems(simrsRes.data);
           saveLocalCachedMenu(simrsRes.data);
         }
-      }).catch((e) => console.warn('[Auto-Sync SIMRS Menu]:', e));
+      }).catch((e) => console.log('[Auto-Sync SIMRS Menu]:', e));
 
       realtimeService.fetchOrdersFromSimrs().then((ordersRes) => {
         if (ordersRes && ordersRes.success && Array.isArray(ordersRes.data) && ordersRes.data.length > 0) {
           const freshOrders = realtimeService.getLocalOrders();
           setOrders(freshOrders);
         }
-      }).catch((e) => console.warn('[Auto-Sync SIMRS Orders]:', e));
+      }).catch((e) => console.log('[Auto-Sync SIMRS Orders]:', e));
 
       // 4. Sinkronisasikan kunci sandi admin dari server
       realtimeService.getAdminPassword().then((pwdData) => {

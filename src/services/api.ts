@@ -649,7 +649,7 @@ export class HospitalRealtimeService {
   }
 
   // --- ORDERS APIS ---
-  async fetchOrdersFromSimrs(): Promise<{ success: boolean; data?: HospitalOrder[]; error?: string; message?: string; totalOrders?: number; latency?: string; isHtmlResponse?: boolean }> {
+  async fetchOrdersFromSimrs(): Promise<{ success: boolean; data?: HospitalOrder[]; error?: string; message?: string; totalOrders?: number; latency?: string; isHtmlResponse?: boolean; httpStatus?: number; simrsResponse?: any; rawResponse?: any }> {
     const config = getLocalSimrsConfig();
     const startTime = Date.now();
     try {
@@ -686,12 +686,17 @@ export class HospitalRealtimeService {
         return data;
       }
 
-      if (data && data.isHtmlResponse) {
+      if (data && !data.success) {
         return {
           success: false,
-          isHtmlResponse: true,
-          message: data.message || 'SIMRS mengembalikan halaman HTML. Pastikan Route riwayat-pesanan-gizi telah didaftarkan di routes/api.php Laravel Anda.',
-          error: 'SIMRS mengembalikan respon bukan JSON (HTML). Route belum terdaftar di Laravel.'
+          isHtmlResponse: Boolean(data.isHtmlResponse),
+          httpStatus: data.httpStatus,
+          message: data.message || data.error || 'Gagal mengambil data dari SIMRS',
+          error: data.error || data.message || 'Gagal mengambil data dari SIMRS',
+          simrsResponse: data.simrsResponse,
+          rawResponse: data.rawResponse,
+          data: getLocalCachedOrders(),
+          totalOrders: getLocalCachedOrders().length
         };
       }
     } catch {

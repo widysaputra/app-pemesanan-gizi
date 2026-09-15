@@ -1712,10 +1712,13 @@ async function startServer() {
       const contentType = response.headers.get('content-type') || '';
       const responseText = await response.text();
 
-      if (!response.ok || !contentType.includes('application/json') || (responseText && responseText.trim().startsWith('<'))) {
-        console.warn(`[SIMRS Fetch] Endpoint ${targetUrl} mengembalikan status ${response.status} (${contentType || 'HTML'}).`);
+      // Check if response is HTML
+      const isHtml = Boolean(contentType.includes('text/html') || (responseText && responseText.trim().startsWith('<')));
+
+      if (isHtml) {
+        console.log(`[SIMRS Fetch] Endpoint ${targetUrl} mengembalikan status ${response.status} (HTML).`);
         
-        let detailedMsg = `Endpoint SIMRS (${targetUrl}) belum aktif atau mengembalikan HTML (HTTP ${response.status}).`;
+        let detailedMsg = `Endpoint SIMRS (${targetUrl}) mengembalikan HTML (HTTP ${response.status}).`;
         const exMatch = responseText.match(/class=["\']exception_message["\']>([^<]+)</i);
         const fileMatch = responseText.match(/in\s+<a[^>]*title=["\']([^"\']+)["\']/i) || responseText.match(/in\s+([A-Za-z0-9_\\\/.-]+\.php\s+line\s+\d+)/i);
         
@@ -1734,28 +1737,44 @@ async function startServer() {
           isHtmlResponse: true,
           httpStatus: response.status,
           message: detailedMsg,
+          error: detailedMsg,
+          rawResponse: responseText.slice(0, 1000),
           data: orders,
           totalOrders: orders.length
         });
       }
 
-      let parsedData;
+      // If response is not HTML, try parsing JSON
+      let parsedData: any = null;
       try {
         parsedData = JSON.parse(responseText);
       } catch (e) {
         return res.json({
           success: false,
-          isHtmlResponse: true,
-          message: 'SIMRS mengembalikan respon yang bukan JSON yang valid',
+          isHtmlResponse: false,
+          httpStatus: response.status,
+          message: `SIMRS (HTTP ${response.status}): Respon bukan format JSON valid (${responseText.slice(0, 120)})`,
+          error: `SIMRS (HTTP ${response.status}): Respon bukan format JSON valid`,
+          rawResponse: responseText.slice(0, 500),
           data: orders,
           totalOrders: orders.length
         });
       }
 
-      if (!response.ok) {
+      // If HTTP error OR SIMRS returns error status in JSON body
+      if (!response.ok || parsedData?.status === 'error' || parsedData?.success === false) {
+        const errorDetail = parsedData?.message || parsedData?.error || `HTTP ${response.status} Error dari SIMRS`;
+        const fullMsg = `[SIMRS HTTP ${response.status}] ${errorDetail}`;
+        console.log(`[SIMRS Fetch] Status dari SIMRS: ${fullMsg}`);
+
         return res.json({
           success: false,
-          error: parsedData?.message || parsedData?.error || `HTTP Error ${response.status}`,
+          isHtmlResponse: false,
+          httpStatus: response.status,
+          message: fullMsg,
+          error: fullMsg,
+          simrsResponse: parsedData,
+          rawResponse: responseText,
           data: orders,
           totalOrders: orders.length
         });
@@ -1860,7 +1879,7 @@ async function startServer() {
       });
 
     } catch (error: any) {
-      console.error('[SIMRS Fetch] Gagal mengambil riwayat pesanan:', error);
+      console.log('[SIMRS Fetch] Info riwayat pesanan:', error?.message || error);
       res.status(500).json({
         success: false,
         error: error.message || 'Gagal terhubung ke server SIMRS'
@@ -2000,7 +2019,7 @@ app.post('/api/simrs/fetch-menu', async (req, res) => {
       });
 
     } catch (error: any) {
-      console.error('[SIMRS Fetch] Gagal mengambil menu:', error);
+      console.log('[SIMRS Fetch] Info mengambil menu:', error?.message || error);
       res.status(500).json({
         success: false,
         error: error.message || 'Gagal terhubung ke server SIMRS'
