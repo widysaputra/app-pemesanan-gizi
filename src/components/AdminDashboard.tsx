@@ -6,7 +6,7 @@ import {
   MenuCategory,
   SimrsSettings 
 } from '../types';
-import { realtimeService } from '../services/api';
+import { realtimeService, extractSimrsBaseUrl } from '../services/api';
 import { MenuEditModal } from './MenuEditModal';
 import { OrderRecapSection } from './OrderRecapSection';
 import { EtiketModal } from './EtiketModal';
@@ -171,14 +171,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         setOrderSyncNotice({
           id: 'all',
           success: false,
-          text: 'SIMRS mengembalikan halaman HTML. Silakan daftarkan Route::get("riwayat-pesanan-gizi", "EMR\\EMRController@getRiwayatPesananGizi") di routes/api.php Laravel Anda (lihat Tab SIMRS & Database).',
+          text: (res as any).message || 'SIMRS mengembalikan halaman HTML. Silakan daftarkan Route::get("riwayat-pesanan-gizi", "EMR\\EMRController@getRiwayatPesananGizi") di routes/api.php Laravel Anda (lihat Tab SIMRS & Database).',
+        });
+      } else if (res && !res.success) {
+        setOrderSyncNotice({
+          id: 'all',
+          success: false,
+          text: (res as any).message || (res as any).error || 'Gagal menyinkronkan dengan endpoint SIMRS. Data lokal tetap aman.',
         });
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn('Refresh error:', err);
+      setOrderSyncNotice({
+        id: 'all',
+        success: false,
+        text: err?.message || 'Gagal menghubungi server SIMRS. Memuat data pesanan lokal.',
+      });
     } finally {
       setTimeout(() => setIsRefreshingOrders(false), 500);
-      setTimeout(() => setOrderSyncNotice(null), 8000);
+      setTimeout(() => setOrderSyncNotice(null), 9000);
     }
   };
 
@@ -192,7 +203,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   }, [activeTab]);
 
   // SIMRS (PostgreSQL & Laravel API) Integration States
-  const [simrsApiUrl, setSimrsApiUrl] = useState<string>('http://localhost:8000/api/save-pesanan-gizi');
+  const [simrsApiUrl, setSimrsApiUrl] = useState<string>('https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi');
   const [simrsApiKey, setSimrsApiKey] = useState<string>('');
   const [simrsApiKeyMasked, setSimrsApiKeyMasked] = useState<string>('');
   const [showToken, setShowToken] = useState<boolean>(false);
@@ -265,7 +276,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       try {
         const simrsConfig = await realtimeService.getSimrsConfig();
         if (simrsConfig) {
-          if (simrsConfig.apiUrl) setSimrsApiUrl(simrsConfig.apiUrl);
+          if (simrsConfig.apiUrl) {
+            const rawUrl = simrsConfig.apiUrl.trim();
+            const cleanBase = extractSimrsBaseUrl(rawUrl);
+            if (rawUrl.includes('localhost:8000') || rawUrl.includes('update-status-pesanan-gizi') || rawUrl.includes('riwayat-pesanan-gizi')) {
+              setSimrsApiUrl(`${cleanBase}/save-pesanan-gizi`);
+            } else {
+              setSimrsApiUrl(rawUrl);
+            }
+          }
           if (simrsConfig.authHeaderType) setSimrsAuthHeaderType(simrsConfig.authHeaderType);
           setSimrsAutoSync(simrsConfig.autoSyncOnOrder !== false);
           setIsSimrsConfigured(simrsConfig.isConfigured);
@@ -1572,6 +1591,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </button>
                       <button
                         type="button"
+                        onClick={() => setSimrsApiUrl('https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi')}
+                        className="px-2.5 py-1 text-[11px] font-mono bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold rounded-lg border border-amber-200 transition-colors cursor-pointer flex items-center gap-1"
+                        title="Endpoint GET riwayat pesanan gizi langsung dari PostgreSQL SIMRS"
+                      >
+                        <Download className="w-3 h-3" />
+                        <span>riwayat-pesanan-gizi</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSimrsApiUrl('https://rsbsaonline.com/service/medifirst2000/emr/update-status-pesanan-gizi')}
+                        className="px-2.5 py-1 text-[11px] font-mono bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-lg border border-blue-200 transition-colors cursor-pointer flex items-center gap-1"
+                        title="Endpoint update status pesanan (diproses, diantar, selesai)"
+                      >
+                        <Clock className="w-3 h-3" />
+                        <span>update-status-pesanan-gizi</span>
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => setSimrsApiUrl('https://rsbsaonline.com/service/medifirst2000/emr/sync-batch-menu')}
                         className="px-2.5 py-1 text-[11px] font-mono bg-teal-50 hover:bg-teal-100 text-teal-700 font-bold rounded-lg border border-teal-200 transition-colors cursor-pointer flex items-center gap-1"
                         title="Endpoint resmi RSBSA untuk sinkronisasi batch seluruh menu gizi"
@@ -1597,12 +1634,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         Simulator Lokal
                       </button>
                     </div>
-                    <div className="mt-2 p-2 bg-indigo-50/70 rounded-lg text-[11px] text-indigo-900 border border-indigo-100">
-                      💡 <strong>Perbedaan Endpoint SIMRS:</strong>
-                      <ul className="list-disc pl-4 mt-0.5 space-y-0.5 text-[10px] text-indigo-800">
-                        <li><strong>save-pesanan-gizi:</strong> Khusus transaksi pesanan gizi pasien rawat inap (menerima noregistrasi, no_pesanan, items).</li>
-                        <li><strong>save-master-menu:</strong> Khusus katalog 1 menu gizi (menerima id &amp; name / nama_menu).</li>
-                        <li><strong>sync-batch-menu:</strong> Sinkronisasi seluruh katalog menu gizi RS sekaligus (menerima menu_items).</li>
+                    <div className="mt-2 p-2.5 bg-indigo-50/80 rounded-xl text-[11px] text-indigo-900 border border-indigo-100 space-y-1">
+                      <div className="font-bold flex items-center gap-1.5">
+                        <span>💡</span>
+                        <span>Normalisasi Otomatis Endpoint SIMRS:</span>
+                      </div>
+                      <p className="text-[10px] text-indigo-800 leading-relaxed">
+                        Sistem menormalkan URL dasar (Base EMR URL) secara otomatis sehingga Anda bebas memasukkan URL apapun di atas tanpa risiko penumpukan path endpoint.
+                      </p>
+                      <ul className="list-disc pl-4 mt-1 space-y-0.5 text-[10px] text-indigo-800">
+                        <li><strong>riwayat-pesanan-gizi (GET):</strong> Menarik riwayat pesanan langsung dari tabel <code>rego_pesanan_gizi_t</code> PostgreSQL SIMRS.</li>
+                        <li><strong>save-pesanan-gizi (POST):</strong> Transaksi pesanan gizi pasien rawat inap baru.</li>
+                        <li><strong>update-status-pesanan-gizi (POST):</strong> Sinkronisasi perubahan status (diproses/diantar/selesai) ke SIMRS.</li>
+                        <li><strong>sync-batch-menu / save-master-menu:</strong> Sinkronisasi master katalog makanan dan minuman.</li>
                       </ul>
                     </div>
                   </div>

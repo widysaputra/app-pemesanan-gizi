@@ -233,48 +233,53 @@ if (fs.existsSync(ADMIN_SECURITY_FILE)) {
 }
 
 // URL Resolvers for Hospital SIMRS endpoints (RSBSA Online Medifirst2000)
+/**
+ * Normalizes any SIMRS endpoint URL back to its base EMR path.
+ * Strips any trailing action suffixes (e.g. /update-status-pesanan-gizi, /riwayat-pesanan-gizi, etc.)
+ * so compound paths like /update-status-pesanan-gizi/riwayat-pesanan-gizi never occur.
+ */
+function extractSimrsBaseUrl(inputUrl?: string): string {
+  const defaultBase = 'https://rsbsaonline.com/service/medifirst2000/emr';
+  if (!inputUrl || !inputUrl.trim()) return defaultBase;
+  let u = inputUrl.trim().replace(/\/+$/, '');
+
+  // Strip any known endpoint action suffix repeatedly (even if chained)
+  const actionPattern = /\/(?:save-pesanan-gizi|update-status-pesanan-gizi|riwayat-pesanan-gizi|rekap-pesanan-gizi|detail-pesanan-gizi|master-menu-gizi|save-master-menu|sync-batch-menu|save-data-mmpi|pesanan-gizi)(?:\/.*)?$/i;
+  let safety = 0;
+  while (actionPattern.test(u) && safety < 10) {
+    u = u.replace(actionPattern, '').replace(/\/+$/, '');
+    safety++;
+  }
+
+  return u || defaultBase;
+}
+
 function resolveSimrsOrderUrl(inputUrl?: string): string {
-  const defaultUrl = 'https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi';
-  if (!inputUrl || !inputUrl.trim()) return defaultUrl;
-  let u = inputUrl.trim();
-  if (u.includes('/save-pesanan-gizi')) return u;
-  u = u.replace(/\/save-(master-menu|data-mmpi)\/?$/, '');
-  u = u.replace(/\/sync-batch-menu\/?$/, '');
-  u = u.replace(/\/$/, '');
-  return `${u}/save-pesanan-gizi`;
+  return `${extractSimrsBaseUrl(inputUrl)}/save-pesanan-gizi`;
 }
 
 function resolveSimrsBatchMenuUrl(inputUrl?: string): string {
-  const defaultUrl = 'https://rsbsaonline.com/service/medifirst2000/emr/sync-batch-menu';
-  if (!inputUrl || !inputUrl.trim()) return defaultUrl;
-  let u = inputUrl.trim();
-  if (u.includes('/sync-batch-menu')) return u;
-  u = u.replace(/\/save-(pesanan-gizi|data-mmpi|master-menu)\/?$/, '');
-  u = u.replace(/\/$/, '');
-  return `${u}/sync-batch-menu`;
+  return `${extractSimrsBaseUrl(inputUrl)}/sync-batch-menu`;
 }
 
 function resolveSimrsFetchOrdersUrl(inputUrl?: string): string {
-  const defaultUrl = 'https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi';
-  if (!inputUrl || !inputUrl.trim()) return defaultUrl;
-  let u = inputUrl.trim();
-  if (u.includes('/riwayat-pesanan-gizi')) return u;
-  u = u.replace(/\/save-(pesanan-gizi|data-mmpi|master-menu)\/?$/, '');
-  u = u.replace(/\/sync-batch-menu\/?$/, '');
-  u = u.replace(/\/master-menu-gizi\/?$/, '');
-  u = u.replace(/\/$/, '');
-  return `${u}/riwayat-pesanan-gizi`;
+  return `${extractSimrsBaseUrl(inputUrl)}/riwayat-pesanan-gizi`;
 }
 
 function resolveSimrsFetchMenuUrl(inputUrl?: string): string {
-  const defaultUrl = 'https://rsbsaonline.com/service/medifirst2000/emr/master-menu-gizi';
-  if (!inputUrl || !inputUrl.trim()) return defaultUrl;
-  let u = inputUrl.trim();
-  if (u.includes('/master-menu-gizi')) return u;
-  u = u.replace(/\/save-(pesanan-gizi|data-mmpi|master-menu)\/?$/, '');
-  u = u.replace(/\/sync-batch-menu\/?$/, '');
-  u = u.replace(/\/$/, '');
-  return `${u}/master-menu-gizi`;
+  return `${extractSimrsBaseUrl(inputUrl)}/master-menu-gizi`;
+}
+
+function resolveSimrsSingleMenuUrl(inputUrl?: string): string {
+  return `${extractSimrsBaseUrl(inputUrl)}/save-master-menu`;
+}
+
+function resolveSimrsUpdateStatusUrl(inputUrl?: string): string {
+  return `${extractSimrsBaseUrl(inputUrl)}/update-status-pesanan-gizi`;
+}
+
+function resolveSimrsRekapUrl(inputUrl?: string): string {
+  return `${extractSimrsBaseUrl(inputUrl)}/rekap-pesanan-gizi`;
 }
 
 export const parsePgNumber = (val: any, defaultVal = 0): number => {
@@ -608,17 +613,6 @@ export async function autoFetchSimrsOrdersFromServer(): Promise<HospitalOrder[]>
     console.warn('[Auto-Sync SIMRS Orders] Gagal auto-tarik pesanan di background:', err);
     return orders;
   }
-}
-
-function resolveSimrsSingleMenuUrl(inputUrl?: string): string {
-  const defaultUrl = 'https://rsbsaonline.com/service/medifirst2000/emr/save-master-menu';
-  if (!inputUrl || !inputUrl.trim()) return defaultUrl;
-  let u = inputUrl.trim();
-  if (u.includes('/save-master-menu')) return u;
-  u = u.replace(/\/save-(pesanan-gizi|data-mmpi)\/?$/, '');
-  u = u.replace(/\/sync-batch-menu\/?$/, '');
-  u = u.replace(/\/$/, '');
-  return `${u}/save-master-menu`;
 }
 
 // SIMRS Laravel & PostgreSQL Integration Configuration State
@@ -2518,6 +2512,32 @@ app.post('/api/simrs/sync-menu', async (req, res) => {
         note: note || `Status diubah menjadi ${status}`,
       });
       savePersistentOrders(orders);
+
+      // Sinkronisasi status ke tabel rego_pesanan_gizi_t di SIMRS jika URL dan Token tersedia
+      if (simrsSettings.apiUrl) {
+        const statusUrl = resolveSimrsUpdateStatusUrl(simrsSettings.apiUrl);
+        const token = (simrsSettings.apiKey || '').trim();
+        fetch(statusUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-AUTH-TOKEN': token,
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            order_number: order.orderNumber,
+            no_pesanan: order.orderNumber,
+            noregistrasi: order.registrationNo,
+            status,
+            order_status: status,
+            note: note || `Status diubah menjadi ${status}`,
+            updated_at: new Date().toISOString(),
+          }),
+        }).catch(err => {
+          console.warn('[SIMRS Status Update] Gagal mengirim pembaruan status ke SIMRS:', err.message);
+        });
+      }
     }
 
     broadcastEvent('status_update', { order });
