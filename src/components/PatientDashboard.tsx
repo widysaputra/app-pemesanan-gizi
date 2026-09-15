@@ -554,13 +554,13 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                       <div className="space-y-1.5 pt-1">
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Menu yang Dipesan</span>
                         <div className="space-y-1">
-                          {ord.items.map((it, i) => (
+                          {(ord.items || []).map((it, i) => (
                             <div key={i} className="flex items-center justify-between text-xs py-1 border-b border-slate-50 last:border-0">
                               <span className="text-slate-700 font-medium">
-                                <strong className="text-slate-900">{it.name}</strong> &times; {it.portion} porsi
+                                <strong className="text-slate-900">{it.name || 'Menu'}</strong> &times; {it.portion || 1} porsi
                               </span>
                               <span className="font-bold text-slate-900">
-                                Rp {((it.price || 0) * it.portion).toLocaleString('id-ID')}
+                                Rp {((Number(it.price) || 0) * (Number(it.portion) || 1)).toLocaleString('id-ID')}
                               </span>
                             </div>
                           ))}

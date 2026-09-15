@@ -1,12 +1,734 @@
 [
   {
+    "id": "42",
+    "orderNumber": "GZ-20260915-54",
+    "registrationNo": "REG-087925",
+    "createdAt": "2026-09-15 09:41:28",
+    "roomName": "Kamar Rawat Inap",
+    "patientName": "Pasien",
+    "phoneNumber": "",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789353018255",
+        "name": "Kopi Hangat / Es",
+        "portion": 1,
+        "price": 6000,
+        "category": "minuman",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789110504741",
+        "name": "Nasi + ayam goreng + tahu/tempe + sayur + sambal",
+        "portion": 2,
+        "price": 25000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 56000,
+    "totalCalories": 450,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-15 09:41:28",
+        "note": "Tersinkron otomatis dari database SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-15 09:41:28",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "41",
+    "orderNumber": "GZ-20260915-90",
+    "registrationNo": "REG-706041",
+    "createdAt": "2026-09-15 09:18:26",
+    "roomName": "Kamar Rawat Inap",
+    "patientName": "Pasien",
+    "phoneNumber": "",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110391032",
+        "name": "Bubur ayam lengkap",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 150,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-15 09:18:26",
+        "note": "Tersinkron otomatis dari database SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-15 09:18:26",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "39",
+    "orderNumber": "GZ-20260915-89",
+    "registrationNo": "REG-181822",
+    "createdAt": "2026-09-15 08:19:42",
+    "roomName": "Kamar Rawat Inap",
+    "patientName": "Pasien",
+    "phoneNumber": "",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110365112",
+        "name": "Nasi Kuning + telur + orek tempe + timun",
+        "portion": 6,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789110391032",
+        "name": "Bubur ayam lengkap",
+        "portion": 4,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 100000,
+    "totalCalories": 1500,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-15 08:19:42",
+        "note": "Tersinkron otomatis dari database SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-15 08:19:42",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "38",
+    "orderNumber": "GZ-20260915-70",
+    "registrationNo": "REG-080745",
+    "createdAt": "2026-09-15 08:18:01",
+    "roomName": "Kamar Rawat Inap",
+    "patientName": "Pasien",
+    "phoneNumber": "",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110419140",
+        "name": "Roti bakar + telur + teh hangat",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789353163749",
+        "name": "Aneka Juice (strawberry, melon, jeruk)",
+        "portion": 1,
+        "price": 12000,
+        "category": "minuman",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 22000,
+    "totalCalories": 300,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-15 08:18:01",
+        "note": "Tersinkron otomatis dari database SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-15 08:18:01",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "35",
+    "orderNumber": "GZ-20260915-65",
+    "registrationNo": "REG-249202",
+    "createdAt": "2026-09-15 08:04:10",
+    "roomName": "Kamar Rawat Inap",
+    "patientName": "Pasien",
+    "phoneNumber": "",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110365112",
+        "name": "Nasi Kuning + telur + orek tempe + timun",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 150,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-15 08:04:10",
+        "note": "Tersinkron otomatis dari database SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-15 08:04:10",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "34",
+    "orderNumber": "GZ-20260915-98",
+    "registrationNo": "REG-073044",
+    "createdAt": "2026-09-15 08:01:13",
+    "roomName": "Kamar Rawat Inap",
+    "patientName": "Pasien",
+    "phoneNumber": "",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110419140",
+        "name": "Roti bakar + telur + teh hangat",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 150,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-15 08:01:13",
+        "note": "Tersinkron otomatis dari database SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-15 08:01:13",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "33",
+    "orderNumber": "GZ-20260915-28",
+    "registrationNo": "REG-985586",
+    "createdAt": "2026-09-15 07:59:46",
+    "roomName": "Kamar Rawat Inap",
+    "patientName": "Pasien",
+    "phoneNumber": "",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110365112",
+        "name": "Nasi Kuning + telur + orek tempe + timun",
+        "portion": 3,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 30000,
+    "totalCalories": 450,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-15 07:59:46",
+        "note": "Tersinkron otomatis dari database SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-15 07:59:46",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "32",
+    "orderNumber": "GZ-20260915-21",
+    "registrationNo": "REG-859175",
+    "createdAt": "2026-09-15 07:57:40",
+    "roomName": "Kamar Rawat Inap",
+    "patientName": "Pasien",
+    "phoneNumber": "",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110391032",
+        "name": "Bubur ayam lengkap",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 150,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-15 07:57:40",
+        "note": "Tersinkron otomatis dari database SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-15 07:57:40",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "31",
+    "orderNumber": "GZ-20260915-82",
+    "registrationNo": "REG-614799",
+    "createdAt": "2026-09-15 07:53:35",
+    "roomName": "Kamar Rawat Inap",
+    "patientName": "Pasien",
+    "phoneNumber": "",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110419140",
+        "name": "Roti bakar + telur + teh hangat",
+        "portion": 2,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 20000,
+    "totalCalories": 300,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-15 07:53:35",
+        "note": "Tersinkron otomatis dari database SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-15 07:53:35",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "30",
+    "orderNumber": "GZ-20260915-41",
+    "registrationNo": "REG-580699",
+    "createdAt": "2026-09-15 07:53:01",
+    "roomName": "Kamar Rawat Inap",
+    "patientName": "Pasien",
+    "phoneNumber": "",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110365112",
+        "name": "Nasi Kuning + telur + orek tempe + timun",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789110391032",
+        "name": "Bubur ayam lengkap",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 20000,
+    "totalCalories": 300,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-15 07:53:01",
+        "note": "Tersinkron otomatis dari database SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-15 07:53:01",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "29",
+    "orderNumber": "GZ-20260915-63",
+    "registrationNo": "REG-420800",
+    "createdAt": "2026-09-15 07:50:21",
+    "roomName": "Kamar Rawat Inap",
+    "patientName": "Pasien",
+    "phoneNumber": "",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110365112",
+        "name": "Nasi Kuning + telur + orek tempe + timun",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789110391032",
+        "name": "Bubur ayam lengkap",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 20000,
+    "totalCalories": 300,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-15 07:50:21",
+        "note": "Tersinkron otomatis dari database SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-15 07:50:21",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "28",
+    "orderNumber": "GZ-20260915-67",
+    "registrationNo": "REG-243205",
+    "createdAt": "2026-09-15 07:47:24",
+    "roomName": "Kamar Rawat Inap",
+    "patientName": "Pasien",
+    "phoneNumber": "",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110419140",
+        "name": "Roti bakar + telur + teh hangat",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 150,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-15 07:47:24",
+        "note": "Tersinkron otomatis dari database SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-15 07:47:24",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "27",
+    "orderNumber": "GZ-20260915-74",
+    "registrationNo": "REG-165855",
+    "createdAt": "2026-09-15 07:46:06",
+    "roomName": "Kamar Rawat Inap",
+    "patientName": "Pasien",
+    "phoneNumber": "",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110391032",
+        "name": "Bubur ayam lengkap",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789110720484",
+        "name": "Mie goreng (mie, telur, sayur)",
+        "portion": 1,
+        "price": 15000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 25000,
+    "totalCalories": 300,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-15 07:46:06",
+        "note": "Tersinkron otomatis dari database SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-15 07:46:06",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "26",
+    "orderNumber": "GZ-20260915-43",
+    "registrationNo": "REG-552973",
+    "createdAt": "2026-09-15 07:35:53",
+    "roomName": "Kamar Rawat Inap",
+    "patientName": "Pasien",
+    "phoneNumber": "",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110419140",
+        "name": "Roti bakar + telur + teh hangat",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 150,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-15 07:35:53",
+        "note": "Tersinkron otomatis dari database SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-15 07:35:53",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "25",
+    "orderNumber": "GZ-20260914-28",
+    "registrationNo": "REG-303955",
+    "createdAt": "2026-09-14 14:01:44",
+    "roomName": "Kamar Rawat Inap",
+    "patientName": "Pasien",
+    "phoneNumber": "",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110419140",
+        "name": "Roti bakar + telur + teh hangat",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 150,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-14 14:01:44",
+        "note": "Tersinkron otomatis dari database SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-14 14:01:44",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "24",
+    "orderNumber": "GZ-20260914-48",
+    "registrationNo": "REG-435212",
+    "createdAt": "2026-09-14 11:50:36",
+    "roomName": "Kamar Rawat Inap",
+    "patientName": "Pasien",
+    "phoneNumber": "",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110365112",
+        "name": "Nasi Kuning + telur + orek tempe + timun",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 150,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-14 11:50:36",
+        "note": "Tersinkron otomatis dari database SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-14 11:50:36",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "23",
+    "orderNumber": "GZ-20260914-46",
+    "registrationNo": "REG-713218",
+    "createdAt": "2026-09-14 11:21:55",
+    "roomName": "Kamar Rawat Inap",
+    "patientName": "Pasien",
+    "phoneNumber": "",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110365112",
+        "name": "Nasi Kuning + telur + orek tempe + timun",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789110391032",
+        "name": "Bubur ayam lengkap",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 20000,
+    "totalCalories": 300,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-14 11:21:55",
+        "note": "Tersinkron otomatis dari database SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-14 11:21:55",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "22",
+    "orderNumber": "GZ-20260914-05",
+    "registrationNo": "REG-2026-0005",
+    "createdAt": "2026-09-14 11:14:01",
+    "roomName": "Kamar Rawat Inap",
+    "patientName": "Pasien",
+    "phoneNumber": "",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110570808",
+        "name": "Nasi + ikan goreng + sayur + sambal",
+        "portion": 1,
+        "price": 25000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 25000,
+    "totalCalories": 150,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-14 11:14:01",
+        "note": "Tersinkron otomatis dari database SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-14 11:14:01",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
     "id": "ord-1789358482315",
     "orderNumber": "GZ-20260914-04",
     "registrationNo": "REG-2026-0004",
-    "createdAt": "2026-09-14T04:01:22.315Z",
-    "roomName": "test",
-    "patientName": "tes",
-    "phoneNumber": "rese",
+    "createdAt": "2026-09-14 11:01:22",
+    "roomName": "Kamar Rawat Inap",
+    "patientName": "Pasien",
+    "phoneNumber": "",
     "mealTime": "siang",
     "items": [
       {
@@ -37,48 +759,26 @@
         "note": "Pesanan dibuat oleh tes dari test."
       }
     ],
-    "whatsappNotification": {
-      "sent": false,
-      "targetNumber": "081573570843",
-      "statusText": "Gagal kirim otomatis via Fonnte: Perangkat WhatsApp di Fonnte berstatus DISCONNECT (belum scan QR code atau sesi WhatsApp di HP terputus). Silakan buka https://md.fonnte.com > menu Device > klik Connect / Scan QR Code untuk menghubungkan WhatsApp.",
-      "fonnteResponse": {
-        "reason": "request invalid on disconnected device",
-        "requestid": 730571761,
-        "status": false
-      },
-      "timestamp": "2026-09-14T04:01:22.588Z",
-      "message": "🏥 *PESANAN MENU RUMAH SAKIT*\n━━━━━━━━━━━━━━━━━━━━━\n🚪 *Nama Kamar*: test\n👤 *Nama Pasien*: tes\n📱 *Nomor Telepon*: rese\n🍽️ *Waktu Makan*: Makan SIANG\n🔖 *No. Pesanan*: GZ-20260914-04\n⏰ *Waktu Pesan*: 04.01 WIB\n\n📋 *MENU YANG DIPESAN*:\n  1. *Roti bakar + telur + teh hangat* x 1 porsi = Rp 10.000\n  2. *Nasi Kuning + telur + orek tempe + timun* x 1 porsi = Rp 10.000\n\n💰 *Total Biaya*: *Rp 20.000*\n🔥 *Total Kalori*: 300 kkal\n\n📝 *Catatan Khusus*:\n- Tidak ada catatan khusus -\n━━━━━━━━━━━━━━━━━━━━━\n_Pesanan telah terkirim langsung ke Dapur Gizi Rumah Sakit via SIAPMAKAN_"
-    },
     "simrsSync": {
       "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL & X-AUTH-TOKEN)",
-      "timestamp": "2026-09-14T04:01:22.765Z",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi",
-      "response": {
-        "status": "success",
-        "message": "Pesanan gizi berhasil disimpan ke SIMRS PostgreSQL.",
-        "data": {
-          "noregistrasi": "REG-2026-0004",
-          "order_number": "GZ-20260914-04",
-          "no_pesanan": "GZ-20260914-04",
-          "total_items": 2
-        }
-      }
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-14 11:01:22",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
   {
-    "id": "ord-1789358312392",
-    "orderNumber": "GZ-20260914-03",
-    "registrationNo": "REG-2026-0003",
-    "createdAt": "2026-09-14T03:58:32.392Z",
-    "roomName": "test",
-    "patientName": "test",
-    "phoneNumber": "tes",
+    "id": "17",
+    "orderNumber": "GZ-20260914-92",
+    "registrationNo": "REG-893242",
+    "createdAt": "2026-09-14 10:51:35",
+    "roomName": "Kamar Rawat Inap",
+    "patientName": "Pasien",
+    "phoneNumber": "",
     "mealTime": "siang",
     "items": [
       {
-        "menuItemId": "menu-1789110391032",
-        "name": "Bubur ayam lengkap",
+        "menuItemId": "menu-1789110365112",
+        "name": "Nasi Kuning + telur + orek tempe + timun",
         "portion": 1,
         "price": 10000,
         "category": "makanan_utama",
@@ -92,190 +792,134 @@
     "statusHistory": [
       {
         "status": "baru",
-        "timestamp": "2026-09-14T03:58:32.392Z",
-        "note": "Pesanan dibuat oleh test dari test."
+        "timestamp": "2026-09-14 10:51:35",
+        "note": "Tersinkron otomatis dari database SIMRS"
       }
     ],
-    "whatsappNotification": {
-      "sent": false,
-      "targetNumber": "081573570843",
-      "statusText": "Gagal kirim otomatis via Fonnte: Perangkat WhatsApp di Fonnte berstatus DISCONNECT (belum scan QR code atau sesi WhatsApp di HP terputus). Silakan buka https://md.fonnte.com > menu Device > klik Connect / Scan QR Code untuk menghubungkan WhatsApp.",
-      "fonnteResponse": {
-        "reason": "request invalid on disconnected device",
-        "requestid": 730563950,
-        "status": false
-      },
-      "timestamp": "2026-09-14T03:58:32.821Z",
-      "message": "🏥 *PESANAN MENU RUMAH SAKIT*\n━━━━━━━━━━━━━━━━━━━━━\n🚪 *Nama Kamar*: test\n👤 *Nama Pasien*: test\n📱 *Nomor Telepon*: tes\n🍽️ *Waktu Makan*: Makan SIANG\n🔖 *No. Pesanan*: GZ-20260914-03\n⏰ *Waktu Pesan*: 03.58 WIB\n\n📋 *MENU YANG DIPESAN*:\n  1. *Bubur ayam lengkap* x 1 porsi = Rp 10.000\n\n💰 *Total Biaya*: *Rp 10.000*\n🔥 *Total Kalori*: 150 kkal\n\n📝 *Catatan Khusus*:\n- Tidak ada catatan khusus -\n━━━━━━━━━━━━━━━━━━━━━\n_Pesanan telah terkirim langsung ke Dapur Gizi Rumah Sakit via SIAPMAKAN_"
-    },
-    "simrsSync": {
-      "synced": false,
-      "statusText": "Gagal kirim SIMRS: Gagal menyimpan pesanan gizi: SQLSTATE[23505]: Unique violation: 7 ERROR:  duplicate key value violates unique constraint \"rego_pesanan_gizi_t_order_number_key\"\nDETAIL:  Key (order_number)=(GZ-20260914-03) already exists. (SQL: insert into \"rego_pesanan_gizi_t\" (\"noregistrasi\", \"order_number\", \"no_pesanan\", \"room_name\", \"patient_name\", \"phone_number\", \"meal_time\", \"total_price\", \"total_calories\", \"patient_notes\", \"order_status\", \"items_json\", \"tgl_pesanan\", \"updated_at\") values (REG-2026-0003, GZ-20260914-03, GZ-20260914-03, test, test, tes, siang, 10000, 150, , baru, [{\"id_menu\":\"menu-1789110391032\",\"menuItemId\":\"menu-1789110391032\",\"name\":\"Bubur ayam lengkap\",\"nama_menu\":\"Bubur ayam lengkap\",\"portion\":1,\"jumlah_porsi\":1,\"price\":10000,\"harga_satuan\":10000,\"category\":\"makanan_utama\",\"kategori\":\"makanan_utama\",\"calories\":150,\"kalori\":150}], 2026-09-14 10:58:33, 2026-09-14 10:58:33))",
-      "timestamp": "2026-09-14T03:58:33.309Z",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi",
-      "error": "Gagal menyimpan pesanan gizi: SQLSTATE[23505]: Unique violation: 7 ERROR:  duplicate key value violates unique constraint \"rego_pesanan_gizi_t_order_number_key\"\nDETAIL:  Key (order_number)=(GZ-20260914-03) already exists. (SQL: insert into \"rego_pesanan_gizi_t\" (\"noregistrasi\", \"order_number\", \"no_pesanan\", \"room_name\", \"patient_name\", \"phone_number\", \"meal_time\", \"total_price\", \"total_calories\", \"patient_notes\", \"order_status\", \"items_json\", \"tgl_pesanan\", \"updated_at\") values (REG-2026-0003, GZ-20260914-03, GZ-20260914-03, test, test, tes, siang, 10000, 150, , baru, [{\"id_menu\":\"menu-1789110391032\",\"menuItemId\":\"menu-1789110391032\",\"name\":\"Bubur ayam lengkap\",\"nama_menu\":\"Bubur ayam lengkap\",\"portion\":1,\"jumlah_porsi\":1,\"price\":10000,\"harga_satuan\":10000,\"category\":\"makanan_utama\",\"kategori\":\"makanan_utama\",\"calories\":150,\"kalori\":150}], 2026-09-14 10:58:33, 2026-09-14 10:58:33))"
-    }
-  },
-  {
-    "id": "ord-101",
-    "orderNumber": "GZ-20260908-01",
-    "registrationNo": "REG-20260908-001",
-    "createdAt": "2026-09-14T03:30:25.790Z",
-    "roomName": "Kamar Mawar 201 - Bed 01",
-    "patientName": "Ny. Siti Rahmawati",
-    "phoneNumber": "081298765432",
-    "mealTime": "siang",
-    "items": [
-      {
-        "menuItemId": "menu-1",
-        "name": "Nasi Putih Pulen Organik",
-        "portion": 1,
-        "price": 6000,
-        "category": "makanan_utama",
-        "calories": 175
-      },
-      {
-        "menuItemId": "menu-5",
-        "name": "Ayam Panggang Bumbu Kuning Non-MSG",
-        "portion": 1,
-        "price": 22000,
-        "category": "lauk_hewani",
-        "calories": 185
-      },
-      {
-        "menuItemId": "menu-11",
-        "name": "Sayur Bening Bayam Jagung Manis",
-        "portion": 1,
-        "price": 9000,
-        "category": "sayuran",
-        "calories": 45
-      },
-      {
-        "menuItemId": "menu-14",
-        "name": "Potongan Pepaya & Melon Manis Segar",
-        "portion": 1,
-        "price": 8000,
-        "category": "buah_snack",
-        "calories": 60
-      }
-    ],
-    "totalPrice": 45000,
-    "totalCalories": 465,
-    "patientNotes": "Mohon kuah sayur agak hangat, jangan terlalu pedas.",
-    "status": "diantar",
-    "statusHistory": [
-      {
-        "status": "baru",
-        "timestamp": "2026-09-14T03:30:25.790Z",
-        "note": "Pesanan dikirim via tablet kamar."
-      },
-      {
-        "status": "diproses",
-        "timestamp": "2026-09-14T03:40:25.790Z",
-        "note": "Sedang disiapkan oleh Dapur Gizi."
-      },
-      {
-        "status": "diantar",
-        "timestamp": "2026-09-14T04:13:31.625Z",
-        "note": "Diantar pramusaji"
-      }
-    ],
-    "whatsappNotification": {
-      "sent": true,
-      "targetNumber": "081298765432",
-      "statusText": "Berhasil dikirim via Fonnte Gateway",
-      "timestamp": "2026-09-14T03:30:25.790Z",
-      "message": "Notifikasi pesanan berhasil diteruskan ke WhatsApp."
-    },
     "simrsSync": {
       "synced": true,
       "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-14T03:30:25.790Z",
-      "targetUrl": "http://localhost:8000/api/save-pesanan-gizi",
-      "response": {
-        "status": "success",
-        "message": "Data pesanan gizi berhasil disimpan ke SIMRS."
-      }
+      "timestamp": "2026-09-14 10:51:35",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
   {
-    "id": "ord-102",
-    "orderNumber": "GZ-20260908-02",
-    "registrationNo": "REG-20260908-002",
-    "createdAt": "2026-09-14T03:15:25.790Z",
-    "roomName": "Kamar Melati 304 - Bed 02",
-    "patientName": "Tn. Hendra Gunawan",
-    "phoneNumber": "085712345678",
+    "id": "16",
+    "orderNumber": "GZ-20260914-83",
+    "registrationNo": "REG-20260908-001",
+    "createdAt": "2026-09-14 10:18:26",
+    "roomName": "Kamar Rawat Inap",
+    "patientName": "Pasien",
+    "phoneNumber": "",
     "mealTime": "siang",
     "items": [
       {
-        "menuItemId": "menu-2",
-        "name": "Nasi Merah Berserat Tinggi",
+        "menuItemId": "menu-1789110365112",
+        "name": "Nasi Kuning + telur + orek tempe + timun",
         "portion": 1,
-        "price": 8000,
+        "price": 10000,
         "category": "makanan_utama",
         "calories": 150
       },
       {
-        "menuItemId": "menu-6",
-        "name": "Sup Ikan Kakap Kuah Bening",
+        "menuItemId": "menu-1789110391032",
+        "name": "Bubur ayam lengkap",
         "portion": 1,
-        "price": 26000,
-        "category": "lauk_hewani",
-        "calories": 140
-      },
-      {
-        "menuItemId": "menu-9",
-        "name": "Tahu Kukus Sutra Isi Sayur",
-        "portion": 1,
-        "price": 7000,
-        "category": "lauk_nabati",
-        "calories": 85
-      },
-      {
-        "menuItemId": "menu-16",
-        "name": "Teh Hijau Hangat Madu Murni",
-        "portion": 1,
-        "price": 7000,
-        "category": "minuman",
-        "calories": 35
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
       }
     ],
-    "totalPrice": 48000,
-    "totalCalories": 410,
-    "patientNotes": "Bebas santan dan tanpa penyedap rasa.",
-    "status": "diantar",
+    "totalPrice": 20000,
+    "totalCalories": 300,
+    "patientNotes": "",
+    "status": "baru",
     "statusHistory": [
       {
         "status": "baru",
-        "timestamp": "2026-09-14T03:15:25.790Z"
-      },
-      {
-        "status": "diproses",
-        "timestamp": "2026-09-14T03:30:25.790Z"
-      },
-      {
-        "status": "diantar",
-        "timestamp": "2026-09-14T03:45:25.790Z",
-        "note": "Baki makanan diantar pramusaji."
+        "timestamp": "2026-09-14 10:18:26",
+        "note": "Tersinkron otomatis dari database SIMRS"
       }
     ],
-    "whatsappNotification": {
-      "sent": true,
-      "targetNumber": "085712345678",
-      "statusText": "Berhasil dikirim via Fonnte Gateway",
-      "timestamp": "2026-09-14T03:15:25.790Z",
-      "message": "Notifikasi pesanan berhasil diteruskan ke WhatsApp."
-    },
     "simrsSync": {
       "synced": true,
       "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-14T03:15:25.790Z",
-      "targetUrl": "http://localhost:8000/api/save-pesanan-gizi",
-      "response": {
-        "status": "success",
-        "message": "Data pesanan gizi berhasil disimpan ke SIMRS."
+      "timestamp": "2026-09-14 10:18:26",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "ord-1789358312392",
+    "orderNumber": "GZ-20260914-03",
+    "registrationNo": "REG-20260908-001",
+    "createdAt": "2026-09-14 10:14:15",
+    "roomName": "Kamar Rawat Inap",
+    "patientName": "Pasien",
+    "phoneNumber": "",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789353163749",
+        "name": "Aneka Juice (strawberry, melon, jeruk)",
+        "portion": 1,
+        "price": 12000,
+        "category": "minuman",
+        "calories": 150
       }
+    ],
+    "totalPrice": 12000,
+    "totalCalories": 150,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-14T03:58:32.392Z",
+        "note": "Pesanan dibuat oleh test dari test."
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-14 10:14:15",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "14",
+    "orderNumber": "GZ-20260914-19",
+    "registrationNo": "REG-20260908-001",
+    "createdAt": "2026-09-14 09:48:02",
+    "roomName": "Kamar Rawat Inap",
+    "patientName": "Pasien",
+    "phoneNumber": "",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789353018255",
+        "name": "Kopi Hangat / Es",
+        "portion": 1,
+        "price": 6000,
+        "category": "minuman",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 6000,
+    "totalCalories": 150,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-14 09:48:02",
+        "note": "Tersinkron otomatis dari database SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-14 09:48:02",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   }
 ]

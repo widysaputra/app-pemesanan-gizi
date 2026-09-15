@@ -3,71 +3,8 @@ import { MenuItem, HospitalOrder } from '../types';
 // Master menu katalog gizi standar rumah sakit (dimulai kosong sesuai permintaan)
 export const INITIAL_MENU: MenuItem[] = [];
 
-export const INITIAL_ORDERS: HospitalOrder[] = [
-  {
-    id: 'ord-101',
-    orderNumber: 'GZ-20260908-01',
-    registrationNo: 'REG-20260908-001',
-    createdAt: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
-    roomName: 'Kamar Mawar 201 - Bed 01',
-    patientName: 'Ny. Siti Rahmawati',
-    phoneNumber: '081298765432',
-    mealTime: 'siang',
-    items: [
-      { menuItemId: 'menu-1', name: 'Nasi Putih Pulen Organik', portion: 1, price: 6000, category: 'makanan_utama', calories: 175 },
-      { menuItemId: 'menu-5', name: 'Ayam Panggang Bumbu Kuning Non-MSG', portion: 1, price: 22000, category: 'lauk_hewani', calories: 185 },
-      { menuItemId: 'menu-11', name: 'Sayur Bening Bayam Jagung Manis', portion: 1, price: 9000, category: 'sayuran', calories: 45 },
-      { menuItemId: 'menu-14', name: 'Potongan Pepaya & Melon Manis Segar', portion: 1, price: 8000, category: 'buah_snack', calories: 60 },
-    ],
-    totalPrice: 45000,
-    totalCalories: 465,
-    patientNotes: 'Mohon kuah sayur agak hangat, jangan terlalu pedas.',
-    status: 'diproses',
-    statusHistory: [
-      { status: 'baru', timestamp: new Date(Date.now() - 25 * 60 * 1000).toISOString(), note: 'Pesanan dikirim via tablet kamar.' },
-      { status: 'diproses', timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(), note: 'Sedang disiapkan oleh Dapur Gizi.' },
-    ],
-    simrsSync: {
-      synced: true,
-      statusText: 'Tersimpan di SIMRS (PostgreSQL)',
-      timestamp: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
-      targetUrl: 'https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi',
-      response: { status: 'success', message: 'Data pesanan gizi berhasil disimpan ke SIMRS.' },
-    },
-  },
-  {
-    id: 'ord-102',
-    orderNumber: 'GZ-20260908-02',
-    registrationNo: 'REG-20260908-002',
-    createdAt: new Date(Date.now() - 40 * 60 * 1000).toISOString(),
-    roomName: 'Kamar Melati 304 - Bed 02',
-    patientName: 'Tn. Hendra Gunawan',
-    phoneNumber: '085712345678',
-    mealTime: 'siang',
-    items: [
-      { menuItemId: 'menu-2', name: 'Nasi Merah Berserat Tinggi', portion: 1, price: 8000, category: 'makanan_utama', calories: 150 },
-      { menuItemId: 'menu-6', name: 'Sup Ikan Kakap Kuah Bening', portion: 1, price: 26000, category: 'lauk_hewani', calories: 140 },
-      { menuItemId: 'menu-9', name: 'Tahu Kukus Sutra Isi Sayur', portion: 1, price: 7000, category: 'lauk_nabati', calories: 85 },
-      { menuItemId: 'menu-16', name: 'Teh Hijau Hangat Madu Murni', portion: 1, price: 7000, category: 'minuman', calories: 35 },
-    ],
-    totalPrice: 48000,
-    totalCalories: 410,
-    patientNotes: 'Bebas santan dan tanpa penyedap rasa.',
-    status: 'diantar',
-    statusHistory: [
-      { status: 'baru', timestamp: new Date(Date.now() - 40 * 60 * 1000).toISOString() },
-      { status: 'diproses', timestamp: new Date(Date.now() - 25 * 60 * 1000).toISOString() },
-      { status: 'diantar', timestamp: new Date(Date.now() - 10 * 60 * 1000).toISOString(), note: 'Baki makanan diantar pramusaji.' },
-    ],
-    simrsSync: {
-      synced: true,
-      statusText: 'Tersimpan di SIMRS (PostgreSQL)',
-      timestamp: new Date(Date.now() - 40 * 60 * 1000).toISOString(),
-      targetUrl: 'https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi',
-      response: { status: 'success', message: 'Data pesanan gizi berhasil disimpan ke SIMRS.' },
-    },
-  },
-];
+// Riwayat pesanan dimulai kosong murni dari DB SIMRS (tanpa pesanan dummy/default)
+export const INITIAL_ORDERS: HospitalOrder[] = [];
 
 const LOCAL_STORAGE_MENU_KEY = 'nutrihospital_menu_cache';
 const LOCAL_STORAGE_ORDERS_KEY = 'nutrihospital_orders_cache';
@@ -147,24 +84,76 @@ export function clearAllLocalMenus(): void {
   }
 }
 
+export function normalizeHospitalOrder(rawOrder: any): HospitalOrder {
+  const items: any[] = Array.isArray(rawOrder?.items)
+    ? rawOrder.items
+    : (typeof rawOrder?.items_json === 'string'
+        ? (() => { try { return JSON.parse(rawOrder.items_json); } catch { return []; } })()
+        : []);
+
+  const normalizedItems = items.map((it: any) => ({
+    menuItemId: String(it?.menuItemId || it?.id_menu || it?.id || 'item'),
+    name: String(it?.name || it?.nama_menu || 'Menu Makanan'),
+    portion: Math.max(1, Number(it?.portion || it?.porsi || it?.jumlah_porsi || 1)),
+    price: Math.max(0, Number(it?.price || it?.harga || it?.harga_satuan || 0)),
+    category: String(it?.category || it?.kategori || 'makanan_utama'),
+    calories: Math.max(0, Number(it?.calories || it?.kalori || 100)),
+  }));
+
+  const computedPrice = normalizedItems.reduce((acc, it) => acc + it.price * it.portion, 0);
+  const computedCalories = normalizedItems.reduce((acc, it) => acc + it.calories * it.portion, 0);
+
+  const orderNum = String(rawOrder?.orderNumber || rawOrder?.no_pesanan || `GZ-${rawOrder?.id || Date.now()}`);
+
+  return {
+    id: String(rawOrder?.id || orderNum),
+    orderNumber: orderNum,
+    registrationNo: String(rawOrder?.registrationNo || rawOrder?.noregistrasi || ''),
+    createdAt: String(rawOrder?.createdAt || rawOrder?.tgl_pesanan || new Date().toISOString()),
+    roomName: String(rawOrder?.roomName || rawOrder?.nomor_kamar || rawOrder?.kamar || 'Kamar Pasien'),
+    patientName: String(rawOrder?.patientName || rawOrder?.nama_pasien || 'Pasien'),
+    phoneNumber: String(rawOrder?.phoneNumber || rawOrder?.telepon || ''),
+    mealTime: (rawOrder?.mealTime || rawOrder?.waktu_makan || 'siang') as any,
+    items: normalizedItems,
+    totalPrice: Number(rawOrder?.totalPrice ?? rawOrder?.total_price ?? rawOrder?.total_biaya ?? computedPrice) || 0,
+    totalCalories: Number(rawOrder?.totalCalories ?? rawOrder?.total_calories ?? rawOrder?.total_kalori ?? computedCalories) || 0,
+    patientNotes: String(rawOrder?.patientNotes || rawOrder?.catatan || ''),
+    status: (rawOrder?.status || rawOrder?.order_status || 'baru') as any,
+    statusHistory: Array.isArray(rawOrder?.statusHistory)
+      ? rawOrder.statusHistory
+      : [{
+          status: (rawOrder?.status || rawOrder?.order_status || 'baru') as any,
+          timestamp: String(rawOrder?.createdAt || rawOrder?.tgl_pesanan || new Date().toISOString()),
+        }],
+    simrsSync: rawOrder?.simrsSync,
+  };
+}
+
 export function getLocalCachedOrders(): HospitalOrder[] {
-  if (typeof window === 'undefined') return INITIAL_ORDERS;
+  if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_ORDERS_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed)) {
+        return parsed
+          .filter((o: any) => o && o.id !== 'ord-101' && o.id !== 'ord-102')
+          .map(normalizeHospitalOrder);
+      }
     }
   } catch {
     // Ignore
   }
-  return INITIAL_ORDERS;
+  return [];
 }
 
 export function saveLocalCachedOrders(orders: HospitalOrder[]): void {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(LOCAL_STORAGE_ORDERS_KEY, JSON.stringify(orders));
+    const cleanOrders = (orders || [])
+      .filter((o: any) => o && o.id !== 'ord-101' && o.id !== 'ord-102')
+      .map(normalizeHospitalOrder);
+    localStorage.setItem(LOCAL_STORAGE_ORDERS_KEY, JSON.stringify(cleanOrders));
   } catch {
     // Ignore
   }

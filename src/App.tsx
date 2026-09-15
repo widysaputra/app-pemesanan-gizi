@@ -6,7 +6,7 @@ import {
   OrderStatus 
 } from './types';
 import { realtimeService } from './services/api';
-import { saveLocalCachedMenu } from './data/initialData';
+import { saveLocalCachedMenu, saveLocalCachedOrders } from './data/initialData';
 import { playHospitalChime } from './utils/audio';
 import { PatientDashboard } from './components/PatientDashboard';
 import { AdminDashboard } from './components/AdminDashboard';
@@ -83,9 +83,9 @@ export default function App() {
       }).catch((e) => console.log('[Auto-Sync SIMRS Menu]:', e));
 
       realtimeService.fetchOrdersFromSimrs().then((ordersRes) => {
-        if (ordersRes && ordersRes.success && Array.isArray(ordersRes.data) && ordersRes.data.length > 0) {
-          const freshOrders = realtimeService.getLocalOrders();
-          setOrders(freshOrders);
+        if (ordersRes && ordersRes.success && Array.isArray(ordersRes.data)) {
+          setOrders(ordersRes.data);
+          saveLocalCachedOrders(ordersRes.data);
         }
       }).catch((e) => console.log('[Auto-Sync SIMRS Orders]:', e));
 

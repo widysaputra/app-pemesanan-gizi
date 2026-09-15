@@ -366,10 +366,10 @@ export const OrderRecapSection: React.FC<OrderRecapSectionProps> = ({ orders, on
           </div>
           <div>
             <div className="text-xl sm:text-2xl font-black text-emerald-700 font-mono">
-              Rp {summaryMetrics.totalRevenue.toLocaleString('id-ID')}
+              Rp {Number(summaryMetrics.totalRevenue || 0).toLocaleString('id-ID')}
             </div>
             <div className="text-[11px] text-slate-500 mt-1">
-              Rata-rata Rp {summaryMetrics.avgOrderValue.toLocaleString('id-ID')} / pesanan
+              Rata-rata Rp {Number(summaryMetrics.avgOrderValue || 0).toLocaleString('id-ID')} / pesanan
             </div>
           </div>
         </div>
@@ -402,7 +402,7 @@ export const OrderRecapSection: React.FC<OrderRecapSectionProps> = ({ orders, on
           </div>
           <div>
             <div className="text-2xl sm:text-3xl font-black text-orange-600 font-mono">
-              {summaryMetrics.totalCalories.toLocaleString('id-ID')} <span className="text-xs font-sans text-slate-500 font-normal">kkal</span>
+              {Number(summaryMetrics.totalCalories || 0).toLocaleString('id-ID')} <span className="text-xs font-sans text-slate-500 font-normal">kkal</span>
             </div>
             <div className="text-[11px] text-slate-500 mt-1">
               Tercukupi untuk gizi pasien
@@ -688,10 +688,10 @@ export const OrderRecapSection: React.FC<OrderRecapSectionProps> = ({ orders, on
                       {/* Total Biaya */}
                       <td className="py-3 px-4 text-right">
                         <div className="font-mono font-black text-emerald-700 text-sm">
-                          Rp {ord.totalPrice.toLocaleString('id-ID')}
+                          Rp {Number(ord.totalPrice || 0).toLocaleString('id-ID')}
                         </div>
                         <div className="text-[10px] text-slate-400">
-                          {ord.totalCalories} kkal
+                          {Number(ord.totalCalories || 0)} kkal
                         </div>
                       </td>
 
@@ -743,10 +743,10 @@ export const OrderRecapSection: React.FC<OrderRecapSectionProps> = ({ orders, on
                       {summaryMetrics.totalPortions} Porsi
                     </td>
                     <td className="py-3 px-4 text-right font-mono text-emerald-800 text-sm">
-                      Rp {summaryMetrics.totalRevenue.toLocaleString('id-ID')}
+                      Rp {Number(summaryMetrics.totalRevenue || 0).toLocaleString('id-ID')}
                     </td>
                     <td colSpan={2} className="py-3 px-4 text-center text-xs text-slate-500 font-normal">
-                      {summaryMetrics.totalCalories.toLocaleString('id-ID')} kkal
+                      {Number(summaryMetrics.totalCalories || 0).toLocaleString('id-ID')} kkal
                     </td>
                   </tr>
                 </tfoot>
@@ -805,7 +805,7 @@ export const OrderRecapSection: React.FC<OrderRecapSectionProps> = ({ orders, on
                         </span>
                       </td>
                       <td className="py-3 px-4 text-right font-mono text-slate-600">
-                        Rp {item.price.toLocaleString('id-ID')}
+                        Rp {Number(item.price || 0).toLocaleString('id-ID')}
                       </td>
                       <td className="py-3 px-4 text-center font-mono font-black text-slate-900 text-sm">
                         {item.portions}x
@@ -824,7 +824,7 @@ export const OrderRecapSection: React.FC<OrderRecapSectionProps> = ({ orders, on
                         </div>
                       </td>
                       <td className="py-3 px-4 text-right font-mono font-black text-emerald-700 text-sm">
-                        Rp {item.totalSales.toLocaleString('id-ID')}
+                        Rp {Number(item.totalSales || 0).toLocaleString('id-ID')}
                       </td>
                     </tr>
                   );
@@ -909,7 +909,7 @@ export const OrderRecapSection: React.FC<OrderRecapSectionProps> = ({ orders, on
                   </div>
                   <div className="text-right">
                     <div className="font-mono font-black text-emerald-700 text-xs">
-                      Rp {data.totalSales.toLocaleString('id-ID')}
+                      Rp {Number(data.totalSales || 0).toLocaleString('id-ID')}
                     </div>
                   </div>
                 </div>

@@ -313,7 +313,7 @@ export function exportOrdersToExcel(
 
   orders.forEach((ord, idx) => {
     const itemsSummary = (ord.items || [])
-      .map((it) => `${it.name} (${it.portion}x @ Rp ${(it.price || 0).toLocaleString('id-ID')})`)
+      .map((it) => `${it.name || 'Menu'} (${it.portion || 1}x @ Rp ${Number(it.price || 0).toLocaleString('id-ID')})`)
       .join(', ');
 
     const orderPortions = (ord.items || []).reduce((acc, it) => acc + (it.portion || 0), 0);

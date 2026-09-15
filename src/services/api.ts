@@ -664,24 +664,20 @@ export class HospitalRealtimeService {
       const data = await res.json();
       const latency = (Date.now() - startTime) + 'ms';
       if (res.ok && data.success && Array.isArray(data.data)) {
-        const currentOrders = getLocalCachedOrders();
-        // Merge logic (prioritize fresh SIMRS data from rego_pesanan_gizi_t)
-        const simrsOrders: HospitalOrder[] = data.data;
-        const merged = [...simrsOrders];
-        currentOrders.forEach(localOrder => {
-          if (!merged.find(o => o.orderNumber === localOrder.orderNumber || o.id === localOrder.id)) {
-            merged.push(localOrder);
-          }
-        });
-        // sort by newest
-        merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        saveLocalCachedOrders(merged);
+        // Pure SIMRS data from rego_pesanan_gizi_t (exclude mock/default orders)
+        const simrsOrders: HospitalOrder[] = data.data.filter(
+          (o: any) => o && o.id !== 'ord-101' && o.id !== 'ord-102'
+        );
+        simrsOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        saveLocalCachedOrders(simrsOrders);
         
         // notify UI to update all components immediately
-        this.notifyListeners('orders_sync', { orders: merged, action: 'sync_orders' });
-        this.broadcastLocal('orders_sync', { orders: merged, action: 'sync_orders' });
-        this.notifyListeners('init', { orders: merged, menuItems: getLocalCachedMenu() });
-        this.broadcastLocal('init', { orders: merged, menuItems: getLocalCachedMenu() });
+        this.notifyListeners('orders_sync', { orders: simrsOrders, action: 'sync_orders' });
+        this.broadcastLocal('orders_sync', { orders: simrsOrders, action: 'sync_orders' });
+        this.notifyListeners('init', { orders: simrsOrders, menuItems: getLocalCachedMenu() });
+        this.broadcastLocal('init', { orders: simrsOrders, menuItems: getLocalCachedMenu() });
+        data.data = simrsOrders;
+        data.totalOrders = simrsOrders.length;
         data.latency = latency;
         return data;
       }
@@ -778,26 +774,22 @@ export class HospitalRealtimeService {
             };
           });
 
-          const currentOrders = getLocalCachedOrders();
-          const merged = [...transformedOrders];
-          currentOrders.forEach(localOrder => {
-            if (!merged.find(o => o.orderNumber === localOrder.orderNumber || o.id === localOrder.id)) {
-              merged.push(localOrder);
-            }
-          });
-          merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-          saveLocalCachedOrders(merged);
+          const cleanSimrsOrders = transformedOrders
+            .filter((o: any) => o && o.id !== 'ord-101' && o.id !== 'ord-102')
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          
+          saveLocalCachedOrders(cleanSimrsOrders);
 
-          this.notifyListeners('orders_sync', { orders: merged, action: 'sync_orders' });
-          this.broadcastLocal('orders_sync', { orders: merged, action: 'sync_orders' });
-          this.notifyListeners('init', { orders: merged, menuItems: getLocalCachedMenu() });
-          this.broadcastLocal('init', { orders: merged, menuItems: getLocalCachedMenu() });
+          this.notifyListeners('orders_sync', { orders: cleanSimrsOrders, action: 'sync_orders' });
+          this.broadcastLocal('orders_sync', { orders: cleanSimrsOrders, action: 'sync_orders' });
+          this.notifyListeners('init', { orders: cleanSimrsOrders, menuItems: getLocalCachedMenu() });
+          this.broadcastLocal('init', { orders: cleanSimrsOrders, menuItems: getLocalCachedMenu() });
 
           return {
             success: true,
-            message: `Berhasil menarik ${transformedOrders.length} pesanan langsung dari SIMRS (rego_pesanan_gizi_t)`,
-            data: transformedOrders,
-            totalOrders: merged.length,
+            message: `Berhasil menarik ${cleanSimrsOrders.length} pesanan langsung dari SIMRS (rego_pesanan_gizi_t)`,
+            data: cleanSimrsOrders,
+            totalOrders: cleanSimrsOrders.length,
             latency: (Date.now() - startTime) + 'ms',
           };
         }

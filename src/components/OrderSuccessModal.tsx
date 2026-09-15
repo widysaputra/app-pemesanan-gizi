@@ -119,7 +119,7 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
             <div className="flex justify-between items-center pt-1">
               <span className="text-slate-500 font-medium">Total Tagihan:</span>
               <span className="text-sm font-black text-emerald-600">
-                Rp {order.totalPrice.toLocaleString('id-ID')}
+                Rp {Number(order?.totalPrice || 0).toLocaleString('id-ID')}
               </span>
             </div>
           </div>

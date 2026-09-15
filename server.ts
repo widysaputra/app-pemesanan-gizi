@@ -72,71 +72,8 @@ export interface SimrsSettings {
 // Initial Menu Catalog with standardized prices in Rupiah (dimulai kosong)
 const INITIAL_MENU: MenuItem[] = [];
 
-const INITIAL_ORDERS: HospitalOrder[] = [
-  {
-    id: 'ord-101',
-    orderNumber: 'GZ-20260908-01',
-    registrationNo: 'REG-20260908-001',
-    createdAt: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
-    roomName: 'Kamar Mawar 201 - Bed 01',
-    patientName: 'Ny. Siti Rahmawati',
-    phoneNumber: '081298765432',
-    mealTime: 'siang',
-    items: [
-      { menuItemId: 'menu-1', name: 'Nasi Putih Pulen Organik', portion: 1, price: 6000, category: 'makanan_utama', calories: 175 },
-      { menuItemId: 'menu-5', name: 'Ayam Panggang Bumbu Kuning Non-MSG', portion: 1, price: 22000, category: 'lauk_hewani', calories: 185 },
-      { menuItemId: 'menu-11', name: 'Sayur Bening Bayam Jagung Manis', portion: 1, price: 9000, category: 'sayuran', calories: 45 },
-      { menuItemId: 'menu-14', name: 'Potongan Pepaya & Melon Manis Segar', portion: 1, price: 8000, category: 'buah_snack', calories: 60 },
-    ],
-    totalPrice: 45000,
-    totalCalories: 465,
-    patientNotes: 'Mohon kuah sayur agak hangat, jangan terlalu pedas.',
-    status: 'diproses',
-    statusHistory: [
-      { status: 'baru', timestamp: new Date(Date.now() - 25 * 60 * 1000).toISOString(), note: 'Pesanan dikirim via tablet kamar.' },
-      { status: 'diproses', timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(), note: 'Sedang disiapkan oleh Dapur Gizi.' },
-    ],
-    simrsSync: {
-      synced: true,
-      statusText: 'Tersimpan di SIMRS (PostgreSQL)',
-      timestamp: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
-      targetUrl: 'http://localhost:8000/api/save-pesanan-gizi',
-      response: { status: 'success', message: 'Data pesanan gizi berhasil disimpan ke SIMRS.' },
-    },
-  },
-  {
-    id: 'ord-102',
-    orderNumber: 'GZ-20260908-02',
-    registrationNo: 'REG-20260908-002',
-    createdAt: new Date(Date.now() - 40 * 60 * 1000).toISOString(),
-    roomName: 'Kamar Melati 304 - Bed 02',
-    patientName: 'Tn. Hendra Gunawan',
-    phoneNumber: '085712345678',
-    mealTime: 'siang',
-    items: [
-      { menuItemId: 'menu-2', name: 'Nasi Merah Berserat Tinggi', portion: 1, price: 8000, category: 'makanan_utama', calories: 150 },
-      { menuItemId: 'menu-6', name: 'Sup Ikan Kakap Kuah Bening', portion: 1, price: 26000, category: 'lauk_hewani', calories: 140 },
-      { menuItemId: 'menu-9', name: 'Tahu Kukus Sutra Isi Sayur', portion: 1, price: 7000, category: 'lauk_nabati', calories: 85 },
-      { menuItemId: 'menu-16', name: 'Teh Hijau Hangat Madu Murni', portion: 1, price: 7000, category: 'minuman', calories: 35 },
-    ],
-    totalPrice: 48000,
-    totalCalories: 410,
-    patientNotes: 'Bebas santan dan tanpa penyedap rasa.',
-    status: 'diantar',
-    statusHistory: [
-      { status: 'baru', timestamp: new Date(Date.now() - 40 * 60 * 1000).toISOString() },
-      { status: 'diproses', timestamp: new Date(Date.now() - 25 * 60 * 1000).toISOString() },
-      { status: 'diantar', timestamp: new Date(Date.now() - 10 * 60 * 1000).toISOString(), note: 'Baki makanan diantar pramusaji.' },
-    ],
-    simrsSync: {
-      synced: true,
-      statusText: 'Tersimpan di SIMRS (PostgreSQL)',
-      timestamp: new Date(Date.now() - 40 * 60 * 1000).toISOString(),
-      targetUrl: 'http://localhost:8000/api/save-pesanan-gizi',
-      response: { status: 'success', message: 'Data pesanan gizi berhasil disimpan ke SIMRS.' },
-    },
-  },
-];
+// Riwayat pesanan dimulai kosong murni dari DB SIMRS (tanpa pesanan dummy/default)
+const INITIAL_ORDERS: HospitalOrder[] = [];
 
 // Persistent Storage Files for Cross-Device Synchronization
 const MENU_DATA_FILE = path.join(process.cwd(), 'menu_items.json');
@@ -170,14 +107,14 @@ function loadPersistentOrders(): HospitalOrder[] {
     if (fs.existsSync(ORDERS_DATA_FILE)) {
       const raw = fs.readFileSync(ORDERS_DATA_FILE, 'utf-8');
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+      if (Array.isArray(parsed)) {
+        return parsed.filter(o => o && o.id !== 'ord-101' && o.id !== 'ord-102');
       }
     }
   } catch (err) {
     console.warn('[Storage] Gagal membaca orders_data.json:', err);
   }
-  return [...INITIAL_ORDERS];
+  return [];
 }
 
 function savePersistentOrders(list: HospitalOrder[]) {
@@ -1847,22 +1784,12 @@ async function startServer() {
         };
       });
 
-      // Update in-memory orders (merge based on orderNumber)
-      transformedOrders.forEach(newOrder => {
-        const existingIdx = orders.findIndex(o => o.orderNumber === newOrder.orderNumber || o.id === newOrder.id);
-        if (existingIdx !== -1) {
-          const existing = orders[existingIdx];
-          orders[existingIdx] = { 
-            ...existing, 
-            ...newOrder, 
-            id: existing.id,
-            status: existing.status || newOrder.status,
-            statusHistory: (existing.statusHistory && existing.statusHistory.length > 0) ? existing.statusHistory : newOrder.statusHistory
-          };
-        } else {
-          orders.push(newOrder);
-        }
-      });
+      // Update in-memory orders purely from SIMRS
+      if (transformedOrders.length > 0) {
+        orders = transformedOrders.filter(o => o.id !== 'ord-101' && o.id !== 'ord-102');
+      } else {
+        orders = orders.filter(o => o.id !== 'ord-101' && o.id !== 'ord-102');
+      }
       
       // sort
       orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -1874,7 +1801,7 @@ async function startServer() {
       res.json({
         success: true,
         message: `Berhasil mengambil ${transformedOrders.length} riwayat pesanan langsung dari DB SIMRS (rego_pesanan_gizi_t)`,
-        data: transformedOrders,
+        data: orders,
         totalOrders: orders.length
       });
 
@@ -2651,12 +2578,12 @@ app.post('/api/simrs/sync-menu', async (req, res) => {
 
   // Reset Demo Data
   app.post('/api/reset-demo', (req, res) => {
-    orders = [...INITIAL_ORDERS];
+    orders = [];
     menuItems = [...INITIAL_MENU];
     savePersistentOrders(orders);
     savePersistentMenuItems(menuItems);
     broadcastEvent('init', { orders, menuItems });
-    res.json({ success: true, message: 'Data demo menu & pesanan telah direset' });
+    res.json({ success: true, message: 'Data pesanan telah dikosongkan (pure dari DB SIMRS)' });
   });
 
   // Vite middleware for development
