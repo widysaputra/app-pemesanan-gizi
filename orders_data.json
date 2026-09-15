@@ -31,8 +31,8 @@
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
-      "timestamp": "2026-09-15T03:24:30.294Z",
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-15 10:02:33",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -76,8 +76,8 @@
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
-      "timestamp": "2026-09-15T03:24:30.294Z",
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-15 09:41:28",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -113,8 +113,8 @@
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
-      "timestamp": "2026-09-15T03:24:30.294Z",
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-15 09:18:26",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -158,8 +158,8 @@
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
-      "timestamp": "2026-09-15T03:24:30.294Z",
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-15 08:19:42",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -203,8 +203,8 @@
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
-      "timestamp": "2026-09-15T03:24:30.294Z",
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-15 08:18:01",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -240,8 +240,8 @@
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
-      "timestamp": "2026-09-15T03:24:30.294Z",
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-15 08:04:10",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -277,8 +277,8 @@
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
-      "timestamp": "2026-09-15T03:24:30.294Z",
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-15 08:01:13",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -314,8 +314,8 @@
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
-      "timestamp": "2026-09-15T03:24:30.294Z",
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-15 07:59:46",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -351,8 +351,8 @@
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
-      "timestamp": "2026-09-15T03:24:30.294Z",
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-15 07:57:40",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -388,8 +388,8 @@
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
-      "timestamp": "2026-09-15T03:24:30.294Z",
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-15 07:53:35",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -433,8 +433,8 @@
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
-      "timestamp": "2026-09-15T03:24:30.294Z",
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-15 07:53:01",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -478,8 +478,8 @@
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
-      "timestamp": "2026-09-15T03:24:30.294Z",
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-15 07:50:21",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -515,8 +515,8 @@
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
-      "timestamp": "2026-09-15T03:24:30.294Z",
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-15 07:47:24",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -560,8 +560,8 @@
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
-      "timestamp": "2026-09-15T03:24:30.294Z",
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-15 07:46:06",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -597,8 +597,8 @@
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
-      "timestamp": "2026-09-15T03:24:30.294Z",
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-15 07:35:53",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -634,8 +634,8 @@
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
-      "timestamp": "2026-09-15T03:24:30.294Z",
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-14 14:01:44",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -671,8 +671,8 @@
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
-      "timestamp": "2026-09-15T03:24:30.294Z",
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-14 09:48:02",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   }

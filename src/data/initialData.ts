@@ -6,8 +6,16 @@ export const INITIAL_MENU: MenuItem[] = [];
 // Riwayat pesanan dimulai kosong murni dari DB SIMRS (tanpa pesanan dummy/default)
 export const INITIAL_ORDERS: HospitalOrder[] = [];
 
-const LOCAL_STORAGE_MENU_KEY = 'nutrihospital_menu_cache_v2';
-const LOCAL_STORAGE_ORDERS_KEY = 'nutrihospital_orders_cache_v2';
+const LOCAL_STORAGE_MENU_KEY = 'nutrihospital_menu_cache_v3';
+const LOCAL_STORAGE_ORDERS_KEY = 'nutrihospital_orders_cache_v3';
+
+// Bersihkan cache usang jika ada
+if (typeof window !== 'undefined') {
+  try {
+    localStorage.removeItem('nutrihospital_orders_cache');
+    localStorage.removeItem('nutrihospital_orders_cache_v2');
+  } catch {}
+}
 
 export function getLocalCachedMenu(): MenuItem[] {
   if (typeof window === 'undefined') return INITIAL_MENU;

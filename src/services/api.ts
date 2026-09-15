@@ -666,9 +666,9 @@ export class HospitalRealtimeService {
       const latency = (Date.now() - startTime) + 'ms';
       if (res.ok && data.success && Array.isArray(data.data)) {
         // Pure SIMRS data from rego_pesanan_gizi_t (exclude mock/default orders)
-        const simrsOrders: HospitalOrder[] = data.data.filter(
-          (o: any) => o && o.id !== 'ord-101' && o.id !== 'ord-102'
-        );
+        const simrsOrders: HospitalOrder[] = data.data
+          .filter((o: any) => o && o.id !== 'ord-101' && o.id !== 'ord-102')
+          .map(normalizeHospitalOrder);
         simrsOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         saveLocalCachedOrders(simrsOrders);
         
@@ -770,10 +770,13 @@ export class HospitalRealtimeService {
       }
       const data = await res.json();
       if (Array.isArray(data)) {
-        saveLocalCachedOrders(data);
-        this.notifyListeners('orders_sync', { orders: data });
-        this.broadcastLocal('orders_sync', { orders: data });
-        return data;
+        const normalized = data
+          .filter((o: any) => o && o.id !== 'ord-101' && o.id !== 'ord-102')
+          .map(normalizeHospitalOrder);
+        saveLocalCachedOrders(normalized);
+        this.notifyListeners('orders_sync', { orders: normalized });
+        this.broadcastLocal('orders_sync', { orders: normalized });
+        return normalized;
       }
       return getLocalCachedOrders();
     } catch (e) {
