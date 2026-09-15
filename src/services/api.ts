@@ -69,6 +69,18 @@ export function resolveSimrsFetchMenuUrl(baseUrl?: string): string {
   return `${u}/master-menu-gizi`;
 }
 
+export function resolveSimrsFetchOrdersUrl(baseUrl?: string): string {
+  const defaultUrl = 'https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi';
+  if (!baseUrl || !baseUrl.trim()) return defaultUrl;
+  let u = baseUrl.trim();
+  if (u.includes('/riwayat-pesanan-gizi')) return u;
+  u = u.replace(/\/save-(pesanan-gizi|master-menu|data-mmpi)\/?$/, '');
+  u = u.replace(/\/sync-batch-menu\/?$/, '');
+  u = u.replace(/\/master-menu-gizi\/?$/, '');
+  u = u.replace(/\/$/, '');
+  return `${u}/riwayat-pesanan-gizi`;
+}
+
 export const DEFAULT_SIMRS_URL = 'https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi';
 export const DEFAULT_SIMRS_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhZG1pbi5yZWdpc3RyYXNpIn0.z1sCAtuc6ODM-HKzftAXqvqUPlFs7bm4wd-qTY-EvnBN1uHSk-OHhlHEpgs2vznkiem7u579VFGC2kxAhxD3NA';
 
@@ -146,8 +158,10 @@ export function saveLocalSimrsConfig(settings: {
   return updated;
 }
 
+export type RealtimeEventType = 'init' | 'new_order' | 'status_update' | 'menu_update' | 'order_deleted' | 'orders_sync';
+
 export type RealtimeListener = (event: {
-  type: 'init' | 'new_order' | 'status_update' | 'menu_update' | 'order_deleted';
+  type: RealtimeEventType;
   data: any;
 }) => void;
 
@@ -250,7 +264,7 @@ export class HospitalRealtimeService {
     }
   }
 
-  private broadcastLocal(type: 'init' | 'new_order' | 'status_update' | 'menu_update' | 'order_deleted', data: any) {
+  private broadcastLocal(type: RealtimeEventType, data: any) {
     if (localBroadcastChannel) {
       try {
         localBroadcastChannel.postMessage({ type, data });
@@ -638,10 +652,10 @@ export class HospitalRealtimeService {
   }
 
   // --- ORDERS APIS ---
-  async fetchOrdersFromSimrs(): Promise<{ success: boolean; data?: HospitalOrder[]; error?: string; totalOrders?: number; latency?: string }> {
+  async fetchOrdersFromSimrs(): Promise<{ success: boolean; data?: HospitalOrder[]; error?: string; message?: string; totalOrders?: number; latency?: string; isHtmlResponse?: boolean }> {
     const config = getLocalSimrsConfig();
+    const startTime = Date.now();
     try {
-      const startTime = Date.now();
       const res = await fetch('/api/simrs/fetch-orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -652,38 +666,153 @@ export class HospitalRealtimeService {
       });
       const data = await res.json();
       const latency = (Date.now() - startTime) + 'ms';
-      if (res.ok && data.success) {
-         if (data.data && Array.isArray(data.data)) {
-            const currentOrders = getLocalCachedOrders();
-            // Merge logic (prioritize SIMRS data)
-            const merged = [...data.data];
-            currentOrders.forEach(localOrder => {
-               if (!merged.find(o => o.orderNumber === localOrder.orderNumber || o.id === localOrder.id)) {
-                   merged.push(localOrder);
-               }
-            });
-            // sort by newest
-            merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-            saveLocalCachedOrders(merged);
-            
-            // notify UI to update
-            this.notifyListeners('new_order', { action: 'sync_orders' });
-            this.broadcastLocal('new_order', { action: 'sync_orders' });
-         }
-         data.latency = latency;
-         return data;
+      if (res.ok && data.success && Array.isArray(data.data)) {
+        const currentOrders = getLocalCachedOrders();
+        // Merge logic (prioritize fresh SIMRS data from rego_pesanan_gizi_t)
+        const simrsOrders: HospitalOrder[] = data.data;
+        const merged = [...simrsOrders];
+        currentOrders.forEach(localOrder => {
+          if (!merged.find(o => o.orderNumber === localOrder.orderNumber || o.id === localOrder.id)) {
+            merged.push(localOrder);
+          }
+        });
+        // sort by newest
+        merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        saveLocalCachedOrders(merged);
+        
+        // notify UI to update all components immediately
+        this.notifyListeners('orders_sync', { orders: merged, action: 'sync_orders' });
+        this.broadcastLocal('orders_sync', { orders: merged, action: 'sync_orders' });
+        this.notifyListeners('init', { orders: merged, menuItems: getLocalCachedMenu() });
+        this.broadcastLocal('init', { orders: merged, menuItems: getLocalCachedMenu() });
+        data.latency = latency;
+        return data;
       }
-      return { success: false, error: data.error || 'Gagal sinkronisasi pesanan' };
-    } catch (e: any) {
-      return { success: false, error: e.message || 'Network error' };
+
+      if (data && data.isHtmlResponse) {
+        return {
+          success: false,
+          isHtmlResponse: true,
+          message: data.message || 'SIMRS mengembalikan halaman HTML. Pastikan Route riwayat-pesanan-gizi telah didaftarkan di routes/api.php Laravel Anda.',
+          error: 'SIMRS mengembalikan respon bukan JSON (HTML). Route belum terdaftar di Laravel.'
+        };
+      }
+    } catch {
+      // Proceed to direct client fallback below
     }
+
+    // Direct client fallback if API route is unavailable or offline
+    try {
+      const rawTargetUrl = config.apiUrl || 'https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi';
+      const targetUrl = resolveSimrsFetchOrdersUrl(rawTargetUrl);
+      const token = (config.apiKey || '').trim();
+
+      const headers: Record<string, string> = { 'Accept': 'application/json' };
+      if (token) {
+        const rawToken = token.replace(/^Bearer\s+/i, '').trim();
+        headers['X-AUTH-TOKEN'] = rawToken;
+        headers['Authorization'] = `Bearer ${rawToken}`;
+      }
+
+      const response = await fetch(targetUrl, { method: 'GET', headers });
+      const contentType = response.headers.get('content-type') || '';
+      if (response.ok && contentType.includes('application/json')) {
+        const text = await response.text();
+        if (text && !text.trim().startsWith('<')) {
+          let parsed: any = null;
+          try { parsed = JSON.parse(text); } catch {}
+          const ordersData = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.data) ? parsed.data : []);
+          if (Array.isArray(ordersData) && ordersData.length > 0) {
+          const transformedOrders: HospitalOrder[] = ordersData.map((o: any) => {
+            let itemsList: any[] = [];
+            try {
+              if (typeof o.items_json === 'string') itemsList = JSON.parse(o.items_json);
+              else if (Array.isArray(o.items)) itemsList = o.items;
+              else if (o.hasil_json && typeof o.hasil_json === 'string') {
+                const parsedH = JSON.parse(o.hasil_json);
+                if (Array.isArray(parsedH.items)) itemsList = parsedH.items;
+              } else if (o.hasil_json && Array.isArray(o.hasil_json.items)) {
+                itemsList = o.hasil_json.items;
+              }
+            } catch {}
+
+            const formattedItems = (itemsList || []).map((it: any) => ({
+              menuItemId: String(it.menuItemId || it.id_menu || it.id || 'item'),
+              name: String(it.name || it.nama_menu || 'Menu Makanan'),
+              portion: Number(it.portion || it.jumlah_porsi || 1),
+              price: Number(it.price || it.harga_satuan || it.harga || 0),
+              category: it.category || it.kategori || 'makanan_utama',
+              calories: Number(it.calories || it.kalori || 100),
+            }));
+
+            const computedPrice = formattedItems.reduce((acc, curr) => acc + curr.price * curr.portion, 0);
+            const computedCalories = formattedItems.reduce((acc, curr) => acc + curr.calories * curr.portion, 0);
+
+            return {
+              id: String(o.id || o.no_pesanan || o.order_number || `ord-${Date.now()}`),
+              orderNumber: String(o.order_number || o.no_pesanan || `GZ-${Date.now()}`),
+              registrationNo: String(o.noregistrasi || o.registrationNo || 'REG-SIMRS'),
+              createdAt: o.tgl_pesanan || o.created_at || new Date().toISOString(),
+              roomName: String(o.room_name || o.kamar || o.nomor_kamar || 'Kamar Rawat Inap'),
+              patientName: String(o.patient_name || o.nama_pasien || 'Pasien'),
+              phoneNumber: String(o.phone_number || o.telepon || ''),
+              mealTime: (o.meal_time || o.waktu_makan || 'siang') as MealTime,
+              items: formattedItems,
+              totalPrice: Number(o.total_price || o.totalPrice) || computedPrice,
+              totalCalories: Number(o.total_calories || o.totalCalories) || computedCalories,
+              patientNotes: String(o.patient_notes || o.catatan || ''),
+              status: (o.order_status || o.status || 'baru') as OrderStatus,
+              statusHistory: Array.isArray(o.status_history) ? o.status_history : [{
+                status: (o.order_status || o.status || 'baru') as OrderStatus,
+                timestamp: o.tgl_pesanan || o.created_at || new Date().toISOString(),
+                note: 'Tersinkron langsung dari database SIMRS (rego_pesanan_gizi_t)',
+              }],
+              simrsSync: {
+                synced: true,
+                statusText: 'Tersimpan di SIMRS (PostgreSQL rego_pesanan_gizi_t)',
+                timestamp: o.tgl_pesanan || o.created_at || new Date().toISOString(),
+                targetUrl: targetUrl,
+              },
+            };
+          });
+
+          const currentOrders = getLocalCachedOrders();
+          const merged = [...transformedOrders];
+          currentOrders.forEach(localOrder => {
+            if (!merged.find(o => o.orderNumber === localOrder.orderNumber || o.id === localOrder.id)) {
+              merged.push(localOrder);
+            }
+          });
+          merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          saveLocalCachedOrders(merged);
+
+          this.notifyListeners('orders_sync', { orders: merged, action: 'sync_orders' });
+          this.broadcastLocal('orders_sync', { orders: merged, action: 'sync_orders' });
+          this.notifyListeners('init', { orders: merged, menuItems: getLocalCachedMenu() });
+          this.broadcastLocal('init', { orders: merged, menuItems: getLocalCachedMenu() });
+
+          return {
+            success: true,
+            message: `Berhasil menarik ${transformedOrders.length} pesanan langsung dari SIMRS (rego_pesanan_gizi_t)`,
+            data: transformedOrders,
+            totalOrders: merged.length,
+            latency: (Date.now() - startTime) + 'ms',
+          };
+        }
+        }
+      }
+    } catch (e: any) {
+      console.warn('[Direct SIMRS Orders Sync Fallback]:', e);
+    }
+
+    return { success: false, error: 'Gagal sinkronisasi pesanan dari SIMRS' };
   }
 
-  async getOrders(): Promise<HospitalOrder[]> {
+  async getOrders(fromSimrs = false): Promise<HospitalOrder[]> {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000);
-      const res = await fetch(`/api/orders?_t=${Date.now()}`, {
+      const res = await fetch(`/api/orders?_t=${Date.now()}${fromSimrs ? '&fromSimrs=true' : ''}`, {
         signal: controller.signal,
         cache: 'no-store',
         headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
@@ -698,6 +827,8 @@ export class HospitalRealtimeService {
       const data = await res.json();
       if (Array.isArray(data)) {
         saveLocalCachedOrders(data);
+        this.notifyListeners('orders_sync', { orders: data });
+        this.broadcastLocal('orders_sync', { orders: data });
         return data;
       }
       return getLocalCachedOrders();

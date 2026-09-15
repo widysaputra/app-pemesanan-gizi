@@ -1,6 +1,6 @@
 /**
  * Utility for Hospital Nutrition Order Operating Hours
- * Jam Buka Pemesanan: 06:30 WIB - 19:00 WIB
+ * Jam Buka Pemesanan: 07:00 WIB - 19:00 WIB
  */
 
 export interface OperatingHoursInfo {
@@ -19,7 +19,7 @@ export interface OperatingHoursInfo {
   minutesUntilClose?: number;
 }
 
-export const ORDER_OPEN_TIME = '06:30';
+export const ORDER_OPEN_TIME = '07:00';
 export const ORDER_CLOSE_TIME = '19:00';
 
 /**
@@ -39,7 +39,7 @@ export function getJakartaDate(customDate?: Date): Date {
 }
 
 /**
- * Check if the order service is currently open (06:30 - 19:00 WIB)
+ * Check if the order service is currently open (07:00 - 19:00 WIB)
  */
 export function checkOrderOperatingHours(customDate?: Date): OperatingHoursInfo {
   const jakartaDate = getJakartaDate(customDate);
@@ -47,8 +47,8 @@ export function checkOrderOperatingHours(customDate?: Date): OperatingHoursInfo 
   const minutes = jakartaDate.getMinutes();
   const currentTotalMinutes = hours * 60 + minutes;
 
-  // 06:30 -> 6 * 60 + 30 = 390
-  const openTotalMinutes = 6 * 60 + 30;
+  // 07:00 -> 7 * 60 = 420
+  const openTotalMinutes = 7 * 60;
   // 19:00 -> 19 * 60 = 1140
   const closeTotalMinutes = 19 * 60;
 
@@ -79,10 +79,10 @@ export function checkOrderOperatingHours(customDate?: Date): OperatingHoursInfo 
   } else {
     let minutesUntilOpen = 0;
     if (currentTotalMinutes < openTotalMinutes) {
-      // Before 06:30 morning
+      // Before 07:00 morning
       minutesUntilOpen = openTotalMinutes - currentTotalMinutes;
     } else {
-      // After 19:00 night (until tomorrow 06:30)
+      // After 19:00 night (until tomorrow 07:00)
       minutesUntilOpen = (24 * 60 - currentTotalMinutes) + openTotalMinutes;
     }
 

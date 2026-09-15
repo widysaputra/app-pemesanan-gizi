@@ -65,6 +65,7 @@ import {
   SQL_MMPI_TABLE,
   LARAVEL_ROUTES_CODE,
   LARAVEL_GIZI_CONTROLLER_CODE,
+  LARAVEL_EMR_CONTROLLER_CODE,
   JSON_PAYLOAD_EXAMPLES
 } from '../data/simrsSnippets';
 
@@ -74,6 +75,7 @@ interface AdminDashboardProps {
   onUpdateStatus: (orderId: string, status: OrderStatus, note?: string) => Promise<void>;
   onToggleMenuItem: (menuId: string) => Promise<void>;
   onResetDemo?: () => Promise<void>;
+  onRefreshOrders?: () => Promise<void>;
 }
 
 type AdminTab = 'menu' | 'orders' | 'recap' | 'simrs' | 'security';
@@ -102,6 +104,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onUpdateStatus,
   onToggleMenuItem,
   onResetDemo,
+  onRefreshOrders,
 }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('menu');
   
@@ -148,14 +151,45 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const handleManualRefreshOrders = async () => {
     setIsRefreshingOrders(true);
     try {
-      await realtimeService.syncWithServer();
-      await realtimeService.getOrders();
+      // 1. Tarik riwayat pesanan langsung dari SIMRS PostgreSQL database (tabel rego_pesanan_gizi_t)
+      const res = await realtimeService.fetchOrdersFromSimrs();
+      // 2. Muat dan sinkronkan pesanan dengan server / parent state
+      if (onRefreshOrders) {
+        await onRefreshOrders();
+      } else {
+        await realtimeService.syncWithServer();
+        await realtimeService.getOrders();
+      }
+
+      if (res && res.success) {
+        setOrderSyncNotice({
+          id: 'all',
+          success: true,
+          text: res.message || `Berhasil mengambil ${res.data?.length || 0} pesanan langsung dari DB SIMRS (rego_pesanan_gizi_t)!`,
+        });
+      } else if (res && (res as any).isHtmlResponse) {
+        setOrderSyncNotice({
+          id: 'all',
+          success: false,
+          text: 'SIMRS mengembalikan halaman HTML. Silakan daftarkan Route::get("riwayat-pesanan-gizi", "EMR\\EMRController@getRiwayatPesananGizi") di routes/api.php Laravel Anda (lihat Tab SIMRS & Database).',
+        });
+      }
     } catch (err) {
       console.warn('Refresh error:', err);
     } finally {
       setTimeout(() => setIsRefreshingOrders(false), 500);
+      setTimeout(() => setOrderSyncNotice(null), 8000);
     }
   };
+
+  // Auto-sync pesanan saat admin membuka tab 'orders' atau 'recap'
+  React.useEffect(() => {
+    if (activeTab === 'orders' || activeTab === 'recap') {
+      realtimeService.fetchOrdersFromSimrs().then(() => {
+        if (onRefreshOrders) onRefreshOrders();
+      }).catch(() => {});
+    }
+  }, [activeTab]);
 
   // SIMRS (PostgreSQL & Laravel API) Integration States
   const [simrsApiUrl, setSimrsApiUrl] = useState<string>('http://localhost:8000/api/save-pesanan-gizi');
@@ -173,7 +207,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
   const [syncingOrderId, setSyncingOrderId] = useState<string | null>(null);
   const [orderSyncNotice, setOrderSyncNotice] = useState<{ id: string; success: boolean; text: string } | null>(null);
-  const [activeSqlTab, setActiveSqlTab] = useState<'pesanan_gizi' | 'master_menu' | 'routes' | 'controller' | 'json_payload' | 'mmpi'>('pesanan_gizi');
+  const [activeSqlTab, setActiveSqlTab] = useState<'pesanan_gizi' | 'emr_controller' | 'master_menu' | 'routes' | 'controller' | 'json_payload' | 'mmpi'>('emr_controller');
   const [isSyncingMenu, setIsSyncingMenu] = useState<boolean>(false);
   const [menuSyncNotice, setMenuSyncNotice] = useState<{ success: boolean; text: string; count?: number; latency?: string } | null>(null);
 
@@ -936,6 +970,56 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           ======================================================== */}
       {activeTab === 'orders' && (
         <div className="space-y-4">
+
+          {/* SIMRS Database Sync Indicator Bar */}
+          <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl p-4 shadow-xs border border-indigo-800/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30">
+                <Database className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-bold text-white">Data Pesanan Rawat Inap SIMRS</span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    Tabel: rego_pesanan_gizi_t
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-300 mt-0.5">
+                  Menampilkan <strong>{orders.length}</strong> pesanan yang tersimpan di database SIMRS (data tersimpan di DB dan tetap ada saat halaman direfresh).
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-end sm:self-center">
+              <button
+                type="button"
+                onClick={handleManualRefreshOrders}
+                disabled={isRefreshingOrders}
+                className="px-3.5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white shadow-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                title="Tarik ulang data pesanan langsung dari tabel rego_pesanan_gizi_t di database SIMRS"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingOrders ? 'animate-spin' : ''}`} />
+                <span>{isRefreshingOrders ? 'Mengambil Data...' : 'Tarik dari DB SIMRS (rego_pesanan_gizi_t)'}</span>
+              </button>
+            </div>
+          </div>
+
+          {orderSyncNotice && (
+            <div className={`p-3 rounded-xl text-xs flex items-start gap-2 ${
+              orderSyncNotice.success
+                ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+                : 'bg-amber-50 border border-amber-200 text-amber-800'
+            }`}>
+              {orderSyncNotice.success ? (
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              ) : (
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              )}
+              <div className="flex-1">
+                <span>{orderSyncNotice.text}</span>
+              </div>
+            </div>
+          )}
           
           {/* Orders Filter & Export Action Bar */}
           <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex flex-col lg:flex-row items-center justify-between gap-3">
@@ -1288,6 +1372,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <OrderRecapSection
           orders={orders}
           onOpenEtiket={(ord) => setSelectedEtiketOrder(ord)}
+          onRefreshSimrs={handleManualRefreshOrders}
+          isRefreshing={isRefreshingOrders}
         />
       )}
 
@@ -1726,9 +1812,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <button
                       onClick={() => {
                         let codeToCopy = '';
-                        if (activeSqlTab === 'pesanan_gizi') codeToCopy = SQL_PESANAN_GIZI_TABLE;
-                        else if (activeSqlTab === 'master_menu') codeToCopy = SQL_MASTER_MENU_TABLE;
+                        if (activeSqlTab === 'emr_controller') codeToCopy = LARAVEL_EMR_CONTROLLER_CODE;
+                        else if (activeSqlTab === 'pesanan_gizi') codeToCopy = SQL_PESANAN_GIZI_TABLE;
                         else if (activeSqlTab === 'routes') codeToCopy = LARAVEL_ROUTES_CODE;
+                        else if (activeSqlTab === 'master_menu') codeToCopy = SQL_MASTER_MENU_TABLE;
                         else if (activeSqlTab === 'controller') codeToCopy = LARAVEL_GIZI_CONTROLLER_CODE;
                         else if (activeSqlTab === 'json_payload') codeToCopy = JSON_PAYLOAD_EXAMPLES;
                         else if (activeSqlTab === 'mmpi') codeToCopy = SQL_MMPI_TABLE;
@@ -1750,27 +1837,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </button>
                   </div>
 
-                  {/* 6 Tab Switchers */}
+                  {/* Tab Switchers */}
                   <div className="flex flex-wrap items-center gap-1 bg-white p-1 rounded-xl border border-slate-200">
                     <button
-                      onClick={() => setActiveSqlTab('pesanan_gizi')}
+                      onClick={() => setActiveSqlTab('emr_controller')}
                       className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
-                        activeSqlTab === 'pesanan_gizi'
+                        activeSqlTab === 'emr_controller'
                           ? 'bg-indigo-600 text-white shadow-xs'
                           : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      SQL: pesanan_gizi_t
-                    </button>
-                    <button
-                      onClick={() => setActiveSqlTab('master_menu')}
-                      className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
-                        activeSqlTab === 'master_menu'
-                          ? 'bg-emerald-600 text-white shadow-xs'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      SQL: master_menu_gizi_m
+                      Backend: EMRController.php (rego_pesanan_gizi_t)
                     </button>
                     <button
                       onClick={() => setActiveSqlTab('routes')}
@@ -1781,6 +1858,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       }`}
                     >
                       routes/api.php
+                    </button>
+                    <button
+                      onClick={() => setActiveSqlTab('pesanan_gizi')}
+                      className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
+                        activeSqlTab === 'pesanan_gizi'
+                          ? 'bg-indigo-600 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      SQL: rego_pesanan_gizi_t
+                    </button>
+                    <button
+                      onClick={() => setActiveSqlTab('master_menu')}
+                      className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
+                        activeSqlTab === 'master_menu'
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      SQL: master_menu_gizi_m
                     </button>
                     <button
                       onClick={() => setActiveSqlTab('controller')}
@@ -1819,10 +1916,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <div className="px-5 py-2.5 bg-indigo-50/40 border-b border-indigo-100/60 text-xs text-indigo-900 flex items-center gap-2">
                   <FileCode className="w-4 h-4 text-indigo-600 shrink-0" />
                   <span>
-                    {activeSqlTab === 'pesanan_gizi' && 'Tabel pesanan_gizi_t & rincian_pesanan_gizi_t untuk menyimpan riwayat pesanan kamar rawat inap per nomor registrasi SIMRS.'}
+                    {activeSqlTab === 'emr_controller' && 'Controller Laravel EMRController.php dengan backend function GET & POST (getRiwayatPesananGizi, getDetailPesananGizi, getRekapPesananGizi, updateStatusPesananGizi, savePesananGizi) yang membaca & menulis langsung ke tabel rego_pesanan_gizi_t SIMRS.'}
+                    {activeSqlTab === 'routes' && 'Daftar route API Laravel untuk routes/api.php termasuk riwayat-pesanan-gizi, detail-pesanan-gizi, update-status-pesanan-gizi, rekap-pesanan-gizi, dan save-pesanan-gizi.'}
+                    {activeSqlTab === 'pesanan_gizi' && 'Tabel rego_pesanan_gizi_t di PostgreSQL SIMRS untuk menyimpan transaksi pemesanan makanan pasien rawat inap beserta JSON items.'}
                     {activeSqlTab === 'master_menu' && 'Tabel master_menu_gizi_m untuk menyimpan katalog menu makanan, nilai gizi (kalori, protein, lemak), dan indikasi diet.'}
-                    {activeSqlTab === 'routes' && 'Daftar route API Laravel untuk ditempatkan pada file routes/api.php project SIMRS Anda.'}
-                    {activeSqlTab === 'controller' && 'Controller Laravel GiziSIMRSController lengkap dengan fungsi updateOrInsert() idempotent siap pakai.'}
+                    {activeSqlTab === 'controller' && 'Controller Laravel GiziSIMRSController alternatif untuk modul gizi mandiri.'}
                     {activeSqlTab === 'json_payload' && 'Contoh struktur request JSON yang dikirimkan oleh aplikasi ke controller Laravel saat menyimpan data.'}
                     {activeSqlTab === 'mmpi' && 'Tabel mmpi_t untuk Rekam Medis Elektronik (EMR) hasil tes MMPI-2 pasien.'}
                   </span>
@@ -1831,9 +1929,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 {/* Code Window */}
                 <div className="p-4 bg-slate-950 overflow-x-auto max-h-[500px] overflow-y-auto">
                   <pre className="text-[11px] font-mono text-emerald-400 leading-relaxed">
+                    {activeSqlTab === 'emr_controller' && LARAVEL_EMR_CONTROLLER_CODE}
+                    {activeSqlTab === 'routes' && LARAVEL_ROUTES_CODE}
                     {activeSqlTab === 'pesanan_gizi' && SQL_PESANAN_GIZI_TABLE}
                     {activeSqlTab === 'master_menu' && SQL_MASTER_MENU_TABLE}
-                    {activeSqlTab === 'routes' && LARAVEL_ROUTES_CODE}
                     {activeSqlTab === 'controller' && LARAVEL_GIZI_CONTROLLER_CODE}
                     {activeSqlTab === 'json_payload' && JSON_PAYLOAD_EXAMPLES}
                     {activeSqlTab === 'mmpi' && SQL_MMPI_TABLE}

@@ -779,16 +779,39 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
           headers,
         });
 
+        const contentType = response.headers.get('content-type') || '';
         const responseText = await response.text();
+
+        if (!response.ok || !contentType.includes('application/json') || (responseText && responseText.trim().startsWith('<'))) {
+          return res.json({
+            success: false,
+            isHtmlResponse: true,
+            message: `Endpoint SIMRS (${targetUrl}) belum aktif atau mengembalikan HTML. Data pesanan lokal tetap aman.`,
+            data: vercelOrders,
+            total: vercelOrders.length,
+          });
+        }
+
         let parsedData: any;
         try {
           parsedData = JSON.parse(responseText);
         } catch {
-          throw new Error(`SIMRS mengembalikan respon yang bukan JSON: ${responseText.slice(0, 100)}...`);
+          return res.json({
+            success: false,
+            isHtmlResponse: true,
+            message: 'SIMRS mengembalikan respon yang bukan JSON yang valid',
+            data: vercelOrders,
+            total: vercelOrders.length,
+          });
         }
 
         if (!response.ok) {
-          throw new Error(parsedData?.message || parsedData?.error || `HTTP Error ${response.status}`);
+          return res.json({
+            success: false,
+            error: parsedData?.message || parsedData?.error || `HTTP Error ${response.status}`,
+            data: vercelOrders,
+            total: vercelOrders.length,
+          });
         }
 
         let ordersData = Array.isArray(parsedData) ? parsedData : (Array.isArray(parsedData?.data) ? parsedData.data : []);
@@ -1086,6 +1109,94 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
 
       if (parsedPath === '/api/orders') {
         if (method === 'GET') {
+          // Attempt to live fetch orders directly from SIMRS if token is present
+          const rawTargetUrl = (simrsConfigState.apiUrl || 'https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi').trim();
+          const targetToken = (simrsConfigState.apiKey || '').trim();
+          if (targetToken) {
+            try {
+              const targetUrl = resolveSimrsFetchOrdersUrl(rawTargetUrl);
+              const rawToken = targetToken.replace(/^Bearer\s+/i, '').trim();
+              const response = await fetch(targetUrl, {
+                method: 'GET',
+                headers: {
+                  Accept: 'application/json',
+                  'X-AUTH-TOKEN': rawToken,
+                  Authorization: `Bearer ${rawToken}`,
+                },
+              });
+              if (response.ok) {
+                const parsed = await response.json();
+                const ordersData = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.data) ? parsed.data : []);
+                if (Array.isArray(ordersData) && ordersData.length > 0) {
+                  const transformedOrders = ordersData.map((o: any) => {
+                    let itemsList: any[] = [];
+                    try {
+                      if (typeof o.items_json === 'string') itemsList = JSON.parse(o.items_json);
+                      else if (Array.isArray(o.items)) itemsList = o.items;
+                      else if (o.hasil_json && typeof o.hasil_json === 'string') {
+                        const parsedH = JSON.parse(o.hasil_json);
+                        if (Array.isArray(parsedH.items)) itemsList = parsedH.items;
+                      } else if (o.hasil_json && Array.isArray(o.hasil_json.items)) {
+                        itemsList = o.hasil_json.items;
+                      }
+                    } catch {}
+
+                    const formattedItems = (itemsList || []).map((it: any) => ({
+                      menuItemId: String(it.menuItemId || it.id_menu || it.id || 'item'),
+                      name: String(it.name || it.nama_menu || 'Menu Makanan'),
+                      portion: Number(it.portion || it.jumlah_porsi || 1),
+                      price: Number(it.price || it.harga_satuan || it.harga || 0),
+                      category: it.category || it.kategori || 'makanan_utama',
+                      calories: Number(it.calories || it.kalori || 100),
+                    }));
+
+                    const computedPrice = formattedItems.reduce((acc, curr) => acc + curr.price * curr.portion, 0);
+                    const computedCalories = formattedItems.reduce((acc, curr) => acc + curr.calories * curr.portion, 0);
+
+                    return {
+                      id: String(o.id || o.no_pesanan || o.order_number || `ord-${Date.now()}`),
+                      orderNumber: String(o.order_number || o.no_pesanan || `GZ-${Date.now()}`),
+                      registrationNo: String(o.noregistrasi || o.registrationNo || 'REG-SIMRS'),
+                      createdAt: o.tgl_pesanan || o.created_at || new Date().toISOString(),
+                      roomName: String(o.room_name || o.kamar || o.nomor_kamar || 'Kamar Rawat Inap'),
+                      patientName: String(o.patient_name || o.nama_pasien || 'Pasien'),
+                      phoneNumber: String(o.phone_number || o.telepon || ''),
+                      mealTime: o.meal_time || o.waktu_makan || 'siang',
+                      items: formattedItems,
+                      totalPrice: Number(o.total_price || o.totalPrice) || computedPrice,
+                      totalCalories: Number(o.total_calories || o.totalCalories) || computedCalories,
+                      patientNotes: String(o.patient_notes || o.catatan || ''),
+                      status: o.order_status || o.status || 'baru',
+                      statusHistory: Array.isArray(o.status_history) ? o.status_history : [{
+                        status: o.order_status || 'baru',
+                        timestamp: o.tgl_pesanan || o.created_at || new Date().toISOString(),
+                        note: 'Tersinkron otomatis dari SIMRS PostgreSQL',
+                      }],
+                      simrsSync: {
+                        synced: true,
+                        statusText: 'Tersimpan di SIMRS (PostgreSQL)',
+                        timestamp: o.tgl_pesanan || o.created_at || new Date().toISOString(),
+                        targetUrl: targetUrl,
+                      },
+                    };
+                  });
+
+                  transformedOrders.forEach((newOrder: any) => {
+                    const existingIdx = vercelOrders.findIndex((o: any) => o.orderNumber === newOrder.orderNumber || o.id === newOrder.id);
+                    if (existingIdx === -1) {
+                      vercelOrders.push(newOrder);
+                    } else {
+                      vercelOrders[existingIdx] = { ...vercelOrders[existingIdx], ...newOrder, id: vercelOrders[existingIdx].id };
+                    }
+                  });
+
+                  vercelOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+                }
+              }
+            } catch (simrsErr) {
+              console.warn('[Vercel SIMRS Orders Fetch Error]:', simrsErr);
+            }
+          }
           return res.json(vercelOrders);
         }
         if (method === 'POST') {
@@ -1108,13 +1219,13 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
               jMins = wibD.getMinutes();
             }
             const totalM = jHours * 60 + jMins;
-            const openM = 6 * 60 + 30; // 06:30
+            const openM = 7 * 60;      // 07:00
             const closeM = 19 * 60;    // 19:00
 
             if (totalM < openM || totalM >= closeM) {
               return res.status(403).json({
-                error: 'Layanan pemesanan sedang ditutup. Jam operasional pemesanan adalah pukul 06:30 s/d 19:00 WIB.',
-                operatingHours: { open: '06:30', close: '19:00', timezone: 'WIB' }
+                error: 'Layanan pemesanan sedang ditutup. Jam operasional pemesanan adalah pukul 07:00 s/d 19:00 WIB.',
+                operatingHours: { open: '07:00', close: '19:00', timezone: 'WIB' }
               });
             }
           }

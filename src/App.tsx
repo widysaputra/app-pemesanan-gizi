@@ -74,13 +74,20 @@ export default function App() {
       setMenuItems(validMenu);
       setOrders(validOrders);
 
-      // 3. Otomatis sinkronisasi menu terbaru dari SIMRS di latar belakang (tanpa pasien/staf perlu ke admin atau klik apa pun)
+      // 3. Otomatis sinkronisasi menu & riwayat pesanan terbaru dari SIMRS di latar belakang
       realtimeService.fetchMenuFromSimrs().then((simrsRes) => {
         if (simrsRes && simrsRes.success && Array.isArray(simrsRes.data) && simrsRes.data.length > 0) {
           setMenuItems(simrsRes.data);
           saveLocalCachedMenu(simrsRes.data);
         }
-      }).catch((e) => console.warn('[Auto-Sync SIMRS]:', e));
+      }).catch((e) => console.warn('[Auto-Sync SIMRS Menu]:', e));
+
+      realtimeService.fetchOrdersFromSimrs().then((ordersRes) => {
+        if (ordersRes && ordersRes.success && Array.isArray(ordersRes.data) && ordersRes.data.length > 0) {
+          const freshOrders = realtimeService.getLocalOrders();
+          setOrders(freshOrders);
+        }
+      }).catch((e) => console.warn('[Auto-Sync SIMRS Orders]:', e));
 
       // 4. Sinkronisasikan kunci sandi admin dari server
       realtimeService.getAdminPassword().then((pwdData) => {
@@ -130,13 +137,26 @@ export default function App() {
           setMenuItems(event.data.menuItems);
           saveLocalCachedMenu(event.data.menuItems);
         }
+      } else if (event.type === 'orders_sync') {
+        if (Array.isArray(event.data?.orders) && event.data.orders.length > 0) {
+          setOrders(event.data.orders);
+        } else {
+          setOrders(realtimeService.getLocalOrders());
+        }
       } else if (event.type === 'new_order') {
+        if (event.data?.action === 'sync_orders') {
+          setOrders(realtimeService.getLocalOrders());
+          return;
+        }
         const newOrder: HospitalOrder = event.data.order;
-        if (!newOrder) return;
+        if (!newOrder) {
+          setOrders(realtimeService.getLocalOrders());
+          return;
+        }
 
         // Add to orders list without duplicates
         setOrders((prev) => {
-          if (prev.some((o) => o.id === newOrder.id)) return prev;
+          if (prev.some((o) => o.id === newOrder.id || (o.orderNumber && newOrder.orderNumber && o.orderNumber === newOrder.orderNumber))) return prev;
           return [newOrder, ...prev];
         });
 
@@ -478,6 +498,7 @@ export default function App() {
             onUpdateStatus={handleUpdateStatus}
             onToggleMenuItem={handleToggleMenuItem}
             onResetDemo={handleResetDemo}
+            onRefreshOrders={loadData}
           />
         )}
       </main>

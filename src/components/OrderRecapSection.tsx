@@ -21,12 +21,15 @@ import {
   PieChart,
   ListOrdered,
   ChevronRight,
-  Flame
+  Flame,
+  Database
 } from 'lucide-react';
 
 interface OrderRecapSectionProps {
   orders: HospitalOrder[];
   onOpenEtiket?: (order: HospitalOrder) => void;
+  onRefreshSimrs?: () => Promise<void>;
+  isRefreshing?: boolean;
 }
 
 type DateRangePreset = 'all' | 'today' | 'yesterday' | '7days' | 'month' | 'custom';
@@ -48,7 +51,7 @@ const MEAL_LABELS: Record<string, string> = {
   snack: 'Snack / Ringan',
 };
 
-export const OrderRecapSection: React.FC<OrderRecapSectionProps> = ({ orders, onOpenEtiket }) => {
+export const OrderRecapSection: React.FC<OrderRecapSectionProps> = ({ orders, onOpenEtiket, onRefreshSimrs, isRefreshing }) => {
   // Filter States
   const [datePreset, setDatePreset] = useState<DateRangePreset>('all');
   const [customStartDate, setCustomStartDate] = useState<string>('');
@@ -265,20 +268,39 @@ export const OrderRecapSection: React.FC<OrderRecapSectionProps> = ({ orders, on
       <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950 text-white p-6 rounded-3xl shadow-md border border-slate-700/50">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 mb-2">
-              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Modul Rekapitulasi &amp; Laporan Eksekutif</span>
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Modul Rekapitulasi &amp; Laporan Eksekutif</span>
+              </div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                <Database className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Sumber Data: DB SIMRS (<code className="font-mono text-[11px] text-indigo-200">rego_pesanan_gizi_t</code>)</span>
+              </div>
             </div>
             <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2">
               <span>Rekapan Pesanan Masuk</span>
             </h2>
             <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl">
-              Pantau rincian seluruh pesanan, akumulasi porsi menu makanan, dan ekspor laporan terstruktur ke format <strong>Microsoft Excel (.xlsx)</strong>.
+              Pantau rincian seluruh pesanan yang diambil langsung dari database SIMRS, akumulasi porsi menu makanan, dan ekspor laporan terstruktur ke format <strong>Microsoft Excel (.xlsx)</strong>.
             </p>
           </div>
 
           {/* Action Buttons */}
           <div className="flex items-center gap-2.5 flex-wrap">
+            {onRefreshSimrs && (
+              <button
+                type="button"
+                onClick={onRefreshSimrs}
+                disabled={isRefreshing}
+                className="px-3.5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white border border-indigo-400/40 flex items-center gap-1.5 transition-all cursor-pointer shadow-md disabled:opacity-50"
+                title="Tarik & sinkronkan data rekapan langsung dari database SIMRS (rego_pesanan_gizi_t)"
+              >
+                <RefreshCw className={`w-4 h-4 text-white ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span>{isRefreshing ? 'Mengambil Data SIMRS...' : 'Tarik dari DB SIMRS (rego_pesanan_gizi_t)'}</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={handleExportExcel}

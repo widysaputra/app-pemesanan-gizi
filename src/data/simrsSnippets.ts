@@ -4,18 +4,28 @@
  */
 
 export const SQL_PESANAN_GIZI_TABLE = `-- ====================================================================
--- 1. SQL DDL POSTGRESQL: TABEL go_pesanan_gizi_t (atau pesanan_gizi_t)
--- Digunakan untuk menyimpan pesanan makanan pasien rawat inap ke SIMRS
+-- 1. SQL DDL POSTGRESQL: TABEL rego_pesanan_gizi_t (DB SIMRS)
+-- Digunakan untuk menyimpan & membaca pesanan makanan pasien rawat inap
 -- Terhubung langsung dengan No. Registrasi Pasien SIMRS
 -- ====================================================================
 
--- PERINTAH CEPAT (Bila tabel go_pesanan_gizi_t sudah ada dan muncul error "column no_pesanan does not exist"):
-ALTER TABLE IF EXISTS go_pesanan_gizi_t ADD COLUMN IF NOT EXISTS no_pesanan VARCHAR(64);
-ALTER TABLE IF EXISTS go_pesanan_gizi_t ADD COLUMN IF NOT EXISTS order_number VARCHAR(64);
-CREATE INDEX IF NOT EXISTS idx_go_pesanan_gizi_no_pesanan ON go_pesanan_gizi_t (no_pesanan);
+-- PERINTAH CEPAT (Bila tabel rego_pesanan_gizi_t sudah ada di SIMRS):
+ALTER TABLE IF EXISTS rego_pesanan_gizi_t ADD COLUMN IF NOT EXISTS no_pesanan VARCHAR(64);
+ALTER TABLE IF EXISTS rego_pesanan_gizi_t ADD COLUMN IF NOT EXISTS order_number VARCHAR(64);
+ALTER TABLE IF EXISTS rego_pesanan_gizi_t ADD COLUMN IF NOT EXISTS room_name VARCHAR(100);
+ALTER TABLE IF EXISTS rego_pesanan_gizi_t ADD COLUMN IF NOT EXISTS patient_name VARCHAR(150);
+ALTER TABLE IF EXISTS rego_pesanan_gizi_t ADD COLUMN IF NOT EXISTS phone_number VARCHAR(25);
+ALTER TABLE IF EXISTS rego_pesanan_gizi_t ADD COLUMN IF NOT EXISTS meal_time VARCHAR(20) DEFAULT 'siang';
+ALTER TABLE IF EXISTS rego_pesanan_gizi_t ADD COLUMN IF NOT EXISTS total_price NUMERIC(12,2) DEFAULT 0;
+ALTER TABLE IF EXISTS rego_pesanan_gizi_t ADD COLUMN IF NOT EXISTS total_calories INT DEFAULT 0;
+ALTER TABLE IF EXISTS rego_pesanan_gizi_t ADD COLUMN IF NOT EXISTS patient_notes TEXT;
+ALTER TABLE IF EXISTS rego_pesanan_gizi_t ADD COLUMN IF NOT EXISTS order_status VARCHAR(30) DEFAULT 'baru';
+ALTER TABLE IF EXISTS rego_pesanan_gizi_t ADD COLUMN IF NOT EXISTS items_json JSONB;
+ALTER TABLE IF EXISTS rego_pesanan_gizi_t ADD COLUMN IF NOT EXISTS hasil_json JSONB;
+ALTER TABLE IF EXISTS rego_pesanan_gizi_t ADD COLUMN IF NOT EXISTS tgl_pesanan TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP;
 
--- DDL Pembuatan Tabel Baru: go_pesanan_gizi_t (atau pesanan_gizi_t)
-CREATE TABLE IF NOT EXISTS go_pesanan_gizi_t (
+-- DDL Pembuatan Tabel Baru: rego_pesanan_gizi_t
+CREATE TABLE IF NOT EXISTS rego_pesanan_gizi_t (
     id BIGSERIAL PRIMARY KEY,
     no_pesanan VARCHAR(64) NOT NULL UNIQUE,
     order_number VARCHAR(64),
@@ -31,40 +41,35 @@ CREATE TABLE IF NOT EXISTS go_pesanan_gizi_t (
     
     -- Penyimpanan Payload Lengkap Menggunakan PostgreSQL JSONB (Cepat & Fleksibel)
     items_json JSONB,
+    hasil_json JSONB,
     
+    tgl_pesanan TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Indeks Performa untuk Pencarian Cepat di SIMRS
-CREATE INDEX IF NOT EXISTS idx_go_pesanan_gizi_noregistrasi ON go_pesanan_gizi_t (noregistrasi);
-CREATE INDEX IF NOT EXISTS idx_go_pesanan_gizi_no_pesanan ON go_pesanan_gizi_t (no_pesanan);
-CREATE INDEX IF NOT EXISTS idx_go_pesanan_gizi_created_at ON go_pesanan_gizi_t (created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_go_pesanan_gizi_status ON go_pesanan_gizi_t (order_status);
-CREATE INDEX IF NOT EXISTS idx_go_pesanan_gizi_items_gin ON go_pesanan_gizi_t USING GIN (items_json);
+CREATE INDEX IF NOT EXISTS idx_rego_pesanan_gizi_noregistrasi ON rego_pesanan_gizi_t (noregistrasi);
+CREATE INDEX IF NOT EXISTS idx_rego_pesanan_gizi_no_pesanan ON rego_pesanan_gizi_t (no_pesanan);
+CREATE INDEX IF NOT EXISTS idx_rego_pesanan_gizi_order_number ON rego_pesanan_gizi_t (order_number);
+CREATE INDEX IF NOT EXISTS idx_rego_pesanan_gizi_created_at ON rego_pesanan_gizi_t (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_rego_pesanan_gizi_status ON rego_pesanan_gizi_t (order_status);
+CREATE INDEX IF NOT EXISTS idx_rego_pesanan_gizi_items_gin ON rego_pesanan_gizi_t USING GIN (items_json);
 
--- (Opsional) Tabel Rincian Menu Termasuk Porsi & Kalori (Bila Dapur Gizi Membutuhkan Relasi Baris per Baris)
-CREATE TABLE IF NOT EXISTS go_rincian_pesanan_gizi_t (
-    id BIGSERIAL PRIMARY KEY,
-    no_pesanan VARCHAR(64) NOT NULL,
-    order_number VARCHAR(64),
-    id_menu VARCHAR(50) NOT NULL,
-    nama_menu VARCHAR(150) NOT NULL,
-    kategori VARCHAR(50),
-    porsi INT DEFAULT 1,
-    harga NUMERIC(12,2) DEFAULT 0,
-    kalori INT DEFAULT 0,
-    catatan_khusus VARCHAR(255),
-    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+-- CONTOH QUERY CEK DATA REKAP & PESANAN MASUK DI DB SIMRS:
+-- 1. Ambil 100 pesanan gizi terbaru
+-- SELECT * FROM rego_pesanan_gizi_t ORDER BY created_at DESC LIMIT 100;
 
-CREATE INDEX IF NOT EXISTS idx_go_rincian_gizi_order ON go_rincian_pesanan_gizi_t (no_pesanan);
-CREATE INDEX IF NOT EXISTS idx_go_rincian_gizi_menu ON go_rincian_pesanan_gizi_t (id_menu);
+-- 2. Rekap total porsi dan omset per ruangan / kamar
+-- SELECT room_name, count(*) as total_pesanan, sum(total_price) as total_biaya 
+-- FROM rego_pesanan_gizi_t 
+-- WHERE order_status != 'dibatalkan'
+-- GROUP BY room_name ORDER BY total_pesanan DESC;
 
-COMMENT ON TABLE go_pesanan_gizi_t IS 'Tabel Utama Pesanan Makanan Kamar Pasien Terhubung SIMRS';
-COMMENT ON COLUMN go_pesanan_gizi_t.noregistrasi IS 'Nomor Registrasi Pasien Rawat Inap SIMRS';
-COMMENT ON COLUMN go_pesanan_gizi_t.no_pesanan IS 'Nomor Unik Pesanan Gizi Kamar Pasien';
-COMMENT ON COLUMN go_pesanan_gizi_t.items_json IS 'Dokumen JSON detail menu yang dipesan';
+-- 3. Rekap jumlah pesanan per waktu makan (pagi, siang, malam)
+-- SELECT meal_time, count(*) as jumlah_pesanan, sum(total_price) as omset
+-- FROM rego_pesanan_gizi_t 
+-- GROUP BY meal_time;
 `;
 
 export const SQL_MASTER_MENU_TABLE = `-- ====================================================================
@@ -169,32 +174,431 @@ use App\\Http\\Controllers\\EMR\\EMRController;
 Route::prefix('api')->group(function () {
     
     // ==========================================
-    // 1. API PESANAN GIZI PASIEN
+    // 1. API PESANAN GIZI PASIEN (RAWAT INAP)
     // ==========================================
-    // Endpoint untuk menyimpan pesanan makanan dari kamar rawat inap
+    // GET: Ambil seluruh riwayat pesanan gizi masuk (Ditarik oleh Dashboard Admin & Sistem Gizi)
+    Route::get('/riwayat-pesanan-gizi', [GiziSIMRSController::class, 'getRiwayatPesananGizi']);
+    Route::get('/pesanan-gizi', [GiziSIMRSController::class, 'getRiwayatPesananGizi']);
+
+    // GET: Ambil pesanan spesifik berdasarkan No. Registrasi pasien
+    Route::get('/pesanan-gizi/{noregistrasi}', [GiziSIMRSController::class, 'getPesananByRegistrasi']);
+
+    // GET: Ambil detail 1 pesanan berdasarkan No. Pesanan
+    Route::get('/detail-pesanan-gizi/{order_number}', [GiziSIMRSController::class, 'getDetailPesananGizi']);
+    
+    // POST: Simpan pesanan makanan baru dari kamar pasien
     Route::post('/save-pesanan-gizi', [GiziSIMRSController::class, 'simpanPesananGizi']);
     
-    // Ambil riwayat pesanan berdasarkan No. Registrasi pasien
-    Route::get('/pesanan-gizi/{noregistrasi}', [GiziSIMRSController::class, 'getPesananByRegistrasi']);
+    // POST: Update status pesanan (diproses, diantar, selesai, dibatalkan)
+    Route::post('/update-status-pesanan-gizi', [GiziSIMRSController::class, 'updateStatusPesananGizi']);
 
     // ==========================================
     // 2. API MASTER DATA MENU GIZI RS
     // ==========================================
-    // Ambil daftar menu gizi aktif untuk aplikasi pemesanan pasien & admin
+    // GET: Ambil daftar master menu aktif untuk aplikasi pemesanan pasien & admin
     Route::get('/master-menu-gizi', [GiziSIMRSController::class, 'getMasterMenuGizi']);
     Route::get('/master-menu', [GiziSIMRSController::class, 'getMasterMenuGizi']);
     
-    // Simpan / update 1 item menu makanan
+    // POST: Simpan / update 1 item menu makanan
     Route::post('/save-master-menu', [GiziSIMRSController::class, 'simpanMasterMenu']);
     
-    // Sinkronisasi massal (bulk sync) seluruh menu makanan
+    // POST: Sinkronisasi massal (bulk sync) seluruh menu makanan
     Route::post('/sync-batch-menu', [GiziSIMRSController::class, 'syncBatchMenu']);
 
-    // ==========================================
-    // 3. API HASIL TEST MMPI-2 (EMR)
-    // ==========================================
-    Route::post('/save-data-mmpi', [EMRController::class, 'simpanHasilMMPI']);
+// ==========================================
+// OPSIONAL 2: GAYA ROUTE MEDIFIRST2000 (EMRController)
+// ==========================================
+Route::group(['prefix' => 'service/medifirst2000/emr'], function () {
+    // GET: Tarik riwayat pesanan gizi dari SIMRS (tabel rego_pesanan_gizi_t)
+    Route::get('riwayat-pesanan-gizi', 'EMR\\EMRController@getRiwayatPesananGizi');
+    Route::get('pesanan-gizi', 'EMR\\EMRController@getRiwayatPesananGizi');
+    
+    // GET: Rekapan & ringkasan pesanan gizi masuk
+    Route::get('rekap-pesanan-gizi', 'EMR\\EMRController@getRekapPesananGizi');
+    
+    // GET: Detail 1 pesanan berdasarkan order_number
+    Route::get('detail-pesanan-gizi/{order_number}', 'EMR\\EMRController@getDetailPesananGizi');
+
+    // POST: Simpan pesanan gizi baru
+    Route::post('save-pesanan-gizi', 'EMR\\EMRController@savePesananGizi');
+
+    // POST: Update status pesanan gizi (diproses, diantar, selesai, dibatalkan)
+    Route::post('update-status-pesanan-gizi', 'EMR\\EMRController@updateStatusPesananGizi');
+
+    // Master Menu Gizi
+    Route::get('master-menu-gizi', 'EMR\\EMRController@getMasterMenuGizi');
+    Route::post('save-master-menu', 'EMR\\EMRController@saveMasterMenu');
+    Route::post('sync-batch-menu', 'EMR\\EMRController@syncBatchMenu');
 });
+`;
+
+/**
+ * Controller EMRController untuk Medifirst2000 / RSBSA SIMRS
+ * Mengambil dan memproses data dari tabel: rego_pesanan_gizi_t
+ */
+export const LARAVEL_EMR_CONTROLLER_CODE = `<?php
+
+namespace App\\Http\\Controllers\\EMR;
+
+use App\\Http\\Controllers\\Controller;
+use Illuminate\\Http\\Request;
+use Illuminate\\Support\\Facades\\DB;
+use Illuminate\\Support\\Facades\\Schema;
+
+class EMRController extends Controller
+{
+    /**
+     * Verifikasi Header X-AUTH-TOKEN
+     */
+    private function checkAuthToken(Request $request)
+    {
+        $expectedToken = env('SIMRS_AUTH_TOKEN', '');
+        if (!empty($expectedToken)) {
+            $receivedToken = $request->header('X-AUTH-TOKEN') 
+                          ?: str_replace('Bearer ', '', $request->header('Authorization', ''));
+
+            if ($receivedToken !== $expectedToken) {
+                return response()->json([
+                    'status'  => 'unauthorized',
+                    'message' => 'Token autentikasi X-AUTH-TOKEN tidak valid atau tidak disertakan.'
+                ], 401);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * GET /service/medifirst2000/emr/riwayat-pesanan-gizi
+     * (atau /api/riwayat-pesanan-gizi)
+     * FUNGSI UTAMA UNTUK ADMIN: Mengambil seluruh riwayat pesanan masuk dari tabel rego_pesanan_gizi_t
+     */
+    public function getRiwayatPesananGizi(Request $request)
+    {
+        $authError = $this->checkAuthToken($request);
+        if ($authError) return $authError;
+
+        try {
+            // Deteksi nama tabel: rego_pesanan_gizi_t (default) atau fallback
+            $tableName = 'rego_pesanan_gizi_t';
+            if (!Schema::hasTable($tableName)) {
+                $tableName = Schema::hasTable('go_pesanan_gizi_t') ? 'go_pesanan_gizi_t' : 'pesanan_gizi_t';
+            }
+
+            $query = DB::table($tableName);
+
+            // Filter status pesanan (baru, diproses, diantar, selesai, dibatalkan)
+            if ($request->filled('status') && $request->input('status') !== 'all') {
+                $statusCol = Schema::hasColumn($tableName, 'order_status') ? 'order_status' : 'status';
+                $query->where($statusCol, $request->input('status'));
+            }
+
+            // Filter nomor registrasi pasien jika ada
+            if ($request->filled('noregistrasi')) {
+                $query->where('noregistrasi', $request->input('noregistrasi'));
+            }
+
+            // Filter waktu makan (pagi, siang, malam, snack)
+            if ($request->filled('meal_time') && $request->input('meal_time') !== 'all') {
+                $mealCol = Schema::hasColumn($tableName, 'meal_time') ? 'meal_time' : 'waktu_makan';
+                $query->where($mealCol, $request->input('meal_time'));
+            }
+
+            // Filter tanggal pesanan
+            if ($request->filled('tgl_awal')) {
+                $dateCol = Schema::hasColumn($tableName, 'tgl_pesanan') ? 'tgl_pesanan' : 'created_at';
+                $query->whereDate($dateCol, '>=', $request->input('tgl_awal'));
+            }
+            if ($request->filled('tgl_akhir')) {
+                $dateCol = Schema::hasColumn($tableName, 'tgl_pesanan') ? 'tgl_pesanan' : 'created_at';
+                $query->whereDate($dateCol, '<=', $request->input('tgl_akhir'));
+            }
+
+            // Urutkan dari pesanan paling baru
+            $sortCol = Schema::hasColumn($tableName, 'created_at') ? 'created_at' : (
+                Schema::hasColumn($tableName, 'tgl_pesanan') ? 'tgl_pesanan' : 'id'
+            );
+            $rawOrders = $query->orderBy($sortCol, 'desc')->limit($request->input('limit', 200))->get();
+
+            // Format data ke standar HospitalOrder
+            $formattedOrders = $rawOrders->map(function ($o) {
+                // Parsing rincian item pesanan dari items_json / hasil_json
+                $items = [];
+                $rawItems = $o->items_json ?? ($o->hasil_json ?? null);
+                if (!empty($rawItems)) {
+                    if (is_array($rawItems)) {
+                        $items = $rawItems;
+                    } elseif (is_string($rawItems)) {
+                        $decoded = json_decode($rawItems, true);
+                        if (is_array($decoded)) {
+                            $items = isset($decoded['items']) && is_array($decoded['items']) ? $decoded['items'] : $decoded;
+                        }
+                    }
+                }
+
+                $normalizedItems = array_map(function ($it) {
+                    return [
+                        'menuItemId' => (string)($it['menuItemId'] ?? $it['id_menu'] ?? $it['id'] ?? 'item'),
+                        'name'       => (string)($it['name'] ?? $it['nama_menu'] ?? 'Menu Makanan'),
+                        'portion'    => (int)($it['portion'] ?? $it['porsi'] ?? $it['jumlah_porsi'] ?? 1),
+                        'price'      => (int)($it['price'] ?? $it['harga'] ?? $it['harga_satuan'] ?? 0),
+                        'category'   => (string)($it['category'] ?? $it['kategori'] ?? 'makanan_utama'),
+                        'calories'   => (int)($it['calories'] ?? $it['kalori'] ?? 100),
+                    ];
+                }, $items);
+
+                // Hitung total harga & kalori dari item jika belum tersimpan di tabel
+                $computedPrice = 0;
+                $computedCal = 0;
+                foreach ($normalizedItems as $it) {
+                    $computedPrice += $it['price'] * $it['portion'];
+                    $computedCal += $it['calories'] * $it['portion'];
+                }
+
+                $orderNum = (string)($o->order_number ?? ($o->no_pesanan ?? ('GZ-' . ($o->id ?? time()))));
+                $createdAt = $o->tgl_pesanan ?? ($o->created_at ?? date('Y-m-d H:i:s'));
+
+                return [
+                    'id'             => (string)($o->id ?? $orderNum),
+                    'orderNumber'    => $orderNum,
+                    'no_pesanan'     => $orderNum,
+                    'registrationNo' => (string)($o->noregistrasi ?? ''),
+                    'noregistrasi'   => (string)($o->noregistrasi ?? ''),
+                    'createdAt'      => $createdAt,
+                    'tgl_pesanan'    => $createdAt,
+                    'roomName'       => (string)($o->room_name ?? ($o->nomor_kamar ?? ($o->kamar ?? 'Kamar Pasien'))),
+                    'patientName'    => (string)($o->patient_name ?? ($o->nama_pasien ?? 'Pasien')),
+                    'phoneNumber'    => (string)($o->phone_number ?? ($o->telepon ?? '')),
+                    'mealTime'       => (string)($o->meal_time ?? ($o->waktu_makan ?? 'siang')),
+                    'items'          => $normalizedItems,
+                    'totalPrice'     => (int)($o->total_price ?? ($o->total_biaya ?? $computedPrice)),
+                    'totalCalories'  => (int)($o->total_calories ?? ($o->total_kalori ?? $computedCal)),
+                    'patientNotes'   => (string)($o->patient_notes ?? ($o->catatan ?? '')),
+                    'status'         => (string)($o->order_status ?? ($o->status ?? 'baru')),
+                    'simrsSource'    => 'rego_pesanan_gizi_t',
+                ];
+            });
+
+            return response()->json([
+                'status'      => 'success',
+                'message'     => 'Berhasil mengambil data pesanan gizi dari tabel rego_pesanan_gizi_t SIMRS.',
+                'totalOrders' => count($formattedOrders),
+                'data'        => $formattedOrders
+            ], 200);
+
+        } catch (\\Exception $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Gagal mengambil riwayat pesanan gizi dari SIMRS: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * GET /service/medifirst2000/emr/detail-pesanan-gizi/{order_number}
+     * Mengambil 1 pesanan berdasarkan nomor pesanan
+     */
+    public function getDetailPesananGizi($order_number, Request $request)
+    {
+        $authError = $this->checkAuthToken($request);
+        if ($authError) return $authError;
+
+        try {
+            $tableName = 'rego_pesanan_gizi_t';
+            if (!Schema::hasTable($tableName)) {
+                $tableName = Schema::hasTable('go_pesanan_gizi_t') ? 'go_pesanan_gizi_t' : 'pesanan_gizi_t';
+            }
+
+            $orderCol = Schema::hasColumn($tableName, 'order_number') ? 'order_number' : 'no_pesanan';
+            $order = DB::table($tableName)->where($orderCol, $order_number)->first();
+
+            if (!$order) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => "Pesanan gizi '{$order_number}' tidak ditemukan di tabel {$tableName}."
+                ], 404);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'data'   => $order
+            ], 200);
+        } catch (\\Exception $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Gagal mengambil detail pesanan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * GET /service/medifirst2000/emr/rekap-pesanan-gizi
+     * Mengembalikan data agregasi rekapan pesanan langsung dari tabel rego_pesanan_gizi_t
+     */
+    public function getRekapPesananGizi(Request $request)
+    {
+        $authError = $this->checkAuthToken($request);
+        if ($authError) return $authError;
+
+        try {
+            $tableName = 'rego_pesanan_gizi_t';
+            if (!Schema::hasTable($tableName)) {
+                $tableName = Schema::hasTable('go_pesanan_gizi_t') ? 'go_pesanan_gizi_t' : 'pesanan_gizi_t';
+            }
+
+            $query = DB::table($tableName);
+            if ($request->filled('tgl_awal')) {
+                $query->whereDate('created_at', '>=', $request->input('tgl_awal'));
+            }
+            if ($request->filled('tgl_akhir')) {
+                $query->whereDate('created_at', '<=', $request->input('tgl_akhir'));
+            }
+
+            $totalOrders = (clone $query)->count();
+            $totalRevenue = (clone $query)->where('order_status', '!=', 'dibatalkan')->sum('total_price');
+            $rekapPerKamar = (clone $query)->select('room_name', DB::raw('count(*) as total_pesanan'), DB::raw('sum(total_price) as total_biaya'))
+                                          ->groupBy('room_name')->orderByDesc('total_pesanan')->get();
+            $rekapPerWaktu = (clone $query)->select('meal_time', DB::raw('count(*) as total_pesanan'), DB::raw('sum(total_price) as total_biaya'))
+                                          ->groupBy('meal_time')->get();
+
+            return response()->json([
+                'status'        => 'success',
+                'totalOrders'   => $totalOrders,
+                'totalRevenue'  => (int)$totalRevenue,
+                'rekapPerKamar' => $rekapPerKamar,
+                'rekapPerWaktu' => $rekapPerWaktu
+            ], 200);
+        } catch (\\Exception $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Gagal mengambil rekapan pesanan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * POST /service/medifirst2000/emr/update-status-pesanan-gizi
+     * Update status pesanan gizi: baru -> diproses -> diantar -> selesai / dibatalkan
+     */
+    public function updateStatusPesananGizi(Request $request)
+    {
+        $authError = $this->checkAuthToken($request);
+        if ($authError) return $authError;
+
+        $orderNumber = $request->input('order_number') ?? ($request->input('no_pesanan') ?? $request->input('orderNumber'));
+        $newStatus   = $request->input('status') ?? $request->input('order_status');
+
+        if (!$orderNumber || !$newStatus) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Parameter order_number dan status wajib dikirim.'
+            ], 400);
+        }
+
+        try {
+            $tableName = 'rego_pesanan_gizi_t';
+            if (!Schema::hasTable($tableName)) {
+                $tableName = Schema::hasTable('go_pesanan_gizi_t') ? 'go_pesanan_gizi_t' : 'pesanan_gizi_t';
+            }
+
+            $orderCol = Schema::hasColumn($tableName, 'order_number') ? 'order_number' : 'no_pesanan';
+            $statusCol = Schema::hasColumn($tableName, 'order_status') ? 'order_status' : 'status';
+
+            DB::table($tableName)->where($orderCol, $orderNumber)->update([
+                $statusCol   => $newStatus,
+                'updated_at' => date('Y-m-d H:i:s')
+            ]);
+
+            return response()->json([
+                'status'       => 'success',
+                'message'      => "Status pesanan {$orderNumber} berhasil diperbarui menjadi '{$newStatus}'.",
+                'order_number' => $orderNumber,
+                'new_status'   => $newStatus
+            ], 200);
+
+        } catch (\\Exception $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Gagal memperbarui status pesanan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * POST /service/medifirst2000/emr/save-pesanan-gizi
+     * Simpan / Perbarui Pesanan Pasien Rawat Inap ke rego_pesanan_gizi_t
+     */
+    public function savePesananGizi(Request $request)
+    {
+        $authError = $this->checkAuthToken($request);
+        if ($authError) return $authError;
+
+        $noRegistrasi = $request->input('noregistrasi');
+        $orderData    = $request->input('hasil_json');
+
+        if (!$noRegistrasi || !$orderData) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Parameter noregistrasi dan hasil_json wajib dikirim.'
+            ], 400);
+        }
+
+        try {
+            $tableName = 'rego_pesanan_gizi_t';
+            if (!Schema::hasTable($tableName)) {
+                $tableName = Schema::hasTable('go_pesanan_gizi_t') ? 'go_pesanan_gizi_t' : 'pesanan_gizi_t';
+            }
+
+            $orderNumber = $orderData['no_pesanan'] 
+                ?? $orderData['orderNumber'] 
+                ?? $orderData['order_number'] 
+                ?? $request->input('no_pesanan') 
+                ?? ('GZ-' . date('YmdHis'));
+
+            $headerData = [
+                'noregistrasi'   => $noRegistrasi,
+                'order_number'   => $orderNumber,
+                'room_name'      => $orderData['roomName'] ?? ($orderData['nomor_kamar'] ?? 'Kamar Pasien'),
+                'patient_name'   => $orderData['patientName'] ?? ($orderData['nama_pasien'] ?? null),
+                'phone_number'   => $orderData['phoneNumber'] ?? null,
+                'meal_time'      => $orderData['mealTime'] ?? ($orderData['waktu_makan'] ?? 'siang'),
+                'total_price'    => $orderData['totalPrice'] ?? ($orderData['total_biaya'] ?? 0),
+                'total_calories' => $orderData['totalCalories'] ?? ($orderData['total_kalori'] ?? 0),
+                'patient_notes'  => $orderData['patientNotes'] ?? ($orderData['dietaryNotes'] ?? null),
+                'order_status'   => $orderData['status'] ?? ($orderData['order_status'] ?? 'baru'),
+                'items_json'     => json_encode($orderData['items'] ?? []),
+                'hasil_json'     => json_encode($orderData),
+                'tgl_pesanan'    => date('Y-m-d H:i:s'),
+                'updated_at'     => date('Y-m-d H:i:s'),
+                'created_at'     => date('Y-m-d H:i:s')
+            ];
+
+            if (Schema::hasColumn($tableName, 'no_pesanan')) {
+                $headerData['no_pesanan'] = $orderNumber;
+            }
+
+            DB::table($tableName)->updateOrInsert(
+                [
+                    'noregistrasi' => $noRegistrasi,
+                    'order_number' => $orderNumber,
+                ],
+                $headerData
+            );
+
+            return response()->json([
+                'status'       => 'success',
+                'message'      => 'Pesanan gizi berhasil disimpan ke tabel rego_pesanan_gizi_t SIMRS!',
+                'orderNumber'  => $orderNumber,
+                'noregistrasi' => $noRegistrasi
+            ], 200);
+
+        } catch (\\Exception $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Gagal menyimpan pesanan ke rego_pesanan_gizi_t: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+}
 `;
 
 export const LARAVEL_GIZI_CONTROLLER_CODE = `<?php
@@ -570,6 +974,236 @@ class GiziSIMRSController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * GET /api/riwayat-pesanan-gizi (atau /api/pesanan-gizi)
+     * Mengambil daftar seluruh riwayat pesanan makanan gizi pasien dari PostgreSQL
+     * Digunakan oleh Dashboard Admin & Sistem Dapur Instalasi Gizi
+     */
+    public function getRiwayatPesananGizi(Request $request)
+    {
+        // Validasi X-AUTH-TOKEN jika diaktifkan
+        $authError = $this->checkAuthToken($request);
+        if ($authError) return $authError;
+
+        try {
+            // Deteksi nama tabel pesanan gizi secara dinamis
+            $tableName = 'rego_pesanan_gizi_t';
+            if (!\\Illuminate\\Support\\Facades\\Schema::hasTable($tableName)) {
+                $tableName = \\Illuminate\\Support\\Facades\\Schema::hasTable('go_pesanan_gizi_t') 
+                    ? 'go_pesanan_gizi_t' 
+                    : 'pesanan_gizi_t';
+            }
+
+            $query = DB::table($tableName);
+
+            // Filter status pesanan (baru, diproses, diantar, selesai, dibatalkan) jika dikirim
+            if ($request->filled('status') && $request->input('status') !== 'all') {
+                $statusCol = \\Illuminate\\Support\\Facades\\Schema::hasColumn($tableName, 'order_status') ? 'order_status' : 'status';
+                $query->where($statusCol, $request->input('status'));
+            }
+
+            // Filter nomor registrasi pasien jika ada
+            if ($request->filled('noregistrasi')) {
+                $query->where('noregistrasi', $request->input('noregistrasi'));
+            }
+
+            // Filter waktu makan (pagi, siang, malam, snack)
+            if ($request->filled('meal_time') && $request->input('meal_time') !== 'all') {
+                $mealCol = \\Illuminate\\Support\\Facades\\Schema::hasColumn($tableName, 'meal_time') ? 'meal_time' : 'waktu_makan';
+                $query->where($mealCol, $request->input('meal_time'));
+            }
+
+            // Filter tanggal pesanan
+            if ($request->filled('tgl_awal')) {
+                $dateCol = \\Illuminate\\Support\\Facades\\Schema::hasColumn($tableName, 'tgl_pesanan') ? 'tgl_pesanan' : 'created_at';
+                $query->whereDate($dateCol, '>=', $request->input('tgl_awal'));
+            }
+            if ($request->filled('tgl_akhir')) {
+                $dateCol = \\Illuminate\\Support\\Facades\\Schema::hasColumn($tableName, 'tgl_pesanan') ? 'tgl_pesanan' : 'created_at';
+                $query->whereDate($dateCol, '<=', $request->input('tgl_akhir'));
+            }
+
+            // Urutkan dari pesanan terbaru
+            $sortCol = \\Illuminate\\Support\\Facades\\Schema::hasColumn($tableName, 'created_at') ? 'created_at' : (
+                \\Illuminate\\Support\\Facades\\Schema::hasColumn($tableName, 'tgl_pesanan') ? 'tgl_pesanan' : 'id'
+            );
+            $rawOrders = $query->orderBy($sortCol, 'desc')->limit($request->input('limit', 150))->get();
+
+            // Format data agar langsung sesuai dengan struktur HospitalOrder di frontend
+            $formattedOrders = $rawOrders->map(function ($o) {
+                // Parsing rincian item pesanan dari items_json / hasil_json
+                $items = [];
+                $rawItems = $o->items_json ?? ($o->hasil_json ?? null);
+                if (!empty($rawItems)) {
+                    if (is_array($rawItems)) {
+                        $items = $rawItems;
+                    } elseif (is_string($rawItems)) {
+                        $decoded = json_decode($rawItems, true);
+                        if (is_array($decoded)) {
+                            // Cek jika nested di dalam key 'items'
+                            $items = isset($decoded['items']) && is_array($decoded['items']) ? $decoded['items'] : $decoded;
+                        }
+                    }
+                }
+
+                // Normalisasi struktur items
+                $normalizedItems = array_map(function ($it) {
+                    return [
+                        'menuItemId' => (string)($it['menuItemId'] ?? $it['id_menu'] ?? $it['id'] ?? 'item'),
+                        'name'       => (string)($it['name'] ?? $it['nama_menu'] ?? 'Menu Makanan'),
+                        'portion'    => (int)($it['portion'] ?? $it['porsi'] ?? $it['jumlah_porsi'] ?? 1),
+                        'price'      => (int)($it['price'] ?? $it['harga'] ?? $it['harga_satuan'] ?? 0),
+                        'category'   => (string)($it['category'] ?? $it['kategori'] ?? 'makanan_utama'),
+                        'calories'   => (int)($it['calories'] ?? $it['kalori'] ?? 100),
+                    ];
+                }, $items);
+
+                $orderNum = (string)($o->order_number ?? ($o->no_pesanan ?? ('GZ-' . ($o->id ?? time()))));
+                $createdAt = $o->tgl_pesanan ?? ($o->created_at ?? date('Y-m-d H:i:s'));
+
+                return [
+                    'id'             => (string)($o->id ?? $orderNum),
+                    'orderNumber'    => $orderNum,
+                    'no_pesanan'     => $orderNum,
+                    'registrationNo' => (string)($o->noregistrasi ?? ''),
+                    'noregistrasi'   => (string)($o->noregistrasi ?? ''),
+                    'createdAt'      => $createdAt,
+                    'tgl_pesanan'    => $createdAt,
+                    'roomName'       => (string)($o->room_name ?? ($o->nomor_kamar ?? ($o->kamar ?? 'Kamar Pasien'))),
+                    'kamar'          => (string)($o->room_name ?? ($o->nomor_kamar ?? ($o->kamar ?? 'Kamar Pasien'))),
+                    'patientName'    => (string)($o->patient_name ?? ($o->nama_pasien ?? 'Pasien')),
+                    'nama_pasien'    => (string)($o->patient_name ?? ($o->nama_pasien ?? 'Pasien')),
+                    'phoneNumber'    => (string)($o->phone_number ?? ($o->telepon ?? '')),
+                    'mealTime'       => (string)($o->meal_time ?? ($o->waktu_makan ?? 'siang')),
+                    'waktu_makan'    => (string)($o->meal_time ?? ($o->waktu_makan ?? 'siang')),
+                    'items'          => $normalizedItems,
+                    'items_json'     => json_encode($normalizedItems),
+                    'totalPrice'     => (int)($o->total_price ?? ($o->total_biaya ?? 0)),
+                    'total_price'    => (int)($o->total_price ?? ($o->total_biaya ?? 0)),
+                    'totalCalories'  => (int)($o->total_calories ?? ($o->total_kalori ?? 0)),
+                    'total_calories' => (int)($o->total_calories ?? ($o->total_kalori ?? 0)),
+                    'patientNotes'   => (string)($o->patient_notes ?? ($o->catatan ?? '')),
+                    'catatan'        => (string)($o->patient_notes ?? ($o->catatan ?? '')),
+                    'status'         => (string)($o->order_status ?? ($o->status ?? 'baru')),
+                    'order_status'   => (string)($o->order_status ?? ($o->status ?? 'baru')),
+                ];
+            });
+
+            return response()->json([
+                'status'      => 'success',
+                'message'     => 'Berhasil mengambil riwayat pesanan gizi dari SIMRS.',
+                'totalOrders' => count($formattedOrders),
+                'data'        => $formattedOrders
+            ], 200);
+
+        } catch (\\Exception $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Gagal mengambil riwayat pesanan gizi: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * GET /api/pesanan-gizi/{noregistrasi}
+     * Mengambil riwayat pesanan khusus untuk 1 Nomor Registrasi Pasien Rawat Inap
+     */
+    public function getPesananByRegistrasi($noregistrasi, Request $request)
+    {
+        $authError = $this->checkAuthToken($request);
+        if ($authError) return $authError;
+
+        $request->merge(['noregistrasi' => $noregistrasi]);
+        return $this->getRiwayatPesananGizi($request);
+    }
+
+    /**
+     * GET /api/detail-pesanan-gizi/{order_number}
+     * Mengambil data detail 1 pesanan berdasarkan Nomor Pesanan
+     */
+    public function getDetailPesananGizi($order_number, Request $request)
+    {
+        $authError = $this->checkAuthToken($request);
+        if ($authError) return $authError;
+
+        try {
+            $tableName = 'rego_pesanan_gizi_t';
+            if (!\\Illuminate\\Support\\Facades\\Schema::hasTable($tableName)) {
+                $tableName = \\Illuminate\\Support\\Facades\\Schema::hasTable('go_pesanan_gizi_t') ? 'go_pesanan_gizi_t' : 'pesanan_gizi_t';
+            }
+
+            $orderCol = \\Illuminate\\Support\\Facades\\Schema::hasColumn($tableName, 'order_number') ? 'order_number' : 'no_pesanan';
+            $order = DB::table($tableName)->where($orderCol, $order_number)->first();
+
+            if (!$order) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => "Pesanan dengan nomor '{$order_number}' tidak ditemukan di SIMRS."
+                ], 404);
+            }
+
+            return response()->json([
+                'status'  => 'success',
+                'data'    => $order
+            ], 200);
+
+        } catch (\\Exception $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Gagal mengambil detail pesanan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * POST /api/update-status-pesanan-gizi
+     * Mengubah status pesanan makanan (baru -> diproses -> diantar -> selesai / dibatalkan)
+     * Request body: { "order_number": "GZ-...", "status": "diproses", "catatan": "..." }
+     */
+    public function updateStatusPesananGizi(Request $request)
+    {
+        $authError = $this->checkAuthToken($request);
+        if ($authError) return $authError;
+
+        $orderNumber = $request->input('order_number') ?? ($request->input('no_pesanan') ?? $request->input('orderNumber'));
+        $newStatus   = $request->input('status') ?? $request->input('order_status');
+
+        if (!$orderNumber || !$newStatus) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Parameter order_number dan status wajib dikirim.'
+            ], 400);
+        }
+
+        try {
+            $tableName = 'rego_pesanan_gizi_t';
+            if (!\\Illuminate\\Support\\Facades\\Schema::hasTable($tableName)) {
+                $tableName = \\Illuminate\\Support\\Facades\\Schema::hasTable('go_pesanan_gizi_t') ? 'go_pesanan_gizi_t' : 'pesanan_gizi_t';
+            }
+
+            $orderCol = \\Illuminate\\Support\\Facades\\Schema::hasColumn($tableName, 'order_number') ? 'order_number' : 'no_pesanan';
+            $statusCol = \\Illuminate\\Support\\Facades\\Schema::hasColumn($tableName, 'order_status') ? 'order_status' : 'status';
+
+            $updated = DB::table($tableName)->where($orderCol, $orderNumber)->update([
+                $statusCol   => $newStatus,
+                'updated_at' => date('Y-m-d H:i:s')
+            ]);
+
+            return response()->json([
+                'status'       => 'success',
+                'message'      => "Status pesanan {$orderNumber} berhasil diperbarui menjadi '{$newStatus}'.",
+                'order_number' => $orderNumber,
+                'new_status'   => $newStatus
+            ], 200);
+
+        } catch (\\Exception $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Gagal memperbarui status pesanan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
 `;
 
@@ -679,6 +1313,43 @@ export const JSON_PAYLOAD_EXAMPLES = `// =======================================
       "mealTimes": ["pagi", "siang", "malam"],
       "description": "Beras merah pecah kulit kaya antosianin dan serat pangan.",
       "isAvailable": true
+    }
+  ]
+}
+
+// ====================================================================
+// 4. CONTOH RESPON GET: RIWAYAT PESANAN GIZI (DITARIK APLIKASI)
+// METHOD: GET /api/riwayat-pesanan-gizi
+// ====================================================================
+
+{
+  "status": "success",
+  "message": "Berhasil mengambil riwayat pesanan gizi dari SIMRS.",
+  "totalOrders": 1,
+  "data": [
+    {
+      "id": "GZ-20260908-01",
+      "orderNumber": "GZ-20260908-01",
+      "registrationNo": "REG-20260908-001",
+      "createdAt": "2026-09-08 11:30:00",
+      "roomName": "Kamar Mawar 201 - Bed 01",
+      "patientName": "Ny. Siti Rahmawati",
+      "phoneNumber": "081298765432",
+      "mealTime": "siang",
+      "totalPrice": 45000,
+      "totalCalories": 465,
+      "patientNotes": "Mohon kuah sayur agak hangat, jangan terlalu pedas.",
+      "status": "baru",
+      "items": [
+        {
+          "menuItemId": "menu-1",
+          "name": "Nasi Putih Pulen Organik",
+          "portion": 1,
+          "price": 6000,
+          "category": "makanan_utama",
+          "calories": 175
+        }
+      ]
     }
   ]
 }

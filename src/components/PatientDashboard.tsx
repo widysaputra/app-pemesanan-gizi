@@ -90,7 +90,7 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
   // Active View Tab: Catalog Menu vs Order History
   const [activeTab, setActiveTab] = useState<'catalog' | 'history'>('catalog');
 
-  // Operating Hours State (06:30 - 19:00 WIB)
+  // Operating Hours State (07:00 - 19:00 WIB)
   const [operatingInfo, setOperatingInfo] = useState<OperatingHoursInfo>(() => checkOrderOperatingHours());
 
   // Periodically refresh operating hours status every 15 seconds
@@ -206,7 +206,7 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
     e.preventDefault();
     setFormError(null);
 
-    // Validate Operating Hours strictly (06:30 - 19:00 WIB)
+    // Validate Operating Hours strictly (07:00 - 19:00 WIB)
     const currentStatus = checkOrderOperatingHours();
     if (!currentStatus.isOpen) {
       setFormError(currentStatus.message);
