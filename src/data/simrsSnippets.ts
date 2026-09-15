@@ -892,12 +892,13 @@ class GiziSIMRSController extends Controller
 
             $query = DB::table($tableName);
 
-            // Filter ketersediaan: jika untuk pasien, ambil yang tersedia (tersedia = true / 1)
-            if (!$request->has('include_all')) {
+            // Filter ketersediaan hanya jika secara eksplisit diminta oleh client (?only_available=true)
+            if ($request->has('only_available') && filter_var($request->input('only_available'), FILTER_VALIDATE_BOOLEAN)) {
                 $query->where(function($q) {
                     $q->where('tersedia', true)
                       ->orWhere('tersedia', 1)
-                      ->orWhereNull('tersedia');
+                      ->orWhere('is_tersedia', true)
+                      ->orWhere('is_tersedia', 1);
                 });
             }
 
@@ -945,6 +946,13 @@ class GiziSIMRSController extends Controller
                     }
                 }
 
+                // Parsing ketersediaan boolean secara ketat
+                $rawAvail = $item->tersedia ?? $item->is_tersedia ?? $item->status_tersedia ?? $item->status ?? true;
+                $isAvail = filter_var($rawAvail, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+                if ($isAvail === null) {
+                    $isAvail = in_array(strtolower((string)$rawAvail), ['1', 't', 'true', 'yes', 'tersedia', 'ada'], true);
+                }
+
                 return [
                     'id'          => (string)($item->menu_id ?? $item->id ?? $item->id_menu),
                     'name'        => (string)($item->nama_menu ?? $item->name ?? 'Menu Gizi'),
@@ -958,7 +966,9 @@ class GiziSIMRSController extends Controller
                     'sodium'      => (float)($item->natrium_mg ?? $item->natrium ?? $item->sodium ?? 0),
                     'mealTimes'   => $mealTimes,
                     'dietaryTags' => $dietaryTags,
-                    'isAvailable' => (bool)($item->tersedia ?? $item->is_tersedia ?? true),
+                    'isAvailable' => $isAvail,
+                    'is_tersedia' => $isAvail,
+                    'tersedia'    => $isAvail,
                     'foto_url'    => (string)($item->foto_url ?? $item->gambar_url ?? $item->image ?? ''),
                     'image'       => $item->foto_url ?? $item->gambar_url ?? $item->image ?? 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
                 ];

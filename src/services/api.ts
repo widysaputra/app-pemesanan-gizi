@@ -64,7 +64,8 @@ export function resolveSimrsSingleMenuUrl(baseUrl?: string): string {
 }
 
 export function resolveSimrsFetchMenuUrl(baseUrl?: string): string {
-  return `${extractSimrsBaseUrl(baseUrl)}/master-menu-gizi`;
+  const base = `${extractSimrsBaseUrl(baseUrl)}/master-menu-gizi`;
+  return base.includes('?') ? `${base}&include_all=1&all=1` : `${base}?include_all=1&all=1`;
 }
 
 export function resolveSimrsFetchOrdersUrl(baseUrl?: string): string {

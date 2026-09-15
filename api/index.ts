@@ -54,15 +54,17 @@ function resolveSimrsSingleMenuUrl(inputUrl?: string): string {
 }
 
 function resolveSimrsFetchMenuUrl(inputUrl?: string): string {
-  const defaultUrl = 'https://rsbsaonline.com/service/medifirst2000/emr/master-menu-gizi';
+  const defaultUrl = 'https://rsbsaonline.com/service/medifirst2000/emr/master-menu-gizi?include_all=1&all=1';
   if (!inputUrl || !inputUrl.trim()) return defaultUrl;
   let u = inputUrl.trim();
-  if (u.includes('/master-menu-gizi')) return u;
+  if (u.includes('/master-menu-gizi')) {
+    return u.includes('?') ? `${u}&include_all=1&all=1` : `${u}?include_all=1&all=1`;
+  }
   u = u.replace(/\/save-(pesanan-gizi|master-menu|data-mmpi)\/?$/, '');
   u = u.replace(/\/sync-batch-menu\/?$/, '');
   u = u.replace(/\/riwayat-pesanan-gizi\/?$/, '');
   u = u.replace(/\/$/, '');
-  return `${u}/master-menu-gizi`;
+  return `${u}/master-menu-gizi?include_all=1&all=1`;
 }
 
 function resolveSimrsFetchOrdersUrl(inputUrl?: string): string {

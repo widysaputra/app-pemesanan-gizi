@@ -210,7 +210,8 @@ function resolveSimrsFetchOrdersUrl(inputUrl?: string): string {
 }
 
 function resolveSimrsFetchMenuUrl(inputUrl?: string): string {
-  return `${extractSimrsBaseUrl(inputUrl)}/master-menu-gizi`;
+  const base = `${extractSimrsBaseUrl(inputUrl)}/master-menu-gizi`;
+  return base.includes('?') ? `${base}&include_all=1&all=1` : `${base}?include_all=1&all=1`;
 }
 
 function resolveSimrsSingleMenuUrl(inputUrl?: string): string {
