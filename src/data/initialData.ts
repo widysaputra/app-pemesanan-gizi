@@ -6,8 +6,8 @@ export const INITIAL_MENU: MenuItem[] = [];
 // Riwayat pesanan dimulai kosong murni dari DB SIMRS (tanpa pesanan dummy/default)
 export const INITIAL_ORDERS: HospitalOrder[] = [];
 
-const LOCAL_STORAGE_MENU_KEY = 'nutrihospital_menu_cache';
-const LOCAL_STORAGE_ORDERS_KEY = 'nutrihospital_orders_cache';
+const LOCAL_STORAGE_MENU_KEY = 'nutrihospital_menu_cache_v2';
+const LOCAL_STORAGE_ORDERS_KEY = 'nutrihospital_orders_cache_v2';
 
 export function getLocalCachedMenu(): MenuItem[] {
   if (typeof window === 'undefined') return INITIAL_MENU;
