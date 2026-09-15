@@ -1092,7 +1092,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </pre>
                   {typeof orderSyncNotice.rawResponse === 'object' && orderSyncNotice.rawResponse?.message?.includes('Method filled does not exist') && (
                     <div className="mt-1.5 p-2.5 bg-rose-100/90 border border-rose-300 rounded-lg text-rose-900 text-[11px] font-sans leading-relaxed">
-                      <strong>💡 Penyebab &amp; Solusi:</strong> Versi Laravel/Lumen di SIMRS Anda belum memiliki fungsi <code>$request-&gt;filled(...)</code> (hanya tersedia di Laravel 5.5+). Ganti baris tersebut dengan <code>!empty($request-&gt;input(&#39;...&#39;))</code> atau <code>$request-&gt;has(&#39;...&#39;)</code> di controller EMRController.php.
+                      <strong>💡 Penyebab &amp; Solusi:</strong> Versi Laravel/Lumen di SIMRS Anda belum memiliki fungsi <code>$request-&gt;filled(...)</code> (hanya tersedia di Laravel 5.5+). Ganti baris tersebut dengan <code>!empty($request-&gt;input(&#39;...&#39;))</code> di controller EMRController.php.
+                    </div>
+                  )}
+                  {((typeof orderSyncNotice.rawResponse === 'string' && orderSyncNotice.rawResponse.includes('Call to a member function map() on array')) ||
+                    (orderSyncNotice.text && orderSyncNotice.text.includes('Call to a member function map() on array'))) && (
+                    <div className="mt-1.5 p-2.5 bg-rose-100/90 border border-rose-300 rounded-lg text-rose-900 text-[11px] font-sans leading-relaxed">
+                      <strong>💡 Penyebab &amp; Solusi:</strong> Di Laravel versi SIMRS Anda, <code>$query-&gt;get()</code> mengembalikan tipe native <strong>array</strong> biasa, bukan objek <em>Collection</em>, sehingga pemanggilan <code>$rawOrders-&gt;map(...)</code> error (<em>FatalThrowableError: Call to a member function map() on array</em>).
+                      <div className="mt-1 font-semibold text-rose-950">
+                        Ganti <code>$rawOrders-&gt;map(function ($o) &#123; ... &#125;)</code> dengan <code>collect($rawOrders)-&gt;map(...)</code> atau loop standar <code>$formattedOrders = []; foreach ($rawOrders as $o) &#123; ... &#125;</code>.
+                      </div>
                     </div>
                   )}
                 </div>

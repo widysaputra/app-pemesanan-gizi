@@ -316,8 +316,9 @@ class EMRController extends Controller
                 $rawOrders = $query->limit($request->input("limit", 200))->get();
             }
 
-            // Format data ke standar HospitalOrder
-            $formattedOrders = $rawOrders->map(function ($o) {
+            // Gunakan foreach agar kompatibel dengan Laravel versi lama (di mana ->get() mengembalikan array biasa)
+            $formattedOrders = [];
+            foreach ($rawOrders as $o) {
                 $items = [];
                 $rawItems = $o->items_json ?? ($o->hasil_json ?? null);
                 if (!empty($rawItems)) {
@@ -331,16 +332,19 @@ class EMRController extends Controller
                     }
                 }
 
-                $normalizedItems = array_map(function ($it) {
-                    return [
-                        "menuItemId" => (string)($it["menuItemId"] ?? $it["id_menu"] ?? $it["id"] ?? "item"),
-                        "name"       => (string)($it["name"] ?? $it["nama_menu"] ?? "Menu Makanan"),
-                        "portion"    => (int)($it["portion"] ?? $it["porsi"] ?? $it["jumlah_porsi"] ?? 1),
-                        "price"      => (int)($it["price"] ?? $it["harga"] ?? $it["harga_satuan"] ?? 0),
-                        "category"   => (string)($it["category"] ?? $it["kategori"] ?? "makanan_utama"),
-                        "calories"   => (int)($it["calories"] ?? $it["kalori"] ?? 100),
-                    ];
-                }, $items);
+                $normalizedItems = [];
+                if (is_array($items)) {
+                    foreach ($items as $it) {
+                        $normalizedItems[] = [
+                            "menuItemId" => (string)($it["menuItemId"] ?? $it["id_menu"] ?? $it["id"] ?? "item"),
+                            "name"       => (string)($it["name"] ?? $it["nama_menu"] ?? "Menu Makanan"),
+                            "portion"    => (int)($it["portion"] ?? $it["porsi"] ?? $it["jumlah_porsi"] ?? 1),
+                            "price"      => (int)($it["price"] ?? $it["harga"] ?? $it["harga_satuan"] ?? 0),
+                            "category"   => (string)($it["category"] ?? $it["kategori"] ?? "makanan_utama"),
+                            "calories"   => (int)($it["calories"] ?? $it["kalori"] ?? 100),
+                        ];
+                    }
+                }
 
                 $computedPrice = 0;
                 $computedCal = 0;
@@ -352,7 +356,7 @@ class EMRController extends Controller
                 $orderNum = (string)($o->order_number ?? ($o->no_pesanan ?? ("GZ-" . ($o->id ?? time()))));
                 $createdAt = $o->tgl_pesanan ?? ($o->created_at ?? date("Y-m-d H:i:s"));
 
-                return [
+                $formattedOrders[] = [
                     "id"             => (string)($o->id ?? $orderNum),
                     "orderNumber"    => $orderNum,
                     "no_pesanan"     => $orderNum,
@@ -371,7 +375,7 @@ class EMRController extends Controller
                     "status"         => (string)($o->order_status ?? ($o->status ?? "baru")),
                     "simrsSource"    => "rego_pesanan_gizi_t",
                 ];
-            });
+            }
 
             return response()->json([
                 "status"      => "success",
@@ -1005,7 +1009,8 @@ class GiziSIMRSController extends Controller
             $rawOrders = $query->orderBy($sortCol, 'desc')->limit($request->input('limit', 150))->get();
 
             // Format data agar langsung sesuai dengan struktur HospitalOrder di frontend
-            $formattedOrders = $rawOrders->map(function ($o) {
+            $formattedOrders = [];
+            foreach ($rawOrders as $o) {
                 // Parsing rincian item pesanan dari items_json / hasil_json
                 $items = [];
                 $rawItems = $o->items_json ?? ($o->hasil_json ?? null);
@@ -1022,21 +1027,24 @@ class GiziSIMRSController extends Controller
                 }
 
                 // Normalisasi struktur items
-                $normalizedItems = array_map(function ($it) {
-                    return [
-                        'menuItemId' => (string)($it['menuItemId'] ?? $it['id_menu'] ?? $it['id'] ?? 'item'),
-                        'name'       => (string)($it['name'] ?? $it['nama_menu'] ?? 'Menu Makanan'),
-                        'portion'    => (int)($it['portion'] ?? $it['porsi'] ?? $it['jumlah_porsi'] ?? 1),
-                        'price'      => (int)($it['price'] ?? $it['harga'] ?? $it['harga_satuan'] ?? 0),
-                        'category'   => (string)($it['category'] ?? $it['kategori'] ?? 'makanan_utama'),
-                        'calories'   => (int)($it['calories'] ?? $it['kalori'] ?? 100),
-                    ];
-                }, $items);
+                $normalizedItems = [];
+                if (is_array($items)) {
+                    foreach ($items as $it) {
+                        $normalizedItems[] = [
+                            'menuItemId' => (string)($it['menuItemId'] ?? $it['id_menu'] ?? $it['id'] ?? 'item'),
+                            'name'       => (string)($it['name'] ?? $it['nama_menu'] ?? 'Menu Makanan'),
+                            'portion'    => (int)($it['portion'] ?? $it['porsi'] ?? $it['jumlah_porsi'] ?? 1),
+                            'price'      => (int)($it['price'] ?? $it['harga'] ?? $it['harga_satuan'] ?? 0),
+                            'category'   => (string)($it['category'] ?? $it['kategori'] ?? 'makanan_utama'),
+                            'calories'   => (int)($it['calories'] ?? $it['kalori'] ?? 100),
+                        ];
+                    }
+                }
 
                 $orderNum = (string)($o->order_number ?? ($o->no_pesanan ?? ('GZ-' . ($o->id ?? time()))));
                 $createdAt = $o->tgl_pesanan ?? ($o->created_at ?? date('Y-m-d H:i:s'));
 
-                return [
+                $formattedOrders[] = [
                     'id'             => (string)($o->id ?? $orderNum),
                     'orderNumber'    => $orderNum,
                     'no_pesanan'     => $orderNum,
@@ -1062,7 +1070,7 @@ class GiziSIMRSController extends Controller
                     'status'         => (string)($o->order_status ?? ($o->status ?? 'baru')),
                     'order_status'   => (string)($o->order_status ?? ($o->status ?? 'baru')),
                 ];
-            });
+            }
 
             return response()->json([
                 'status'      => 'success',
