@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { HospitalOrder, MealTime, OrderStatus } from '../types';
 import { exportOrdersToExcel } from '../utils/excelExport';
+import { normalizeHospitalOrder } from '../data/initialData';
 import {
   FileSpreadsheet,
   Download,
@@ -65,9 +66,10 @@ export const OrderRecapSection: React.FC<OrderRecapSectionProps> = ({ orders, on
 
   // Filtered Orders Logic
   const filteredOrders = useMemo(() => {
-    return (orders || []).filter((order) => {
-      if (!order || !order.id) return false;
-
+    return (orders || [])
+      .filter((order) => Boolean(order && order.id && order.id !== 'ord-101' && order.id !== 'ord-102'))
+      .map(normalizeHospitalOrder)
+      .filter((order) => {
       // 1. Date Filter
       if (datePreset !== 'all') {
         const orderDate = new Date(order.createdAt);

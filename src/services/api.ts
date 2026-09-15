@@ -4,6 +4,7 @@ import {
   saveLocalCachedMenu,
   getLocalCachedOrders,
   saveLocalCachedOrders,
+  normalizeHospitalOrder,
   INITIAL_MENU,
   INITIAL_ORDERS
 } from '../data/initialData';
@@ -721,58 +722,7 @@ export class HospitalRealtimeService {
           try { parsed = JSON.parse(text); } catch {}
           const ordersData = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.data) ? parsed.data : []);
           if (Array.isArray(ordersData) && ordersData.length > 0) {
-          const transformedOrders: HospitalOrder[] = ordersData.map((o: any) => {
-            let itemsList: any[] = [];
-            try {
-              if (typeof o.items_json === 'string') itemsList = JSON.parse(o.items_json);
-              else if (Array.isArray(o.items)) itemsList = o.items;
-              else if (o.hasil_json && typeof o.hasil_json === 'string') {
-                const parsedH = JSON.parse(o.hasil_json);
-                if (Array.isArray(parsedH.items)) itemsList = parsedH.items;
-              } else if (o.hasil_json && Array.isArray(o.hasil_json.items)) {
-                itemsList = o.hasil_json.items;
-              }
-            } catch {}
-
-            const formattedItems = (itemsList || []).map((it: any) => ({
-              menuItemId: String(it.menuItemId || it.id_menu || it.id || 'item'),
-              name: String(it.name || it.nama_menu || 'Menu Makanan'),
-              portion: Number(it.portion || it.jumlah_porsi || 1),
-              price: Number(it.price || it.harga_satuan || it.harga || 0),
-              category: it.category || it.kategori || 'makanan_utama',
-              calories: Number(it.calories || it.kalori || 100),
-            }));
-
-            const computedPrice = formattedItems.reduce((acc, curr) => acc + curr.price * curr.portion, 0);
-            const computedCalories = formattedItems.reduce((acc, curr) => acc + curr.calories * curr.portion, 0);
-
-            return {
-              id: String(o.id || o.no_pesanan || o.order_number || o.orderNumber || `ord-${Date.now()}`),
-              orderNumber: String(o.orderNumber || o.order_number || o.no_pesanan || `GZ-${Date.now()}`),
-              registrationNo: String(o.registrationNo || o.noregistrasi || o.no_registrasi || 'REG-SIMRS'),
-              createdAt: o.createdAt || o.tgl_pesanan || o.created_at || new Date().toISOString(),
-              roomName: String(o.roomName || o.room_name || o.kamar || o.nomor_kamar || o.ruangan || 'Kamar Rawat Inap'),
-              patientName: String(o.patientName || o.patient_name || o.nama_pasien || o.nama || 'Pasien'),
-              phoneNumber: String(o.phoneNumber || o.phone_number || o.telepon || o.no_telepon || o.no_hp || ''),
-              mealTime: (o.mealTime || o.meal_time || o.waktu_makan || 'siang') as MealTime,
-              items: formattedItems,
-              totalPrice: Number(o.totalPrice || o.total_price) || computedPrice,
-              totalCalories: Number(o.totalCalories || o.total_calories) || computedCalories,
-              patientNotes: String(o.patientNotes || o.patient_notes || o.catatan || ''),
-              status: (o.order_status || o.status || 'baru') as OrderStatus,
-              statusHistory: Array.isArray(o.status_history) ? o.status_history : [{
-                status: (o.order_status || o.status || 'baru') as OrderStatus,
-                timestamp: o.createdAt || o.tgl_pesanan || o.created_at || new Date().toISOString(),
-                note: 'Tersinkron langsung dari database SIMRS (rego_pesanan_gizi_t)',
-              }],
-              simrsSync: {
-                synced: true,
-                statusText: 'Tersimpan di SIMRS (PostgreSQL rego_pesanan_gizi_t)',
-                timestamp: o.createdAt || o.tgl_pesanan || o.created_at || new Date().toISOString(),
-                targetUrl: targetUrl,
-              },
-            };
-          });
+          const transformedOrders: HospitalOrder[] = ordersData.map((o: any) => normalizeHospitalOrder(o));
 
           const cleanSimrsOrders = transformedOrders
             .filter((o: any) => o && o.id !== 'ord-101' && o.id !== 'ord-102')
