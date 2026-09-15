@@ -233,11 +233,14 @@ export const parsePgNumber = (val: any, defaultVal = 0): number => {
   return isNaN(parsed) ? defaultVal : parsed;
 };
 
-export const parsePgBoolean = (val: any): boolean => {
-  if (val === undefined || val === null) return true;
+export const parsePgBoolean = (val: any, defaultVal = true): boolean => {
+  if (val === undefined || val === null) return defaultVal;
   if (typeof val === 'boolean') return val;
+  if (typeof val === 'number') return val === 1;
   const str = String(val).toLowerCase().trim();
-  return str === 't' || str === 'true' || str === '1' || str === 'y';
+  if (str === 'f' || str === 'false' || str === '0' || str === 'n' || str === 'no' || str === 'habis' || str === 'tidak' || str === 'kosong') return false;
+  if (str === 't' || str === 'true' || str === '1' || str === 'y' || str === 'yes' || str === 'tersedia' || str === 'ada') return true;
+  return defaultVal;
 };
 
 export function getCategoryFallbackImageServer(category: string, menuName = ''): string {
@@ -378,7 +381,20 @@ export async function autoFetchSimrsMenuFromServer(): Promise<MenuItem[]> {
         sodium: parsePgNumber(m.natrium_mg ?? m.natrium ?? m.sodium, 0),
         description: String(m.deskripsi || m.description || 'Penyajian higienis instalasi gizi rumah sakit.'),
         image: validSimrsImg || getCategoryFallbackImageServer(m.kategori || m.category || 'makanan_utama', m.nama_menu || m.name),
-        isAvailable: parsePgBoolean(m.tersedia ?? m.isAvailable ?? true),
+        isAvailable: parsePgBoolean(
+          m.is_tersedia !== undefined 
+            ? m.is_tersedia 
+            : (m.tersedia !== undefined 
+              ? m.tersedia 
+              : (m.isAvailable !== undefined 
+                ? m.isAvailable 
+                : (m.is_available !== undefined 
+                  ? m.is_available 
+                  : (m.status !== undefined 
+                    ? m.status 
+                    : (m.status_tersedia !== undefined ? m.status_tersedia : true))))),
+          true
+        ),
       };
     });
 
@@ -391,13 +407,20 @@ export async function autoFetchSimrsMenuFromServer(): Promise<MenuItem[]> {
           menuItems.push(newMenu);
           hasChanges = true;
         } else {
-          // Jika sudah ada, utamakan gambar asli (Base64 atau URL valid) yang sudah ada di lokal jika SIMRS hanya mengembalikan default
+          // Jika sudah ada, sinkronkan ketersediaan terbaru dari SIMRS serta pertahankan gambar kustom lokal jika SIMRS mengembalikan fallback
           const existing = menuItems[existingIdx];
           const hasRealExistingImage = Boolean(existing.image && typeof existing.image === 'string' && existing.image.length > 15 && !existing.image.includes('unsplash.com'));
           const hasRealNewImage = Boolean(newMenu.image && typeof newMenu.image === 'string' && newMenu.image.length > 15 && !newMenu.image.includes('unsplash.com'));
           const finalImage = hasRealNewImage ? newMenu.image : (hasRealExistingImage ? existing.image : (newMenu.image || existing.image));
           const preservedPrice = existing.price !== undefined ? existing.price : newMenu.price;
-          menuItems[existingIdx] = { ...existing, ...newMenu, image: finalImage, price: preservedPrice, id: existing.id };
+          menuItems[existingIdx] = {
+            ...existing,
+            ...newMenu,
+            isAvailable: newMenu.isAvailable, // Ambil status ketersediaan terkini dari SIMRS
+            image: finalImage,
+            price: preservedPrice,
+            id: existing.id
+          };
           hasChanges = true;
         }
       });
@@ -896,9 +919,44 @@ function mapMenuItemForSimrs(m: any) {
     photo: img,
     photo_url: img,
     img: img,
-    isAvailable: m.isAvailable !== false,
-    is_tersedia: m.isAvailable !== false,
-    status: m.isAvailable !== false ? 1 : 0,
+    isAvailable: parsePgBoolean(
+      m.isAvailable !== undefined 
+        ? m.isAvailable 
+        : (m.is_tersedia !== undefined 
+          ? m.is_tersedia 
+          : (m.tersedia !== undefined 
+            ? m.tersedia 
+            : (m.status !== undefined 
+              ? m.status 
+              : (m.status_tersedia !== undefined ? m.status_tersedia : true)))),
+      true
+    ),
+    is_tersedia: parsePgBoolean(
+      m.is_tersedia !== undefined 
+        ? m.is_tersedia 
+        : (m.isAvailable !== undefined 
+          ? m.isAvailable 
+          : (m.tersedia !== undefined 
+            ? m.tersedia 
+            : (m.status !== undefined 
+              ? m.status 
+              : (m.status_tersedia !== undefined ? m.status_tersedia : true)))),
+      true
+    ),
+    tersedia: parsePgBoolean(
+      m.tersedia !== undefined 
+        ? m.tersedia 
+        : (m.isAvailable !== undefined 
+          ? m.isAvailable 
+          : (m.is_tersedia !== undefined 
+            ? m.is_tersedia 
+            : (m.status !== undefined 
+              ? m.status 
+              : (m.status_tersedia !== undefined ? m.status_tersedia : true)))),
+      true
+    ),
+    status: parsePgBoolean(m.isAvailable ?? m.is_tersedia ?? m.tersedia ?? m.status ?? true, true) ? 1 : 0,
+    status_tersedia: parsePgBoolean(m.isAvailable ?? m.is_tersedia ?? m.tersedia ?? m.status ?? true, true) ? 1 : 0,
   };
 }
 
@@ -1366,6 +1424,13 @@ async function startServer() {
     item.isAvailable = !item.isAvailable;
     savePersistentMenuItems(menuItems);
     broadcastEvent('menu_update', { item, action: 'toggle' });
+    broadcastEvent('init', { orders, menuItems });
+
+    // Auto-sync ketersediaan menu yang baru diubah ke SIMRS di background
+    if (simrsSettings.apiUrl) {
+      syncSingleMenuToSimrs(item).catch(() => {});
+    }
+
     res.json(item);
   });
 
@@ -1947,11 +2012,14 @@ app.post('/api/simrs/fetch-menu', async (req, res) => {
         return isNaN(parsed) ? defaultVal : parsed;
       };
 
-      const parsePgBoolean = (val: any): boolean => {
-        if (val === undefined || val === null) return true;
+      const parsePgBooleanLocal = (val: any, defaultVal = true): boolean => {
+        if (val === undefined || val === null) return defaultVal;
         if (typeof val === 'boolean') return val;
+        if (typeof val === 'number') return val === 1;
         const str = String(val).toLowerCase().trim();
-        return str === 't' || str === 'true' || str === '1' || str === 'y';
+        if (str === 'f' || str === 'false' || str === '0' || str === 'n' || str === 'no' || str === 'habis' || str === 'tidak' || str === 'kosong') return false;
+        if (str === 't' || str === 'true' || str === '1' || str === 'y' || str === 'yes' || str === 'tersedia' || str === 'ada') return true;
+        return defaultVal;
       };
 
       const transformedMenus: MenuItem[] = menus.map((m: any) => {
@@ -1987,7 +2055,20 @@ app.post('/api/simrs/fetch-menu', async (req, res) => {
           sodium: parsePgNumber(m.natrium_mg ?? m.natrium ?? m.sodium, 0),
           description: String(m.deskripsi || m.description || ''),
           image: parsePgImage(m.foto_url || m.gambar_url || m.image || m.gambar || m.foto || m.url_gambar || m.url_foto || m.photo || m.photo_url || m.img || m.image_url, '', m.nama_menu || m.name, m.kategori || m.category),
-          isAvailable: parsePgBoolean(m.tersedia ?? m.isAvailable ?? true),
+          isAvailable: parsePgBoolean(
+            m.is_tersedia !== undefined 
+              ? m.is_tersedia 
+              : (m.tersedia !== undefined 
+                ? m.tersedia 
+                : (m.isAvailable !== undefined 
+                  ? m.isAvailable 
+                  : (m.is_available !== undefined 
+                    ? m.is_available 
+                    : (m.status !== undefined 
+                      ? m.status 
+                      : (m.status_tersedia !== undefined ? m.status_tersedia : true))))),
+            true
+          ),
         };
       });
 
@@ -1999,7 +2080,13 @@ app.post('/api/simrs/fetch-menu', async (req, res) => {
           const hasRealExistingImage = Boolean(existing.image && typeof existing.image === 'string' && existing.image.length > 15 && !existing.image.includes('unsplash.com'));
           const hasRealNewImage = Boolean(newMenu.image && typeof newMenu.image === 'string' && newMenu.image.length > 15 && !newMenu.image.includes('unsplash.com'));
           const finalImage = hasRealNewImage ? newMenu.image : (hasRealExistingImage ? existing.image : (newMenu.image || existing.image));
-          menuItems[existingIdx] = { ...existing, ...newMenu, image: finalImage, id: existing.id };
+          menuItems[existingIdx] = {
+            ...existing,
+            ...newMenu,
+            isAvailable: newMenu.isAvailable,
+            image: finalImage,
+            id: existing.id
+          };
         } else {
           menuItems.push(newMenu);
         }
@@ -2679,11 +2766,11 @@ app.post('/api/simrs/sync-menu', async (req, res) => {
     // Auto-fetch fresh menu & orders from SIMRS on startup
     autoFetchSimrsMenuFromServer().catch(() => {});
     autoFetchSimrsOrdersFromServer().catch(() => {});
-    // Auto-refresh every 5 seconds to keep in sync with SIMRS PostgreSQL
+    // Auto-refresh every 30 seconds to keep in sync with SIMRS PostgreSQL smoothly without overloading
     setInterval(() => {
       autoFetchSimrsMenuFromServer().catch(() => {});
       autoFetchSimrsOrdersFromServer().catch(() => {});
-    }, 5000);
+    }, 30000);
   });
 }
 

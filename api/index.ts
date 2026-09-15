@@ -585,32 +585,49 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
         headers['Authorization'] = `Bearer ${rawToken}`;
       }
 
-      const mappedItems = targetItems.map((m: any) => ({
-        id: m.id,
-        id_menu: m.id,
-        kd_menu: m.id,
-        name: m.name,
-        nama: m.name,
-        nama_menu: m.name,
-        category: m.category,
-        kategori: m.category,
-        price: m.price,
-        harga: m.price,
-        calories: m.calories,
-        kalori: m.calories,
-        protein: m.protein,
-        carbs: m.carbs,
-        karbohidrat: m.carbs,
-        fat: m.fat,
-        lemak: m.fat,
-        sodium: m.sodium,
-        natrium: m.sodium,
-        waktu_makan: m.mealTimes,
-        deskripsi: m.description,
-        gambar_url: m.image,
-        is_tersedia: m.isAvailable !== false,
-        status: m.isAvailable !== false ? 1 : 0,
-      }));
+      const mappedItems = targetItems.map((m: any) => {
+        const rawAvail = m.isAvailable !== undefined 
+          ? m.isAvailable 
+          : (m.is_tersedia !== undefined 
+            ? m.is_tersedia 
+            : (m.tersedia !== undefined 
+              ? m.tersedia 
+              : (m.status !== undefined 
+                ? m.status 
+                : (m.status_tersedia !== undefined ? m.status_tersedia : true))));
+        const isAvail = (rawAvail === false || rawAvail === 0 || rawAvail === '0' || rawAvail === 'false' || rawAvail === 'habis') ? false : true;
+        return {
+          id: m.id,
+          id_menu: m.id,
+          kd_menu: m.id,
+          name: m.name,
+          nama: m.name,
+          nama_menu: m.name,
+          category: m.category,
+          kategori: m.category,
+          price: m.price,
+          harga: m.price,
+          calories: m.calories,
+          kalori: m.calories,
+          protein: m.protein,
+          carbs: m.carbs,
+          karbohidrat: m.carbs,
+          fat: m.fat,
+          lemak: m.fat,
+          sodium: m.sodium,
+          natrium: m.sodium,
+          waktu_makan: m.mealTimes,
+          deskripsi: m.description,
+          gambar_url: m.image,
+          foto_url: m.image,
+          image: m.image,
+          isAvailable: isAvail,
+          is_tersedia: isAvail,
+          tersedia: isAvail,
+          status: isAvail ? 1 : 0,
+          status_tersedia: isAvail ? 1 : 0,
+        };
+      });
 
       // If URL is save-master-menu, sync item by item
       if (rawTargetUrl.includes('save-master-menu')) {
@@ -802,11 +819,14 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
           return isNaN(parsed) ? defaultVal : parsed;
         };
 
-        const parsePgBoolean = (val: any): boolean => {
-          if (val === undefined || val === null) return true;
+        const parsePgBoolean = (val: any, defaultVal = true): boolean => {
+          if (val === undefined || val === null) return defaultVal;
           if (typeof val === 'boolean') return val;
+          if (typeof val === 'number') return val === 1;
           const str = String(val).toLowerCase().trim();
-          return str === 't' || str === 'true' || str === '1' || str === 'y';
+          if (str === 'f' || str === 'false' || str === '0' || str === 'n' || str === 'no' || str === 'habis' || str === 'tidak' || str === 'kosong') return false;
+          if (str === 't' || str === 'true' || str === '1' || str === 'y' || str === 'yes' || str === 'tersedia' || str === 'ada') return true;
+          return defaultVal;
         };
 
         const transformedMenus = menus.map((m: any) => {
@@ -828,6 +848,18 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
             }
           }
 
+          const rawAvail = m.is_tersedia !== undefined 
+            ? m.is_tersedia 
+            : (m.tersedia !== undefined 
+              ? m.tersedia 
+              : (m.isAvailable !== undefined 
+                ? m.isAvailable 
+                : (m.is_available !== undefined 
+                  ? m.is_available 
+                  : (m.status !== undefined 
+                    ? m.status 
+                    : (m.status_tersedia !== undefined ? m.status_tersedia : true)))));
+
           return {
             id: String(m.menu_id || m.id_menu || m.id || `menu-${Date.now()}-${Math.floor(Math.random() * 1000)}`),
             name: String(m.nama_menu || m.name || 'Menu SIMRS').trim(),
@@ -841,7 +873,7 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
             sodium: parsePgNumber(m.natrium_mg ?? m.natrium ?? m.sodium, 0),
             description: String(m.deskripsi || m.description || ''),
             image: m.foto_url || m.gambar || m.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
-            isAvailable: parsePgBoolean(m.tersedia ?? m.isAvailable ?? true),
+            isAvailable: parsePgBoolean(rawAvail, true),
           };
         });
 
@@ -1202,8 +1234,8 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
       if (parsedPath === '/api/orders') {
         if (method === 'GET') {
           // Attempt to live fetch orders directly from SIMRS if token is present
-          const rawTargetUrl = (simrsConfigState.apiUrl || 'https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi').trim();
-          const targetToken = (simrsConfigState.apiKey || '').trim();
+          const rawTargetUrl = (simrsConfigState.apiUrl || process.env.SIMRS_API_URL || 'https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi').trim();
+          const targetToken = (simrsConfigState.apiKey || process.env.SIMRS_TOKEN || process.env.SIMRS_API_KEY || '').trim();
           if (targetToken) {
             try {
               const targetUrl = resolveSimrsFetchOrdersUrl(rawTargetUrl);

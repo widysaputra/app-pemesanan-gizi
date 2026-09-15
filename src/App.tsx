@@ -134,8 +134,20 @@ export default function App() {
     const unsubscribe = realtimeService.subscribe((event) => {
       if (event.type === 'init') {
         if (Array.isArray(event.data?.orders) && event.data.orders.length > 0) {
-          setOrders(event.data.orders);
-          saveLocalCachedOrders(event.data.orders);
+          setOrders((prev) => {
+            const map = new Map<string, HospitalOrder>();
+            event.data.orders.forEach((o: HospitalOrder) => {
+              if (o && (o.id || o.orderNumber)) map.set(o.orderNumber || o.id, o);
+            });
+            (prev || []).forEach((o: HospitalOrder) => {
+              const k = o.orderNumber || o.id;
+              if (k && !map.has(k)) map.set(k, o);
+            });
+            const merged = Array.from(map.values()).filter(o => o && o.id !== 'ord-101' && o.id !== 'ord-102');
+            merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            saveLocalCachedOrders(merged);
+            return merged;
+          });
         }
         if (Array.isArray(event.data?.menuItems) && event.data.menuItems.length > 0) {
           setMenuItems(event.data.menuItems);
@@ -143,26 +155,42 @@ export default function App() {
         }
       } else if (event.type === 'orders_sync') {
         if (Array.isArray(event.data?.orders) && event.data.orders.length > 0) {
-          setOrders(event.data.orders);
-          saveLocalCachedOrders(event.data.orders);
-        } else {
-          setOrders(realtimeService.getLocalOrders());
+          setOrders((prev) => {
+            const map = new Map<string, HospitalOrder>();
+            event.data.orders.forEach((o: HospitalOrder) => {
+              if (o && (o.id || o.orderNumber)) map.set(o.orderNumber || o.id, o);
+            });
+            (prev || []).forEach((o: HospitalOrder) => {
+              const k = o.orderNumber || o.id;
+              if (k && !map.has(k)) map.set(k, o);
+            });
+            const merged = Array.from(map.values()).filter(o => o && o.id !== 'ord-101' && o.id !== 'ord-102');
+            merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            saveLocalCachedOrders(merged);
+            return merged;
+          });
         }
       } else if (event.type === 'new_order') {
         if (event.data?.action === 'sync_orders') {
-          setOrders(realtimeService.getLocalOrders());
           return;
         }
         const newOrder: HospitalOrder = event.data.order;
         if (!newOrder) {
-          setOrders(realtimeService.getLocalOrders());
           return;
         }
 
-        // Add to orders list without duplicates
+        // Add to orders list without duplicates, preserving all existing orders
         setOrders((prev) => {
-          if (prev.some((o) => o.id === newOrder.id || (o.orderNumber && newOrder.orderNumber && o.orderNumber === newOrder.orderNumber))) return prev;
-          return [newOrder, ...prev];
+          const list = Array.isArray(prev) ? prev : [];
+          const exists = list.some((o) => o.id === newOrder.id || (o.orderNumber && newOrder.orderNumber && o.orderNumber === newOrder.orderNumber));
+          let updated: HospitalOrder[];
+          if (exists) {
+            updated = list.map((o) => (o.id === newOrder.id || (o.orderNumber && newOrder.orderNumber && o.orderNumber === newOrder.orderNumber)) ? newOrder : o);
+          } else {
+            updated = [newOrder, ...list];
+          }
+          saveLocalCachedOrders(updated);
+          return updated;
         });
 
         // Trigger chime

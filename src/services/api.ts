@@ -220,10 +220,10 @@ export class HospitalRealtimeService {
     if (typeof window === 'undefined') return;
     if (this.pollInterval) clearInterval(this.pollInterval);
 
-    // Hybrid background polling: every 2.5 seconds, checks for changes across all devices
+    // Background polling every 20 seconds (fallback when SSE is quiet)
     this.pollInterval = setInterval(() => {
       this.syncWithServer();
-    }, 2500);
+    }, 20000);
   }
 
   public async syncWithServer() {
@@ -249,12 +249,31 @@ export class HospitalRealtimeService {
         }
       }
 
-      if (Array.isArray(ordersRes)) {
-        const hash = JSON.stringify(ordersRes.map(o => `${o.id}-${o.status}-${o.orderNumber}-${(o.statusHistory || []).length}`));
+      if (Array.isArray(ordersRes) && ordersRes.length > 0) {
+        const currentCached = getLocalCachedOrders();
+        // Merge without losing existing historical records
+        const mergedMap = new Map<string, HospitalOrder>();
+        ordersRes.forEach((o: any) => {
+          if (o && (o.id || o.orderNumber)) {
+            const norm = normalizeHospitalOrder(o);
+            mergedMap.set(norm.orderNumber || norm.id, norm);
+          }
+        });
+        currentCached.forEach((o: HospitalOrder) => {
+          const key = o.orderNumber || o.id;
+          if (key && !mergedMap.has(key)) {
+            mergedMap.set(key, o);
+          }
+        });
+        const finalMerged = Array.from(mergedMap.values())
+          .filter(o => o && o.id !== 'ord-101' && o.id !== 'ord-102')
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+        const hash = JSON.stringify(finalMerged.map(o => `${o.id}-${o.status}-${o.orderNumber}-${(o.statusHistory || []).length}`));
         if (hash !== this.lastOrdersHash) {
           this.lastOrdersHash = hash;
-          saveLocalCachedOrders(ordersRes);
-          this.notifyListeners('init', { orders: ordersRes });
+          saveLocalCachedOrders(finalMerged);
+          this.notifyListeners('orders_sync', { orders: finalMerged });
         }
       }
     } catch {
@@ -773,10 +792,24 @@ export class HospitalRealtimeService {
         const normalized = data
           .filter((o: any) => o && o.id !== 'ord-101' && o.id !== 'ord-102')
           .map(normalizeHospitalOrder);
-        saveLocalCachedOrders(normalized);
-        this.notifyListeners('orders_sync', { orders: normalized });
-        this.broadcastLocal('orders_sync', { orders: normalized });
-        return normalized;
+
+        const currentCached = getLocalCachedOrders();
+        const mergedMap = new Map<string, HospitalOrder>();
+        normalized.forEach((o) => {
+          if (o && (o.id || o.orderNumber)) mergedMap.set(o.orderNumber || o.id, o);
+        });
+        currentCached.forEach((o) => {
+          const key = o.orderNumber || o.id;
+          if (key && !mergedMap.has(key)) mergedMap.set(key, o);
+        });
+        const finalMerged = Array.from(mergedMap.values())
+          .filter(o => o && o.id !== 'ord-101' && o.id !== 'ord-102')
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+        saveLocalCachedOrders(finalMerged);
+        this.notifyListeners('orders_sync', { orders: finalMerged });
+        this.broadcastLocal('orders_sync', { orders: finalMerged });
+        return finalMerged;
       }
       return getLocalCachedOrders();
     } catch (e) {
@@ -1599,11 +1632,14 @@ export class HospitalRealtimeService {
         return isNaN(parsed) ? defaultVal : parsed;
       };
 
-      const parsePgBoolean = (val: any): boolean => {
-        if (val === undefined || val === null) return true;
+      const parsePgBoolean = (val: any, defaultVal = true): boolean => {
+        if (val === undefined || val === null) return defaultVal;
         if (typeof val === 'boolean') return val;
+        if (typeof val === 'number') return val === 1;
         const str = String(val).toLowerCase().trim();
-        return str === 't' || str === 'true' || str === '1' || str === 'y';
+        if (str === 'f' || str === 'false' || str === '0' || str === 'n' || str === 'no' || str === 'habis' || str === 'tidak' || str === 'kosong') return false;
+        if (str === 't' || str === 'true' || str === '1' || str === 'y' || str === 'yes' || str === 'tersedia' || str === 'ada') return true;
+        return defaultVal;
       };
 
       const transformedMenus: MenuItem[] = menus.map((m: any) => {
@@ -1631,6 +1667,18 @@ export class HospitalRealtimeService {
           validImg = rawImg.trim();
         }
 
+        const rawAvail = m.is_tersedia !== undefined 
+          ? m.is_tersedia 
+          : (m.tersedia !== undefined 
+            ? m.tersedia 
+            : (m.isAvailable !== undefined 
+              ? m.isAvailable 
+              : (m.is_available !== undefined 
+                ? m.is_available 
+                : (m.status !== undefined 
+                  ? m.status 
+                  : (m.status_tersedia !== undefined ? m.status_tersedia : true)))));
+
         return {
           id: String(m.menu_id || m.id_menu || m.id || `menu-${Date.now()}-${Math.floor(Math.random() * 1000)}`),
           name: String(m.nama_menu || m.name || 'Menu SIMRS').trim(),
@@ -1644,7 +1692,7 @@ export class HospitalRealtimeService {
           sodium: parsePgNumber(m.natrium_mg ?? m.natrium ?? m.sodium, 0),
           description: String(m.deskripsi || m.description || ''),
           image: validImg || getCategoryFallbackImage(m.kategori || m.category || 'makanan_utama', m.nama_menu || m.name),
-          isAvailable: parsePgBoolean(m.tersedia ?? m.isAvailable ?? true),
+          isAvailable: parsePgBoolean(rawAvail, true),
         };
       });
 
@@ -1656,7 +1704,7 @@ export class HospitalRealtimeService {
           // Menu baru dari SIMRS yang belum ada di katalog lokal
           merged.push(simrsMenu);
         } else {
-          // Update menu yang sudah ada: jika dari SIMRS terdapat foto asli, terapkan ke data lokal
+          // Update menu yang sudah ada: sinkronkan ketersediaan terkini dan foto
           const existing = merged[existingIdx];
           const hasRealExistingImage = Boolean(existing.image && typeof existing.image === 'string' && existing.image.length > 15 && !existing.image.includes('unsplash.com'));
           const hasRealSimrsImage = Boolean(simrsMenu.image && typeof simrsMenu.image === 'string' && simrsMenu.image.length > 15 && !simrsMenu.image.includes('unsplash.com'));
@@ -1664,6 +1712,7 @@ export class HospitalRealtimeService {
           merged[existingIdx] = {
             ...existing,
             ...simrsMenu,
+            isAvailable: simrsMenu.isAvailable,
             image: finalImage,
             price: existing.price !== undefined ? existing.price : simrsMenu.price,
             description: (existing.description && existing.description.trim() !== '') ? existing.description : simrsMenu.description,
@@ -1711,6 +1760,7 @@ export class HospitalRealtimeService {
 
     const enrichedItems = items.map(m => {
       const img = m.image || (m as any).foto_url || (m as any).gambar_url || '';
+      const isAvail = m.isAvailable !== false && (m as any).is_tersedia !== false && (m as any).status !== 0;
       return {
         ...m,
         id_menu: m.id,
@@ -1722,6 +1772,11 @@ export class HospitalRealtimeService {
         image: img,
         foto: img,
         gambar: img,
+        isAvailable: isAvail,
+        is_tersedia: isAvail,
+        tersedia: isAvail,
+        status: isAvail ? 1 : 0,
+        status_tersedia: isAvail ? 1 : 0,
       };
     });
 

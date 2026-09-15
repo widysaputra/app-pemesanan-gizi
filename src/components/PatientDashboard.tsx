@@ -111,11 +111,69 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
     waStatusText: string;
   } | null>(null);
 
-  // Filtered orders relevant for this patient/room or general recent
+  // Patient's own device/session order IDs (ensures privacy: patient only sees their own orders)
+  const [myOrderIds, setMyOrderIds] = useState<string[]>(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('nutrihospital_patient_order_ids') : null;
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [historySearch, setHistorySearch] = useState<string>('');
+
+  // Filtered orders strictly belonging to this patient device/session or matching search
   const myOrders = useMemo(() => {
     if (!orders || !Array.isArray(orders)) return [];
-    return [...orders].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [orders]);
+    const validOrders = orders.filter((o) => Boolean(o && o.id && o.id !== 'ord-101' && o.id !== 'ord-102'));
+
+    // 1. If patient types a search query (e.g. No. Pesanan / No. HP / Nama)
+    const q = historySearch.trim().toLowerCase();
+    if (q.length >= 2) {
+      const qDigits = q.replace(/[^0-9]/g, '');
+      return validOrders.filter((o) => {
+        const num = (o.orderNumber || '').toLowerCase();
+        const reg = (o.registrationNo || '').toLowerCase();
+        const pat = (o.patientName || '').toLowerCase();
+        const room = (o.roomName || '').toLowerCase();
+        const phone = (o.phoneNumber || '').replace(/[^0-9]/g, '');
+        return num.includes(q) || reg.includes(q) || pat.includes(q) || room.includes(q) || (qDigits.length >= 4 && phone.includes(qDigits));
+      }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+
+    // 2. Otherwise, filter exclusively for this patient's orders
+    const cleanPhone = (phoneNumber || '').replace(/[^0-9]/g, '');
+    const cleanPatient = (patientName || '').trim().toLowerCase();
+    const cleanRoom = (roomName || '').trim().toLowerCase();
+
+    const filtered = validOrders.filter((o) => {
+      // Match by saved local order IDs/numbers on this phone
+      const isMyTracked = myOrderIds.includes(String(o.id)) || myOrderIds.includes(String(o.orderNumber));
+      if (isMyTracked) return true;
+
+      // Match by phone number if filled (min 8 digits)
+      if (cleanPhone && cleanPhone.length >= 8) {
+        const oPhone = String(o.phoneNumber || '').replace(/[^0-9]/g, '');
+        if (oPhone && (oPhone.includes(cleanPhone) || cleanPhone.includes(oPhone))) return true;
+      }
+
+      // Match by patient name & room if inputted
+      if (cleanPatient && cleanPatient.length >= 3 && cleanPatient !== 'pasien' && cleanPatient !== 'pasien rawat inap') {
+        const oPatient = String(o.patientName || '').trim().toLowerCase();
+        if (oPatient && (oPatient.includes(cleanPatient) || cleanPatient.includes(oPatient))) {
+          if (cleanRoom && cleanRoom.length >= 2 && cleanRoom !== 'kamar rawat inap') {
+            const oRoom = String(o.roomName || '').trim().toLowerCase();
+            return oRoom.includes(cleanRoom) || cleanRoom.includes(oRoom);
+          }
+          return true;
+        }
+      }
+
+      return false;
+    });
+
+    return filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [orders, myOrderIds, historySearch, phoneNumber, patientName, roomName]);
 
   // Filtered Menu Items
   const filteredMenu = useMemo(() => {
@@ -256,6 +314,18 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
       });
 
       const messageContent = res.waMessage || `*PESANAN GIZI RUMAH SAKIT*\nNo. Pesanan: ${res.order.orderNumber}\nPasien: ${res.order.patientName}\nRuangan: ${res.order.roomName}\nWaktu Makan: ${res.order.mealTime}\n\n*Rincian Menu:*\n${itemsPayload.map(it => `- ${it.name} (${it.portion}x)`).join('\n')}\n\nTotal: Rp ${(res.order.totalPrice || 0).toLocaleString('id-ID')}\nCatatan: ${res.order.patientNotes || '-'}`;
+
+      if (res && res.order) {
+        const oId = String(res.order.id || '');
+        const oNum = String(res.order.orderNumber || '');
+        setMyOrderIds((prev) => {
+          const updated = Array.from(new Set([oId, oNum, ...prev].filter(Boolean)));
+          try {
+            localStorage.setItem('nutrihospital_patient_order_ids', JSON.stringify(updated));
+          } catch {}
+          return updated;
+        });
+      }
 
       // Show success modal with WhatsApp details
       setSuccessModalData({
@@ -425,43 +495,62 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
            ======================================================== */
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
-            <div>
+            <div className="flex-1">
               <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                <span>Daftar Pesanan Terkini</span>
+                <span>Daftar Pesanan Saya</span>
                 <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">
                   {myOrders.length} Pesanan
                 </span>
               </h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                Status pesanan diperbarui secara otomatis secara real-time saat diproses oleh Petugas Gizi.
+                Menampilkan status pesanan khusus untuk Anda secara real-time saat diproses oleh Petugas Gizi.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setActiveTab('catalog')}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Tambah Pesanan Baru</span>
-            </button>
-          </div>
-
-          {myOrders.length === 0 ? (
-            <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-xs">
-              <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center mb-3">
-                <ShoppingBag className="w-8 h-8" />
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="relative flex-1 sm:w-56">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Cari No. Pesanan / HP..."
+                  value={historySearch}
+                  onChange={(e) => setHistorySearch(e.target.value)}
+                  className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
+                />
               </div>
-              <h4 className="text-base font-black text-slate-900">Belum Ada Pesanan Makanan</h4>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">
-                Anda belum melakukan pemesanan makanan. Silakan pilih menu bergizi yang tersedia di katalog.
-              </p>
               <button
                 type="button"
                 onClick={() => setActiveTab('catalog')}
+                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer whitespace-nowrap"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Pesan Baru</span>
+              </button>
+            </div>
+          </div>
+
+          {myOrders.length === 0 ? (
+            <div className="bg-white rounded-3xl border border-slate-200 p-10 text-center shadow-xs">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center mb-3">
+                <ShoppingBag className="w-8 h-8" />
+              </div>
+              <h4 className="text-base font-black text-slate-900">
+                {historySearch ? 'Pesanan Tidak Ditemukan' : 'Belum Ada Riwayat Pesanan'}
+              </h4>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">
+                {historySearch
+                  ? `Tidak ada pesanan yang sesuai dengan pencarian "${historySearch}". Coba periksa kembali No. Pesanan atau No. WhatsApp Anda.`
+                  : 'Pesanan yang Anda buat di perangkat ini akan otomatis muncul di sini secara real-time.'}
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setHistorySearch('');
+                  setActiveTab('catalog');
+                }}
                 className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black inline-flex items-center gap-2 shadow-md cursor-pointer transition-all"
               >
                 <Utensils className="w-4 h-4" />
-                <span>Buka Menu Makanan</span>
+                <span>Pilih Menu Makanan</span>
               </button>
             </div>
           ) : (

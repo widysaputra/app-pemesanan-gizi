@@ -736,8 +736,8 @@ class GiziSIMRSController extends Controller
      */
     public function simpanMasterMenu(Request $request)
     {
-        $idMenu = $request->input('id_menu') ?? $request->input('id');
-        $nama   = $request->input('nama_menu') ?? $request->input('name');
+        $idMenu = $request->input('id_menu') ?? $request->input('id') ?? $request->input('kd_menu');
+        $nama   = $request->input('nama_menu') ?? $request->input('name') ?? $request->input('nama');
 
         if (!$idMenu || !$nama) {
             return response()->json([
@@ -746,33 +746,45 @@ class GiziSIMRSController extends Controller
             ], 400);
         }
 
+        // Parsing ketersediaan boolean secara ketat
+        $rawAvail = $request->input('isAvailable', $request->input('is_tersedia', $request->input('tersedia', $request->input('status', true))));
+        $isTersedia = filter_var($rawAvail, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+        if ($isTersedia === null) {
+            $isTersedia = in_array(strtolower((string)$rawAvail), ['1', 't', 'true', 'yes', 'tersedia', 'ada'], true);
+        }
+
         try {
-            DB::table('master_menu_gizi_m')->updateOrInsert(
-                ['id_menu' => $idMenu],
+            $tableName = DB::getSchemaBuilder()->hasTable('rego_master_menu_gizi_m') ? 'rego_master_menu_gizi_m' : 'master_menu_gizi_m';
+            $primaryKey = DB::getSchemaBuilder()->hasColumn($tableName, 'id_menu') ? 'id_menu' : (DB::getSchemaBuilder()->hasColumn($tableName, 'menu_id') ? 'menu_id' : 'id');
+
+            DB::table($tableName)->updateOrInsert(
+                [$primaryKey => $idMenu],
                 [
                     'nama_menu'    => $nama,
                     'kategori'     => $request->input('kategori', $request->input('category', 'makanan_utama')),
-                    'harga'        => $request->input('harga', $request->input('price', 0)),
-                    'kalori'       => $request->input('kalori', $request->input('calories', 0)),
-                    'protein'      => $request->input('protein', 0),
-                    'karbohidrat'  => $request->input('karbohidrat', $request->input('carbs', 0)),
-                    'lemak'        => $request->input('lemak', $request->input('fat', 0)),
-                    'natrium'      => $request->input('natrium', $request->input('sodium', 0)),
-                    'waktu_makan'  => json_encode($request->input('waktu_makan', $request->input('mealTimes', ['pagi', 'siang', 'malam']))),
-                    'deskripsi'    => $request->input('deskripsi', $request->input('description', '')),
-                    'foto_url'     => $request->input('foto_url', $request->input('gambar_url', $request->input('image', ''))),
-                    'gambar_url'   => $request->input('foto_url', $request->input('gambar_url', $request->input('image', ''))),
-                    'is_tersedia'  => $request->input('is_tersedia', $request->input('isAvailable', true)),
-                    'tags_diet'    => json_encode($request->input('tags_diet', [])),
+                    'harga'        => (int)$request->input('harga', $request->input('price', 0)),
+                    'kalori'       => (int)$request->input('kalori', $request->input('calories', 0)),
+                    'protein'      => (float)$request->input('protein', 0),
+                    'karbohidrat'  => (float)$request->input('karbohidrat', $request->input('carbs', 0)),
+                    'lemak'        => (float)$request->input('lemak', $request->input('fat', 0)),
+                    'natrium'      => (float)$request->input('natrium', $request->input('sodium', 0)),
+                    'waktu_makan'  => is_array($request->input('waktu_makan')) ? json_encode($request->input('waktu_makan')) : (string)$request->input('waktu_makan', json_encode(['pagi', 'siang', 'malam'])),
+                    'deskripsi'    => (string)$request->input('deskripsi', $request->input('description', '')),
+                    'foto_url'     => (string)$request->input('foto_url', $request->input('gambar_url', $request->input('image', ''))),
+                    'gambar_url'   => (string)$request->input('foto_url', $request->input('gambar_url', $request->input('image', ''))),
+                    'is_tersedia'  => $isTersedia,
+                    'tersedia'     => $isTersedia,
+                    'tags_diet'    => is_array($request->input('tags_diet')) ? json_encode($request->input('tags_diet')) : json_encode([]),
                     'updated_at'   => date('Y-m-d H:i:s'),
                     'created_at'   => date('Y-m-d H:i:s')
                 ]
             );
 
             return response()->json([
-                'status'  => 'success',
-                'message' => "Master menu '{$nama}' berhasil disimpan ke SIMRS!",
-                'id_menu' => $idMenu
+                'status'      => 'success',
+                'message'     => "Master menu '{$nama}' berhasil disimpan ke SIMRS!",
+                'id_menu'     => $idMenu,
+                'is_tersedia' => $isTersedia
             ], 200);
 
         } catch (\\Exception $e) {
@@ -800,29 +812,43 @@ class GiziSIMRSController extends Controller
 
         DB::beginTransaction();
         try {
+            $tableName = DB::getSchemaBuilder()->hasTable('rego_master_menu_gizi_m') ? 'rego_master_menu_gizi_m' : 'master_menu_gizi_m';
+            $primaryKey = DB::getSchemaBuilder()->hasColumn($tableName, 'id_menu') ? 'id_menu' : (DB::getSchemaBuilder()->hasColumn($tableName, 'menu_id') ? 'menu_id' : 'id');
+
             $syncedCount = 0;
             foreach ($menuList as $item) {
-                $idMenu = $item['id'] ?? $item['id_menu'] ?? null;
-                $nama   = $item['name'] ?? $item['nama_menu'] ?? null;
+                $idMenu = $item['id'] ?? $item['id_menu'] ?? $item['kd_menu'] ?? null;
+                $nama   = $item['name'] ?? $item['nama_menu'] ?? $item['nama'] ?? null;
 
                 if (!$idMenu || !$nama) continue;
 
-                DB::table('master_menu_gizi_m')->updateOrInsert(
-                    ['id_menu' => $idMenu],
+                // Parsing ketersediaan boolean secara ketat
+                $rawAvail = $item['isAvailable'] ?? $item['is_tersedia'] ?? $item['tersedia'] ?? $item['status'] ?? true;
+                $isTersedia = filter_var($rawAvail, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+                if ($isTersedia === null) {
+                    $isTersedia = in_array(strtolower((string)$rawAvail), ['1', 't', 'true', 'yes', 'tersedia', 'ada'], true);
+                }
+
+                $waktuMakan = $item['mealTimes'] ?? $item['waktu_makan'] ?? ['pagi','siang','malam'];
+                $fotoUrl = $item['foto_url'] ?? $item['image'] ?? $item['gambar_url'] ?? '';
+
+                DB::table($tableName)->updateOrInsert(
+                    [$primaryKey => $idMenu],
                     [
                         'nama_menu'    => $nama,
                         'kategori'     => $item['category'] ?? $item['kategori'] ?? 'makanan_utama',
-                        'harga'        => $item['price'] ?? $item['harga'] ?? 0,
-                        'kalori'       => $item['calories'] ?? $item['kalori'] ?? 0,
-                        'protein'      => $item['protein'] ?? 0,
-                        'karbohidrat'  => $item['carbs'] ?? $item['karbohidrat'] ?? 0,
-                        'lemak'        => $item['fat'] ?? $item['lemak'] ?? 0,
-                        'natrium'      => $item['sodium'] ?? $item['natrium'] ?? 0,
-                        'waktu_makan'  => json_encode($item['mealTimes'] ?? $item['waktu_makan'] ?? ['pagi','siang','malam']),
-                        'deskripsi'    => $item['description'] ?? $item['deskripsi'] ?? '',
-                        'foto_url'     => $item['foto_url'] ?? $item['image'] ?? $item['gambar_url'] ?? '',
-                        'gambar_url'   => $item['foto_url'] ?? $item['image'] ?? $item['gambar_url'] ?? '',
-                        'is_tersedia'  => $item['isAvailable'] ?? $item['is_tersedia'] ?? true,
+                        'harga'        => (int)($item['price'] ?? $item['harga'] ?? 0),
+                        'kalori'       => (int)($item['calories'] ?? $item['kalori'] ?? 0),
+                        'protein'      => (float)($item['protein'] ?? 0),
+                        'carbs'        => (float)($item['carbs'] ?? $item['karbohidrat'] ?? 0),
+                        'lemak'        => (float)($item['fat'] ?? $item['lemak'] ?? 0),
+                        'natrium'      => (float)($item['sodium'] ?? $item['natrium'] ?? 0),
+                        'waktu_makan'  => is_array($waktuMakan) ? json_encode($waktuMakan) : (string)$waktuMakan,
+                        'deskripsi'    => (string)($item['description'] ?? $item['deskripsi'] ?? ''),
+                        'foto_url'     => $fotoUrl,
+                        'gambar_url'   => $fotoUrl,
+                        'is_tersedia'  => $isTersedia,
+                        'tersedia'     => $isTersedia,
                         'updated_at'   => date('Y-m-d H:i:s'),
                         'created_at'   => date('Y-m-d H:i:s')
                     ]
@@ -834,7 +860,7 @@ class GiziSIMRSController extends Controller
 
             return response()->json([
                 'status'       => 'success',
-                'message'      => "Berhasil menyinkronkan {$syncedCount} menu ke master_menu_gizi_m (PostgreSQL).",
+                'message'      => "Berhasil menyinkronkan {$syncedCount} menu ke {$tableName} (PostgreSQL).",
                 'total_synced' => $syncedCount
             ], 200);
 
