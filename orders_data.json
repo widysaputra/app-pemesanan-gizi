@@ -1,12 +1,49 @@
 [
   {
+    "id": "43",
+    "orderNumber": "GZ-20260915-22",
+    "registrationNo": "REG-352811",
+    "createdAt": "2026-09-15 10:02:33",
+    "roomName": "RUANGAN URJANGMED",
+    "patientName": "PUJI SANTOSO",
+    "phoneNumber": "081222702920",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110419140",
+        "name": "Roti bakar + telur + teh hangat",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 150,
+    "patientNotes": "TEH TAWAR PANAS BANGET",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-15 10:02:33",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
+      "timestamp": "2026-09-15T03:09:02.700Z",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
     "id": "42",
     "orderNumber": "GZ-20260915-54",
     "registrationNo": "REG-087925",
     "createdAt": "2026-09-15 09:41:28",
-    "roomName": "Kamar Rawat Inap",
-    "patientName": "Pasien",
-    "phoneNumber": "",
+    "roomName": "instalasi gizi",
+    "patientName": "wawa",
+    "phoneNumber": "082319870271",
     "mealTime": "siang",
     "items": [
       {
@@ -28,19 +65,19 @@
     ],
     "totalPrice": 56000,
     "totalCalories": 450,
-    "patientNotes": "",
+    "patientNotes": "kopi + gula (1 sendok) = ice\nmahasiswa gizi",
     "status": "baru",
     "statusHistory": [
       {
         "status": "baru",
         "timestamp": "2026-09-15 09:41:28",
-        "note": "Tersinkron otomatis dari database SIMRS"
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
       }
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-15 09:41:28",
+      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
+      "timestamp": "2026-09-15T03:09:02.700Z",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -49,9 +86,9 @@
     "orderNumber": "GZ-20260915-90",
     "registrationNo": "REG-706041",
     "createdAt": "2026-09-15 09:18:26",
-    "roomName": "Kamar Rawat Inap",
-    "patientName": "Pasien",
-    "phoneNumber": "",
+    "roomName": "R pengadaan",
+    "patientName": "P tedy",
+    "phoneNumber": "0811353568",
     "mealTime": "siang",
     "items": [
       {
@@ -65,19 +102,19 @@
     ],
     "totalPrice": 10000,
     "totalCalories": 150,
-    "patientNotes": "",
+    "patientNotes": "Pake kecap sambal",
     "status": "baru",
     "statusHistory": [
       {
         "status": "baru",
         "timestamp": "2026-09-15 09:18:26",
-        "note": "Tersinkron otomatis dari database SIMRS"
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
       }
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-15 09:18:26",
+      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
+      "timestamp": "2026-09-15T03:09:02.700Z",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -86,10 +123,10 @@
     "orderNumber": "GZ-20260915-89",
     "registrationNo": "REG-181822",
     "createdAt": "2026-09-15 08:19:42",
-    "roomName": "Kamar Rawat Inap",
-    "patientName": "Pasien",
-    "phoneNumber": "",
-    "mealTime": "siang",
+    "roomName": "Kasubbagwasintern",
+    "patientName": "Ellya",
+    "phoneNumber": "081346535011",
+    "mealTime": "pagi",
     "items": [
       {
         "menuItemId": "menu-1789110365112",
@@ -110,19 +147,19 @@
     ],
     "totalPrice": 100000,
     "totalCalories": 1500,
-    "patientNotes": "",
+    "patientNotes": "Buburnya kurangi asin nya yaa",
     "status": "baru",
     "statusHistory": [
       {
         "status": "baru",
         "timestamp": "2026-09-15 08:19:42",
-        "note": "Tersinkron otomatis dari database SIMRS"
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
       }
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-15 08:19:42",
+      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
+      "timestamp": "2026-09-15T03:09:02.700Z",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -131,9 +168,9 @@
     "orderNumber": "GZ-20260915-70",
     "registrationNo": "REG-080745",
     "createdAt": "2026-09-15 08:18:01",
-    "roomName": "Kamar Rawat Inap",
-    "patientName": "Pasien",
-    "phoneNumber": "",
+    "roomName": "Wasintern",
+    "patientName": "Evie",
+    "phoneNumber": "081122209222",
     "mealTime": "siang",
     "items": [
       {
@@ -161,13 +198,13 @@
       {
         "status": "baru",
         "timestamp": "2026-09-15 08:18:01",
-        "note": "Tersinkron otomatis dari database SIMRS"
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
       }
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-15 08:18:01",
+      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
+      "timestamp": "2026-09-15T03:09:02.700Z",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -176,10 +213,10 @@
     "orderNumber": "GZ-20260915-65",
     "registrationNo": "REG-249202",
     "createdAt": "2026-09-15 08:04:10",
-    "roomName": "Kamar Rawat Inap",
-    "patientName": "Pasien",
-    "phoneNumber": "",
-    "mealTime": "siang",
+    "roomName": "Ruang perinatologi",
+    "patientName": "chesy",
+    "phoneNumber": "088222754886",
+    "mealTime": "pagi",
     "items": [
       {
         "menuItemId": "menu-1789110365112",
@@ -198,13 +235,13 @@
       {
         "status": "baru",
         "timestamp": "2026-09-15 08:04:10",
-        "note": "Tersinkron otomatis dari database SIMRS"
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
       }
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-15 08:04:10",
+      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
+      "timestamp": "2026-09-15T03:09:02.700Z",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -213,9 +250,9 @@
     "orderNumber": "GZ-20260915-98",
     "registrationNo": "REG-073044",
     "createdAt": "2026-09-15 08:01:13",
-    "roomName": "Kamar Rawat Inap",
-    "patientName": "Pasien",
-    "phoneNumber": "",
+    "roomName": "Urmin",
+    "patientName": "Devi",
+    "phoneNumber": "082217631114",
     "mealTime": "siang",
     "items": [
       {
@@ -229,19 +266,19 @@
     ],
     "totalPrice": 10000,
     "totalCalories": 150,
-    "patientNotes": "",
+    "patientNotes": "Buat teh gulanya sdkt",
     "status": "baru",
     "statusHistory": [
       {
         "status": "baru",
         "timestamp": "2026-09-15 08:01:13",
-        "note": "Tersinkron otomatis dari database SIMRS"
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
       }
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-15 08:01:13",
+      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
+      "timestamp": "2026-09-15T03:09:02.700Z",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -250,9 +287,9 @@
     "orderNumber": "GZ-20260915-28",
     "registrationNo": "REG-985586",
     "createdAt": "2026-09-15 07:59:46",
-    "roomName": "Kamar Rawat Inap",
-    "patientName": "Pasien",
-    "phoneNumber": "",
+    "roomName": "RUANG RADIOLOGI",
+    "patientName": "Firli",
+    "phoneNumber": "08822865429",
     "mealTime": "siang",
     "items": [
       {
@@ -266,19 +303,19 @@
     ],
     "totalPrice": 30000,
     "totalCalories": 450,
-    "patientNotes": "",
+    "patientNotes": "nasi kuning hangat, sambal banyakn",
     "status": "baru",
     "statusHistory": [
       {
         "status": "baru",
         "timestamp": "2026-09-15 07:59:46",
-        "note": "Tersinkron otomatis dari database SIMRS"
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
       }
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-15 07:59:46",
+      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
+      "timestamp": "2026-09-15T03:09:02.700Z",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -287,9 +324,9 @@
     "orderNumber": "GZ-20260915-21",
     "registrationNo": "REG-859175",
     "createdAt": "2026-09-15 07:57:40",
-    "roomName": "Kamar Rawat Inap",
-    "patientName": "Pasien",
-    "phoneNumber": "",
+    "roomName": "Subbag Binfung",
+    "patientName": "Fitri",
+    "phoneNumber": "081221182115",
     "mealTime": "siang",
     "items": [
       {
@@ -309,13 +346,13 @@
       {
         "status": "baru",
         "timestamp": "2026-09-15 07:57:40",
-        "note": "Tersinkron otomatis dari database SIMRS"
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
       }
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-15 07:57:40",
+      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
+      "timestamp": "2026-09-15T03:09:02.700Z",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -324,9 +361,9 @@
     "orderNumber": "GZ-20260915-82",
     "registrationNo": "REG-614799",
     "createdAt": "2026-09-15 07:53:35",
-    "roomName": "Kamar Rawat Inap",
-    "patientName": "Pasien",
-    "phoneNumber": "",
+    "roomName": "Ruang simak Sebrang Keuangan",
+    "patientName": "Fadlal",
+    "phoneNumber": "082125573582",
     "mealTime": "siang",
     "items": [
       {
@@ -340,19 +377,19 @@
     ],
     "totalPrice": 20000,
     "totalCalories": 300,
-    "patientNotes": "",
+    "patientNotes": "Tehnya manis",
     "status": "baru",
     "statusHistory": [
       {
         "status": "baru",
         "timestamp": "2026-09-15 07:53:35",
-        "note": "Tersinkron otomatis dari database SIMRS"
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
       }
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-15 07:53:35",
+      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
+      "timestamp": "2026-09-15T03:09:02.700Z",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -361,10 +398,10 @@
     "orderNumber": "GZ-20260915-41",
     "registrationNo": "REG-580699",
     "createdAt": "2026-09-15 07:53:01",
-    "roomName": "Kamar Rawat Inap",
-    "patientName": "Pasien",
-    "phoneNumber": "",
-    "mealTime": "siang",
+    "roomName": "ruang Ur ren",
+    "patientName": "dani",
+    "phoneNumber": "083820214334",
+    "mealTime": "pagi",
     "items": [
       {
         "menuItemId": "menu-1789110365112",
@@ -385,19 +422,19 @@
     ],
     "totalPrice": 20000,
     "totalCalories": 300,
-    "patientNotes": "",
+    "patientNotes": "Tanpa pedas",
     "status": "baru",
     "statusHistory": [
       {
         "status": "baru",
         "timestamp": "2026-09-15 07:53:01",
-        "note": "Tersinkron otomatis dari database SIMRS"
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
       }
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-15 07:53:01",
+      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
+      "timestamp": "2026-09-15T03:09:02.700Z",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -406,9 +443,9 @@
     "orderNumber": "GZ-20260915-63",
     "registrationNo": "REG-420800",
     "createdAt": "2026-09-15 07:50:21",
-    "roomName": "Kamar Rawat Inap",
-    "patientName": "Pasien",
-    "phoneNumber": "",
+    "roomName": "Ruang Ur Ren",
+    "patientName": "Dani",
+    "phoneNumber": "083820214334",
     "mealTime": "siang",
     "items": [
       {
@@ -430,19 +467,19 @@
     ],
     "totalPrice": 20000,
     "totalCalories": 300,
-    "patientNotes": "",
+    "patientNotes": "Tanpa pedas",
     "status": "baru",
     "statusHistory": [
       {
         "status": "baru",
         "timestamp": "2026-09-15 07:50:21",
-        "note": "Tersinkron otomatis dari database SIMRS"
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
       }
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-15 07:50:21",
+      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
+      "timestamp": "2026-09-15T03:09:02.700Z",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -451,10 +488,10 @@
     "orderNumber": "GZ-20260915-67",
     "registrationNo": "REG-243205",
     "createdAt": "2026-09-15 07:47:24",
-    "roomName": "Kamar Rawat Inap",
-    "patientName": "Pasien",
-    "phoneNumber": "",
-    "mealTime": "siang",
+    "roomName": "urmin",
+    "patientName": "Rini",
+    "phoneNumber": "082116615289",
+    "mealTime": "pagi",
     "items": [
       {
         "menuItemId": "menu-1789110419140",
@@ -467,19 +504,19 @@
     ],
     "totalPrice": 10000,
     "totalCalories": 150,
-    "patientNotes": "",
+    "patientNotes": "telor di bikin omlet",
     "status": "baru",
     "statusHistory": [
       {
         "status": "baru",
         "timestamp": "2026-09-15 07:47:24",
-        "note": "Tersinkron otomatis dari database SIMRS"
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
       }
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-15 07:47:24",
+      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
+      "timestamp": "2026-09-15T03:09:02.700Z",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -488,10 +525,10 @@
     "orderNumber": "GZ-20260915-74",
     "registrationNo": "REG-165855",
     "createdAt": "2026-09-15 07:46:06",
-    "roomName": "Kamar Rawat Inap",
-    "patientName": "Pasien",
-    "phoneNumber": "",
-    "mealTime": "siang",
+    "roomName": "Ruang Ur Ren",
+    "patientName": "Dani",
+    "phoneNumber": "083820214334",
+    "mealTime": "pagi",
     "items": [
       {
         "menuItemId": "menu-1789110391032",
@@ -512,19 +549,19 @@
     ],
     "totalPrice": 25000,
     "totalCalories": 300,
-    "patientNotes": "",
+    "patientNotes": "Tidak pedas",
     "status": "baru",
     "statusHistory": [
       {
         "status": "baru",
         "timestamp": "2026-09-15 07:46:06",
-        "note": "Tersinkron otomatis dari database SIMRS"
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
       }
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-15 07:46:06",
+      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
+      "timestamp": "2026-09-15T03:09:02.700Z",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -533,10 +570,10 @@
     "orderNumber": "GZ-20260915-43",
     "registrationNo": "REG-552973",
     "createdAt": "2026-09-15 07:35:53",
-    "roomName": "Kamar Rawat Inap",
-    "patientName": "Pasien",
-    "phoneNumber": "",
-    "mealTime": "siang",
+    "roomName": "Urmin",
+    "patientName": "DEDEH",
+    "phoneNumber": "081214999201",
+    "mealTime": "pagi",
     "items": [
       {
         "menuItemId": "menu-1789110419140",
@@ -549,19 +586,19 @@
     ],
     "totalPrice": 10000,
     "totalCalories": 150,
-    "patientNotes": "",
+    "patientNotes": "Telur nya tidak terlalu mateng",
     "status": "baru",
     "statusHistory": [
       {
         "status": "baru",
         "timestamp": "2026-09-15 07:35:53",
-        "note": "Tersinkron otomatis dari database SIMRS"
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
       }
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-15 07:35:53",
+      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
+      "timestamp": "2026-09-15T03:09:02.700Z",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -570,9 +607,9 @@
     "orderNumber": "GZ-20260914-28",
     "registrationNo": "REG-303955",
     "createdAt": "2026-09-14 14:01:44",
-    "roomName": "Kamar Rawat Inap",
-    "patientName": "Pasien",
-    "phoneNumber": "",
+    "roomName": "Sartika",
+    "patientName": "Zenna",
+    "phoneNumber": "081",
     "mealTime": "siang",
     "items": [
       {
@@ -592,13 +629,13 @@
       {
         "status": "baru",
         "timestamp": "2026-09-14 14:01:44",
-        "note": "Tersinkron otomatis dari database SIMRS"
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
       }
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-14 14:01:44",
+      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
+      "timestamp": "2026-09-15T03:09:02.700Z",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -607,9 +644,9 @@
     "orderNumber": "GZ-20260914-48",
     "registrationNo": "REG-435212",
     "createdAt": "2026-09-14 11:50:36",
-    "roomName": "Kamar Rawat Inap",
-    "patientName": "Pasien",
-    "phoneNumber": "",
+    "roomName": "fvf",
+    "patientName": "vfdv",
+    "phoneNumber": "fdvf",
     "mealTime": "siang",
     "items": [
       {
@@ -629,13 +666,13 @@
       {
         "status": "baru",
         "timestamp": "2026-09-14 11:50:36",
-        "note": "Tersinkron otomatis dari database SIMRS"
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
       }
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-14 11:50:36",
+      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
+      "timestamp": "2026-09-15T03:09:02.700Z",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -644,9 +681,9 @@
     "orderNumber": "GZ-20260914-46",
     "registrationNo": "REG-713218",
     "createdAt": "2026-09-14 11:21:55",
-    "roomName": "Kamar Rawat Inap",
-    "patientName": "Pasien",
-    "phoneNumber": "",
+    "roomName": "test",
+    "patientName": "test",
+    "phoneNumber": "test",
     "mealTime": "siang",
     "items": [
       {
@@ -674,13 +711,13 @@
       {
         "status": "baru",
         "timestamp": "2026-09-14 11:21:55",
-        "note": "Tersinkron otomatis dari database SIMRS"
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
       }
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-14 11:21:55",
+      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
+      "timestamp": "2026-09-15T03:09:02.700Z",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -689,9 +726,9 @@
     "orderNumber": "GZ-20260914-05",
     "registrationNo": "REG-2026-0005",
     "createdAt": "2026-09-14 11:14:01",
-    "roomName": "Kamar Rawat Inap",
-    "patientName": "Pasien",
-    "phoneNumber": "",
+    "roomName": "tttfe",
+    "patientName": "ftef",
+    "phoneNumber": "ettf",
     "mealTime": "siang",
     "items": [
       {
@@ -705,30 +742,30 @@
     ],
     "totalPrice": 25000,
     "totalCalories": 150,
-    "patientNotes": "",
+    "patientNotes": "fetf",
     "status": "baru",
     "statusHistory": [
       {
         "status": "baru",
         "timestamp": "2026-09-14 11:14:01",
-        "note": "Tersinkron otomatis dari database SIMRS"
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
       }
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-14 11:14:01",
+      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
+      "timestamp": "2026-09-15T03:09:02.700Z",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
   {
-    "id": "ord-1789358482315",
+    "id": "21",
     "orderNumber": "GZ-20260914-04",
     "registrationNo": "REG-2026-0004",
     "createdAt": "2026-09-14 11:01:22",
-    "roomName": "Kamar Rawat Inap",
-    "patientName": "Pasien",
-    "phoneNumber": "",
+    "roomName": "test",
+    "patientName": "tes",
+    "phoneNumber": "rese",
     "mealTime": "siang",
     "items": [
       {
@@ -755,14 +792,14 @@
     "statusHistory": [
       {
         "status": "baru",
-        "timestamp": "2026-09-14T04:01:22.315Z",
-        "note": "Pesanan dibuat oleh tes dari test."
+        "timestamp": "2026-09-14 11:01:22",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
       }
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-14 11:01:22",
+      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
+      "timestamp": "2026-09-15T03:09:02.700Z",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -771,9 +808,9 @@
     "orderNumber": "GZ-20260914-92",
     "registrationNo": "REG-893242",
     "createdAt": "2026-09-14 10:51:35",
-    "roomName": "Kamar Rawat Inap",
-    "patientName": "Pasien",
-    "phoneNumber": "",
+    "roomName": "test",
+    "patientName": "test na",
+    "phoneNumber": "0811111",
     "mealTime": "siang",
     "items": [
       {
@@ -787,19 +824,19 @@
     ],
     "totalPrice": 10000,
     "totalCalories": 150,
-    "patientNotes": "",
+    "patientNotes": "test",
     "status": "baru",
     "statusHistory": [
       {
         "status": "baru",
         "timestamp": "2026-09-14 10:51:35",
-        "note": "Tersinkron otomatis dari database SIMRS"
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
       }
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-14 10:51:35",
+      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
+      "timestamp": "2026-09-15T03:09:02.700Z",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -808,9 +845,9 @@
     "orderNumber": "GZ-20260914-83",
     "registrationNo": "REG-20260908-001",
     "createdAt": "2026-09-14 10:18:26",
-    "roomName": "Kamar Rawat Inap",
-    "patientName": "Pasien",
-    "phoneNumber": "",
+    "roomName": "widy",
+    "patientName": "widy",
+    "phoneNumber": "081298765432",
     "mealTime": "siang",
     "items": [
       {
@@ -838,24 +875,24 @@
       {
         "status": "baru",
         "timestamp": "2026-09-14 10:18:26",
-        "note": "Tersinkron otomatis dari database SIMRS"
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
       }
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-14 10:18:26",
+      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
+      "timestamp": "2026-09-15T03:09:02.700Z",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
   {
-    "id": "ord-1789358312392",
+    "id": "15",
     "orderNumber": "GZ-20260914-03",
     "registrationNo": "REG-20260908-001",
     "createdAt": "2026-09-14 10:14:15",
-    "roomName": "Kamar Rawat Inap",
-    "patientName": "Pasien",
-    "phoneNumber": "",
+    "roomName": "Kamar Mawar 201 - Bed 01",
+    "patientName": "Ny. Siti Rahmawati",
+    "phoneNumber": "081298765432",
     "mealTime": "siang",
     "items": [
       {
@@ -874,14 +911,14 @@
     "statusHistory": [
       {
         "status": "baru",
-        "timestamp": "2026-09-14T03:58:32.392Z",
-        "note": "Pesanan dibuat oleh test dari test."
+        "timestamp": "2026-09-14 10:14:15",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
       }
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-14 10:14:15",
+      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
+      "timestamp": "2026-09-15T03:09:02.700Z",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   },
@@ -890,9 +927,9 @@
     "orderNumber": "GZ-20260914-19",
     "registrationNo": "REG-20260908-001",
     "createdAt": "2026-09-14 09:48:02",
-    "roomName": "Kamar Rawat Inap",
-    "patientName": "Pasien",
-    "phoneNumber": "",
+    "roomName": "Kamar Mawar 201 - Bed 01",
+    "patientName": "Ny. Siti Rahmawati",
+    "phoneNumber": "081298765432",
     "mealTime": "siang",
     "items": [
       {
@@ -906,19 +943,19 @@
     ],
     "totalPrice": 6000,
     "totalCalories": 150,
-    "patientNotes": "",
+    "patientNotes": "Pedas",
     "status": "baru",
     "statusHistory": [
       {
         "status": "baru",
         "timestamp": "2026-09-14 09:48:02",
-        "note": "Tersinkron otomatis dari database SIMRS"
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
       }
     ],
     "simrsSync": {
       "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-14 09:48:02",
+      "statusText": "Berhasil ditarik dari SIMRS (rego_pesanan_gizi_t)",
+      "timestamp": "2026-09-15T03:09:02.700Z",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   }
