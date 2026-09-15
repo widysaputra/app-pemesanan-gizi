@@ -496,14 +496,49 @@ export async function autoFetchSimrsOrdersFromServer(): Promise<HospitalOrder[]>
         try { history = JSON.parse(o.status_history); } catch {}
       }
 
+      const nameCandidates = [
+        o.patientName,
+        o.patient_name,
+        o.nama_pasien,
+        o.nama,
+        o.pemesan,
+        o.nama_pemesan,
+      ].map((v: any) => typeof v === 'string' ? v.trim() : '').filter(Boolean);
+      const realName = nameCandidates.find((n: string) => n.toLowerCase() !== 'pasien');
+      const finalPatientName = realName || nameCandidates[0] || 'Pasien';
+
+      const roomCandidates = [
+        o.roomName,
+        o.room_name,
+        o.ruangan,
+        o.nama_ruangan,
+        o.kamar,
+        o.nomor_kamar,
+      ].map((v: any) => typeof v === 'string' ? v.trim() : '').filter(Boolean);
+      const genericRooms = ['kamar rawat inap', 'kamar pasien', 'kamar'];
+      const realRoom = roomCandidates.find((r: string) => !genericRooms.includes(r.toLowerCase()));
+      const finalRoomName = realRoom || roomCandidates[0] || 'Kamar Rawat Inap';
+
+      const phoneCandidates = [
+        o.phoneNumber,
+        o.phone_number,
+        o.telepon,
+        o.no_telepon,
+        o.no_hp,
+        o.nomor_telepon,
+        o.nohp,
+        o.wa,
+      ].map((v: any) => typeof v === 'string' ? v.trim() : '').filter(Boolean);
+      const finalPhone = phoneCandidates[0] || '';
+
       return {
         id: String(o.id || o.no_pesanan || o.order_number || o.orderNumber || `ord-${Date.now()}`),
         orderNumber: String(o.orderNumber || o.order_number || o.no_pesanan || `GZ-${Date.now()}`),
         registrationNo: String(o.registrationNo || o.noregistrasi || o.no_registrasi || 'REG-SIMRS'),
         createdAt: o.createdAt || o.tgl_pesanan || o.created_at || new Date().toISOString(),
-        roomName: String(o.roomName || o.room_name || o.kamar || o.nomor_kamar || o.ruangan || 'Kamar Rawat Inap'),
-        patientName: String(o.patientName || o.patient_name || o.nama_pasien || o.nama || 'Pasien'),
-        phoneNumber: String(o.phoneNumber || o.phone_number || o.telepon || o.no_telepon || o.no_hp || ''),
+        roomName: finalRoomName,
+        patientName: finalPatientName,
+        phoneNumber: finalPhone,
         mealTime: (o.mealTime || o.meal_time || o.waktu_makan || 'siang') as MealTime,
         items: formattedItems,
         totalPrice,
@@ -1760,14 +1795,49 @@ async function startServer() {
           try { history = JSON.parse(o.status_history); } catch {}
         }
 
+        const nameCandidates = [
+          o.patientName,
+          o.patient_name,
+          o.nama_pasien,
+          o.nama,
+          o.pemesan,
+          o.nama_pemesan,
+        ].map((v: any) => typeof v === 'string' ? v.trim() : '').filter(Boolean);
+        const realName = nameCandidates.find((n: string) => n.toLowerCase() !== 'pasien');
+        const finalPatientName = realName || nameCandidates[0] || 'Pasien';
+
+        const roomCandidates = [
+          o.roomName,
+          o.room_name,
+          o.ruangan,
+          o.nama_ruangan,
+          o.kamar,
+          o.nomor_kamar,
+        ].map((v: any) => typeof v === 'string' ? v.trim() : '').filter(Boolean);
+        const genericRooms = ['kamar rawat inap', 'kamar pasien', 'kamar'];
+        const realRoom = roomCandidates.find((r: string) => !genericRooms.includes(r.toLowerCase()));
+        const finalRoomName = realRoom || roomCandidates[0] || 'Kamar Rawat Inap';
+
+        const phoneCandidates = [
+          o.phoneNumber,
+          o.phone_number,
+          o.telepon,
+          o.no_telepon,
+          o.no_hp,
+          o.nomor_telepon,
+          o.nohp,
+          o.wa,
+        ].map((v: any) => typeof v === 'string' ? v.trim() : '').filter(Boolean);
+        const finalPhone = phoneCandidates[0] || '';
+
         return {
           id: String(o.id || o.no_pesanan || o.order_number || o.orderNumber || `ord-${Date.now()}`),
           orderNumber: String(o.orderNumber || o.order_number || o.no_pesanan || `GZ-${Date.now()}`),
           registrationNo: String(o.registrationNo || o.noregistrasi || o.no_registrasi || 'REG-SIMRS'),
           createdAt: o.createdAt || o.tgl_pesanan || o.created_at || new Date().toISOString(),
-          roomName: String(o.roomName || o.room_name || o.kamar || o.nomor_kamar || o.ruangan || 'Kamar Rawat Inap'),
-          patientName: String(o.patientName || o.patient_name || o.nama_pasien || o.nama || 'Pasien'),
-          phoneNumber: String(o.phoneNumber || o.phone_number || o.telepon || o.no_telepon || o.no_hp || ''),
+          roomName: finalRoomName,
+          patientName: finalPatientName,
+          phoneNumber: finalPhone,
           mealTime: (o.mealTime || o.meal_time || o.waktu_makan || 'siang') as MealTime,
           items: formattedItems,
           totalPrice: Number(o.totalPrice || o.total_price) || computedPrice,
@@ -2269,6 +2339,9 @@ app.post('/api/simrs/sync-menu', async (req, res) => {
     orders = loadPersistentOrders();
     // Also trigger background fetch from SIMRS database to ensure real-time consistency
     autoFetchSimrsOrdersFromServer().catch(() => {});
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     res.json(orders);
   });
 

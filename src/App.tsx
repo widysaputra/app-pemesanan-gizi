@@ -73,6 +73,9 @@ export default function App() {
 
       setMenuItems(validMenu);
       setOrders(validOrders);
+      if (Array.isArray(fetchedOrders) && fetchedOrders.length > 0) {
+        saveLocalCachedOrders(fetchedOrders);
+      }
 
       // 3. Otomatis sinkronisasi menu & riwayat pesanan terbaru dari SIMRS di latar belakang
       realtimeService.fetchMenuFromSimrs().then((simrsRes) => {
@@ -132,6 +135,7 @@ export default function App() {
       if (event.type === 'init') {
         if (Array.isArray(event.data?.orders) && event.data.orders.length > 0) {
           setOrders(event.data.orders);
+          saveLocalCachedOrders(event.data.orders);
         }
         if (Array.isArray(event.data?.menuItems) && event.data.menuItems.length > 0) {
           setMenuItems(event.data.menuItems);
@@ -140,6 +144,7 @@ export default function App() {
       } else if (event.type === 'orders_sync') {
         if (Array.isArray(event.data?.orders) && event.data.orders.length > 0) {
           setOrders(event.data.orders);
+          saveLocalCachedOrders(event.data.orders);
         } else {
           setOrders(realtimeService.getLocalOrders());
         }

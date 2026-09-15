@@ -103,16 +103,76 @@ export function normalizeHospitalOrder(rawOrder: any): HospitalOrder {
   const computedPrice = normalizedItems.reduce((acc, it) => acc + it.price * it.portion, 0);
   const computedCalories = normalizedItems.reduce((acc, it) => acc + it.calories * it.portion, 0);
 
-  const orderNum = String(rawOrder?.orderNumber || rawOrder?.no_pesanan || `GZ-${rawOrder?.id || Date.now()}`);
+  const orderNum = String(rawOrder?.orderNumber || rawOrder?.order_number || rawOrder?.no_pesanan || `GZ-${rawOrder?.id || Date.now()}`);
+
+  // Pilih nama pasien terbaik: hindari placeholder 'Pasien' jika ada nama asli dari SIMRS
+  const nameCandidates = [
+    rawOrder?.patientName,
+    rawOrder?.patient_name,
+    rawOrder?.nama_pasien,
+    rawOrder?.nama,
+    rawOrder?.pemesan,
+    rawOrder?.nama_pemesan,
+  ].map(v => typeof v === 'string' ? v.trim() : '').filter(Boolean);
+
+  const realName = nameCandidates.find(n => n.toLowerCase() !== 'pasien');
+  const finalPatientName = realName || nameCandidates[0] || 'Pasien';
+
+  // Pilih nama ruangan terbaik: hindari placeholder umum jika ada nama spesifik seperti 'RUANGAN URJANGMED'
+  const roomCandidates = [
+    rawOrder?.roomName,
+    rawOrder?.room_name,
+    rawOrder?.ruangan,
+    rawOrder?.nama_ruangan,
+    rawOrder?.kamar,
+    rawOrder?.nomor_kamar,
+  ].map(v => typeof v === 'string' ? v.trim() : '').filter(Boolean);
+
+  const genericRooms = ['kamar rawat inap', 'kamar pasien', 'kamar'];
+  const realRoom = roomCandidates.find(r => !genericRooms.includes(r.toLowerCase()));
+  const finalRoomName = realRoom || roomCandidates[0] || 'Kamar Pasien';
+
+  // Nomor telepon / WhatsApp
+  const phoneCandidates = [
+    rawOrder?.phoneNumber,
+    rawOrder?.phone_number,
+    rawOrder?.telepon,
+    rawOrder?.no_telepon,
+    rawOrder?.no_hp,
+    rawOrder?.nomor_telepon,
+    rawOrder?.nohp,
+    rawOrder?.wa,
+  ].map(v => typeof v === 'string' ? v.trim() : '').filter(Boolean);
+  const finalPhone = phoneCandidates[0] || '';
+
+  // Status SIMRS
+  const hasSimrsRecord = Boolean(
+    rawOrder?.simrsSource === 'rego_pesanan_gizi_t' ||
+    rawOrder?.simrsSync?.synced ||
+    rawOrder?.tgl_pesanan ||
+    (rawOrder?.orderNumber && String(rawOrder.orderNumber).startsWith('GZ-')) ||
+    (rawOrder?.no_pesanan && String(rawOrder.no_pesanan).startsWith('GZ-'))
+  );
+
+  const simrsSyncData = rawOrder?.simrsSync?.synced
+    ? rawOrder.simrsSync
+    : (hasSimrsRecord
+        ? {
+            synced: true,
+            statusText: 'Tersimpan di SIMRS (PostgreSQL)',
+            timestamp: rawOrder?.createdAt || rawOrder?.tgl_pesanan || new Date().toISOString(),
+            targetUrl: 'https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi',
+          }
+        : rawOrder?.simrsSync);
 
   return {
     id: String(rawOrder?.id || orderNum),
     orderNumber: orderNum,
-    registrationNo: String(rawOrder?.registrationNo || rawOrder?.noregistrasi || ''),
+    registrationNo: String(rawOrder?.registrationNo || rawOrder?.noregistrasi || rawOrder?.no_registrasi || ''),
     createdAt: String(rawOrder?.createdAt || rawOrder?.tgl_pesanan || new Date().toISOString()),
-    roomName: String(rawOrder?.roomName || rawOrder?.room_name || rawOrder?.nomor_kamar || rawOrder?.kamar || rawOrder?.ruangan || 'Kamar Pasien'),
-    patientName: String(rawOrder?.patientName || rawOrder?.patient_name || rawOrder?.nama_pasien || rawOrder?.nama || 'Pasien'),
-    phoneNumber: String(rawOrder?.phoneNumber || rawOrder?.phone_number || rawOrder?.telepon || rawOrder?.no_hp || rawOrder?.no_telepon || ''),
+    roomName: finalRoomName,
+    patientName: finalPatientName,
+    phoneNumber: finalPhone,
     mealTime: (rawOrder?.mealTime || rawOrder?.meal_time || rawOrder?.waktu_makan || 'siang') as any,
     items: normalizedItems,
     totalPrice: Number(rawOrder?.totalPrice ?? rawOrder?.total_price ?? rawOrder?.total_biaya ?? computedPrice) || 0,
@@ -125,7 +185,7 @@ export function normalizeHospitalOrder(rawOrder: any): HospitalOrder {
           status: (rawOrder?.status || rawOrder?.order_status || 'baru') as any,
           timestamp: String(rawOrder?.createdAt || rawOrder?.tgl_pesanan || new Date().toISOString()),
         }],
-    simrsSync: rawOrder?.simrsSync,
+    simrsSync: simrsSyncData,
   };
 }
 

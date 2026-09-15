@@ -7,6 +7,7 @@ import {
   SimrsSettings 
 } from '../types';
 import { realtimeService, extractSimrsBaseUrl } from '../services/api';
+import { normalizeHospitalOrder, saveLocalCachedOrders } from '../data/initialData';
 import { MenuEditModal } from './MenuEditModal';
 import { OrderRecapSection } from './OrderRecapSection';
 import { EtiketModal } from './EtiketModal';
@@ -153,6 +154,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     try {
       // 1. Tarik riwayat pesanan langsung dari SIMRS PostgreSQL database (tabel rego_pesanan_gizi_t)
       const res = await realtimeService.fetchOrdersFromSimrs();
+      if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+        saveLocalCachedOrders(res.data);
+      }
       // 2. Muat dan sinkronkan pesanan dengan server / parent state
       if (onRefreshOrders) {
         await onRefreshOrders();
@@ -329,7 +333,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // Filtered Orders
   const filteredOrders = useMemo(() => {
     return (orders || [])
-      .filter((order): order is HospitalOrder => Boolean(order && order.id))
+      .filter((order): order is HospitalOrder => Boolean(order && order.id && order.id !== 'ord-101' && order.id !== 'ord-102'))
+      .map(normalizeHospitalOrder)
       .filter((order) => {
         const matchStatus = orderStatusFilter === 'all' || order.status === orderStatusFilter;
         const query = (searchOrderQuery || '').toLowerCase();
@@ -337,7 +342,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           (order.roomName || '').toLowerCase().includes(query) ||
           (order.patientName || '').toLowerCase().includes(query) ||
           (order.phoneNumber || '').includes(query) ||
-          (order.orderNumber || '').toLowerCase().includes(query);
+          (order.orderNumber || '').toLowerCase().includes(query) ||
+          (order.registrationNo || '').toLowerCase().includes(query);
         return matchStatus && matchSearch;
       });
   }, [orders, orderStatusFilter, searchOrderQuery]);
