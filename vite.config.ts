@@ -54,7 +54,7 @@ function aistudioMediaPlugin(): Plugin {
               return;
             }
           } catch {
-            // Fall through if URI decoding or file access fails
+            
           }
         }
         next();
