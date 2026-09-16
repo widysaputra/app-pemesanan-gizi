@@ -226,14 +226,32 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
       setFormError(`Layanan pemesanan sedang ditutup. Jam operasional pemesanan adalah ${ORDER_OPEN_TIME} s/d ${ORDER_CLOSE_TIME} WIB.`);
       return;
     }
+
+    const targetItem = menuItems.find((m) => m.id === menuId);
+    if (!targetItem) return;
+
+    const availableStock = targetItem.stock !== undefined ? targetItem.stock : 50;
+
+    if (!targetItem.isAvailable || availableStock <= 0) {
+      setFormError(`Menu "${targetItem.name}" saat ini sudah habis.`);
+      return;
+    }
+
+    const currentQty = Number(tray[menuId]) || 0;
+    if (currentQty >= availableStock) {
+      setFormError(`Jumlah pesanan untuk "${targetItem.name}" tidak dapat melebihi stok yang ada. Sisa stok hanya ${availableStock} porsi.`);
+      return;
+    }
+
     setFormError(null);
     setTray((prev) => ({
       ...prev,
-      [menuId]: (Number(prev[menuId]) || 0) + 1,
+      [menuId]: currentQty + 1,
     }));
   };
 
   const handleDecreaseItem = (menuId: string) => {
+    setFormError(null);
     setTray((prev) => {
       const current = Number(prev[menuId]) || 0;
       if (current <= 1) {
@@ -246,6 +264,7 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
   };
 
   const handleClearTray = () => {
+    setFormError(null);
     setTray({});
   };
 
@@ -279,6 +298,19 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
     if (trayItems.length === 0) {
       setFormError('Pilih minimal satu menu makanan untuk dipesan.');
       return;
+    }
+
+    // Validasi stok sebelum mengirim pesanan: tolak jika melebihi stok yang ada
+    for (const { item, qty } of trayItems) {
+      const availableStock = item.stock !== undefined ? item.stock : 50;
+      if (!item.isAvailable || availableStock <= 0) {
+        setFormError(`Menu "${item.name}" saat ini sudah habis. Silakan hapus dari baki pesanan.`);
+        return;
+      }
+      if (qty > availableStock) {
+        setFormError(`Pesanan untuk "${item.name}" (${qty} porsi) melebihi stok yang ada. Sisa stok hanya ${availableStock} porsi.`);
+        return;
+      }
     }
 
     try {
@@ -782,6 +814,9 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
           <div className="grid grid-cols-2 gap-2.5 sm:gap-4">
             {filteredMenu.map((item) => {
               const inTrayQty = tray[item.id] || 0;
+              const availableStock = item.stock !== undefined ? item.stock : 50;
+              const isOutOfStock = !item.isAvailable || availableStock <= 0;
+              const isMaxStockReached = inTrayQty >= availableStock;
 
               return (
                 <div
@@ -789,6 +824,8 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                   className={`bg-white rounded-xl sm:rounded-2xl border transition-all overflow-hidden flex flex-col justify-between ${
                     inTrayQty > 0
                       ? 'border-emerald-500 ring-2 ring-emerald-100 shadow-md'
+                      : isOutOfStock
+                      ? 'border-slate-200 opacity-75'
                       : 'border-slate-200 hover:border-slate-300 shadow-xs'
                   }`}
                 >
@@ -806,14 +843,26 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                           target.src = getCategoryFallbackImage(item.category, item.name);
                         }}
                         className={`w-full h-full object-cover transition-transform duration-300 hover:scale-105 ${
-                          !item.isAvailable ? 'grayscale opacity-60' : ''
+                          isOutOfStock ? 'grayscale opacity-50' : ''
                         }`}
                       />
                       
-                      {!item.isAvailable && (
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center p-1">
-                          <span className="px-2 py-0.5 sm:px-3 sm:py-1 bg-rose-600 text-white font-bold text-[10px] sm:text-xs rounded-full shadow-md text-center">
-                            Habis
+                      {isOutOfStock ? (
+                        <div className="absolute inset-0 bg-black/45 flex items-center justify-center p-1">
+                          <span className="px-2.5 py-0.5 sm:px-3 sm:py-1 bg-rose-600 text-white font-bold text-[10px] sm:text-xs rounded-full shadow-md text-center">
+                            Stok Habis
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2">
+                          <span className={`px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] font-bold shadow-xs ${
+                            availableStock <= 3
+                              ? 'bg-rose-600 text-white'
+                              : availableStock <= 10
+                              ? 'bg-amber-500 text-white'
+                              : 'bg-black/60 text-white backdrop-blur-xs'
+                          }`}>
+                            Sisa: {availableStock}
                           </span>
                         </div>
                       )}
@@ -846,7 +895,7 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                       </div>
                     </div>
 
-                    {item.isAvailable ? (
+                    {!isOutOfStock ? (
                       !operatingInfo.isOpen ? (
                         <button
                           type="button"
@@ -873,8 +922,13 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                           <button
                             type="button"
                             onClick={() => handleAddItem(item.id)}
-                            className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center bg-emerald-600 text-white hover:bg-emerald-700 rounded-md sm:rounded-lg cursor-pointer transition-colors"
-                            title="Tambah porsi"
+                            disabled={isMaxStockReached}
+                            className={`w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-md sm:rounded-lg transition-colors ${
+                              isMaxStockReached
+                                ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                                : 'bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer'
+                            }`}
+                            title={isMaxStockReached ? `Stok maksimal tercapai (${availableStock} porsi)` : 'Tambah porsi'}
                           >
                             <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                           </button>
@@ -891,8 +945,8 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                         </button>
                       )
                     ) : (
-                      <span className="text-[11px] sm:text-xs text-slate-400 font-semibold italic text-center sm:text-left">
-                        Habis
+                      <span className="px-2 py-1 bg-slate-100 text-slate-400 rounded-lg text-[11px] sm:text-xs font-bold italic text-center sm:text-left">
+                        Stok Habis
                       </span>
                     )}
                   </div>
@@ -1085,7 +1139,17 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                           <button
                             type="button"
                             onClick={() => handleAddItem(item.id)}
-                            className="w-5 h-5 flex items-center justify-center text-emerald-600 hover:bg-emerald-50 rounded cursor-pointer"
+                            disabled={qty >= (item.stock !== undefined ? item.stock : 50)}
+                            className={`w-5 h-5 flex items-center justify-center rounded transition-colors ${
+                              qty >= (item.stock !== undefined ? item.stock : 50)
+                                ? 'text-slate-300 cursor-not-allowed'
+                                : 'text-emerald-600 hover:bg-emerald-50 cursor-pointer'
+                            }`}
+                            title={
+                              qty >= (item.stock !== undefined ? item.stock : 50)
+                                ? `Maksimal stok tercapai (${item.stock !== undefined ? item.stock : 50} porsi)`
+                                : 'Tambah porsi'
+                            }
                           >
                             <Plus className="w-3 h-3" />
                           </button>

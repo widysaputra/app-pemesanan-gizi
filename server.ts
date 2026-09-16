@@ -2578,6 +2578,27 @@ app.post('/api/simrs/sync-menu', async (req, res) => {
       };
     });
 
+    // Validasi stok: tolak pesanan jika melebihi stok yang ada
+    for (const it of formattedItems) {
+      const targetMenu = menuItems.find(m => 
+        String(m.id) === String(it.menuItemId) || 
+        (m.name && m.name.toLowerCase().trim() === (it.name || '').toLowerCase().trim())
+      );
+      if (targetMenu) {
+        const availableStock = targetMenu.stock !== undefined ? targetMenu.stock : 50;
+        if (!targetMenu.isAvailable || availableStock <= 0) {
+          return res.status(400).json({ 
+            error: `Menu "${targetMenu.name}" saat ini sudah habis dan tidak dapat dipesan.` 
+          });
+        }
+        if (it.portion > availableStock) {
+          return res.status(400).json({ 
+            error: `Pesanan untuk "${targetMenu.name}" (${it.portion} porsi) melebihi stok yang ada. Stok saat ini hanya tersisa ${availableStock} porsi.` 
+          });
+        }
+      }
+    }
+
     const orderNumber = `GZ-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${String(orders.length + 1).padStart(2, '0')}`;
     const cleanRegNo = (registrationNo?.trim()) || `REG-${new Date().getFullYear()}-${String(orders.length + 1).padStart(4, '0')}`;
 
