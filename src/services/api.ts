@@ -1615,16 +1615,10 @@ export class HospitalRealtimeService {
         const data = await res.json();
         const latency = (Date.now() - startTime) + 'ms';
         if (res.ok && data.success && Array.isArray(data.data)) {
-          const currentMenu = getLocalCachedMenu();
-          const merged = [...data.data];
-          currentMenu.forEach(localMenu => {
-            if (!merged.find(m => m.id === localMenu.id || m.name.toLowerCase() === localMenu.name.toLowerCase())) {
-              merged.push(localMenu);
-            }
-          });
-          saveLocalCachedMenu(merged);
-          this.notifyListeners('init', { menuItems: merged });
-          this.broadcastLocal('init', { menuItems: merged });
+          const freshMenus = data.data;
+          saveLocalCachedMenu(freshMenus);
+          this.notifyListeners('init', { menuItems: freshMenus });
+          this.broadcastLocal('init', { menuItems: freshMenus });
           data.latency = latency;
           return data;
         }

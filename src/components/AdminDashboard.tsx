@@ -425,9 +425,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setQuickPriceEditId(null);
   };
 
+  const getItemStock = (item: MenuItem): number => {
+    if (item.stock !== undefined) return item.stock;
+    if (item.stok !== undefined) return item.stok;
+    return item.isAvailable ? 50 : 0;
+  };
+
   const handleStartQuickStock = (item: MenuItem) => {
     setQuickStockEditId(item.id);
-    setQuickStockValue(item.stock !== undefined ? item.stock : (item.isAvailable ? 50 : 0));
+    setQuickStockValue(getItemStock(item));
   };
 
   const handleSaveQuickStock = async (id: string) => {
@@ -441,7 +447,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   const handleStepStock = async (item: MenuItem, delta: number) => {
-    const current = item.stock !== undefined ? item.stock : (item.isAvailable ? 50 : 0);
+    const current = getItemStock(item);
     const finalStock = Math.max(0, current + delta);
     try {
       await realtimeService.updateMenuStock(item.id, finalStock);
@@ -892,13 +898,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     {/* Stock Pill Badge */}
                     <div className="absolute top-1.5 left-1.5 sm:top-2.5 sm:left-2.5 z-10">
                       <span className={`px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider backdrop-blur-md shadow-xs border ${
-                        (item.stock !== undefined ? item.stock : (item.isAvailable ? 50 : 0)) > 10
+                        getItemStock(item) > 10
                           ? 'bg-slate-950/80 text-emerald-300 border-emerald-500/40'
-                          : (item.stock !== undefined ? item.stock : (item.isAvailable ? 50 : 0)) > 0
+                          : getItemStock(item) > 0
                             ? 'bg-slate-950/80 text-amber-300 border-amber-500/40'
                             : 'bg-rose-950/90 text-rose-300 border-rose-500/50 animate-pulse'
                       }`}>
-                        Stok: {item.stock !== undefined ? item.stock : (item.isAvailable ? 50 : 0)}
+                        Stok: {getItemStock(item)}
                       </span>
                     </div>
 
@@ -983,11 +989,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <span
                             onClick={() => handleStartQuickStock(item)}
                             className={`font-black cursor-pointer hover:underline flex items-center gap-0.5 text-[11px] sm:text-xs ${
-                              (item.stock !== undefined ? item.stock : (item.isAvailable ? 50 : 0)) === 0 ? 'text-rose-600' : 'text-slate-800'
+                              getItemStock(item) === 0 ? 'text-rose-600' : 'text-slate-800'
                             }`}
                             title="Klik untuk ubah angka stok"
                           >
-                            {item.stock !== undefined ? item.stock : (item.isAvailable ? 50 : 0)} Porsi
+                            {getItemStock(item)} Porsi
                             <Edit3 className="w-2.5 h-2.5 text-slate-300" />
                           </span>
                         )}
@@ -997,7 +1003,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <div className="flex items-center gap-0.5 bg-slate-100 rounded-lg p-0.5 shrink-0">
                         <button
                           type="button"
-                          disabled={(item.stock !== undefined ? item.stock : (item.isAvailable ? 50 : 0)) <= 0}
+                          disabled={getItemStock(item) <= 0}
                           onClick={() => handleStepStock(item, -1)}
                           className="w-5 h-5 flex items-center justify-center rounded bg-white hover:bg-slate-200 text-slate-700 font-bold text-xs disabled:opacity-30 cursor-pointer shadow-2xs"
                           title="Kurangi stok (-1)"

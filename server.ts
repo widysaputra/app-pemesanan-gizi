@@ -21,6 +21,7 @@ export interface MenuItem {
   description: string;
   isAvailable: boolean;
   stock?: number; // Sisa stok porsi menu
+  stok?: number; // Alias stok langsung dari DB PostgreSQL SIMRS
   image?: string;
 }
 
@@ -313,10 +314,12 @@ export const parsePgImage = (raw: any, fallback = '', menuName = '', category = 
   return getCategoryFallbackImageServer(category, menuName);
 };
 
-export async function autoFetchSimrsMenuFromServer(): Promise<MenuItem[]> {
-  const rawTargetUrl = simrsSettings.apiUrl || 'https://rsbsaonline.com/service/medifirst2000/emr/master-menu-gizi';
+export async function autoFetchSimrsMenuFromServer(overrideUrl?: string, overrideToken?: string): Promise<MenuItem[]> {
+  const rawTargetUrl = (overrideUrl || simrsSettings.apiUrl || 'https://rsbsaonline.com/service/medifirst2000/emr/master-menu-gizi').trim();
   const targetUrl = resolveSimrsFetchMenuUrl(rawTargetUrl);
-  const targetToken = (simrsSettings.apiKey || '').trim();
+  const targetToken = (overrideToken !== undefined && overrideToken.trim().length > 5)
+    ? overrideToken.trim()
+    : ((simrsSettings.apiKey && simrsSettings.apiKey.trim().length > 5) ? simrsSettings.apiKey.trim() : 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhZG1pbi5yZWdpc3RyYXNpIn0.z1sCAtuc6ODM-HKzftAXqvqUPlFs7bm4wd-qTY-EvnBN1uHSk-OHhlHEpgs2vznkiem7u579VFGC2kxAhxD3NA');
 
   // Jika token belum diatur, lewati sinkronisasi remote dan tetap gunakan menu yang ada
   if (!targetToken) {
@@ -418,6 +421,7 @@ export async function autoFetchSimrsMenuFromServer(): Promise<MenuItem[]> {
           ...newMenu,
           id: existing?.id || newMenu.id,
           stock: finalStock,
+          stok: finalStock,
           isAvailable: finalIsAvailable,
           image: finalImage,
           price: (existing?.price !== undefined && existing.price > 0) ? existing.price : newMenu.price,
@@ -2039,147 +2043,16 @@ app.post('/api/simrs/fetch-menu', async (req, res) => {
       return res.status(400).json({ error: 'URL Endpoint API Laravel SIMRS wajib diisi' });
     }
 
-    if (!targetToken) {
-      return res.json({
-        success: false,
-        error: 'Token autentikasi X-AUTH-TOKEN belum dikonfigurasi di Pengaturan SIMRS',
-        data: menuItems,
-        totalMenu: menuItems.length
-      });
-    }
-
-    const targetUrl = resolveSimrsFetchMenuUrl(rawTargetUrl);
-    const rawToken = targetToken.replace(/^Bearer\s+/i, '').trim();
-
     try {
-      console.log(`[SIMRS Fetch] Mengambil data menu dari: ${targetUrl}`);
-      const response = await fetch(targetUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'X-AUTH-TOKEN': rawToken,
-          'Authorization': `Bearer ${rawToken}`
-        }
-      });
-      
-      const responseText = await response.text();
-      let parsedData;
-      try {
-        parsedData = JSON.parse(responseText);
-      } catch (e) {
-        throw new Error(`SIMRS mengembalikan respon yang bukan JSON: ${responseText.slice(0, 100)}...`);
-      }
-
-      if (!response.ok) {
-        throw new Error(parsedData?.message || parsedData?.error || `HTTP Error ${response.status}`);
-      }
-
-      // SIMRS API returns { data: [...] } or array directly
-      let menus = Array.isArray(parsedData) ? parsedData : (Array.isArray(parsedData?.data) ? parsedData.data : []);
-      
-      if (!Array.isArray(menus)) {
-         menus = [];
-      }
-
-      // Transform SIMRS format from rego_master_menu_gizi_m back to MenuItem
-      const parsePgNumber = (val: any, defaultVal = 0): number => {
-        if (val === undefined || val === null) return defaultVal;
-        if (typeof val === 'number') return isNaN(val) ? defaultVal : val;
-        const str = String(val).replace(',', '.').replace(/[^0-9.-]/g, '');
-        const parsed = parseFloat(str);
-        return isNaN(parsed) ? defaultVal : parsed;
-      };
-
-      const parsePgBooleanLocal = (val: any, defaultVal = true): boolean => {
-        if (val === undefined || val === null) return defaultVal;
-        if (typeof val === 'boolean') return val;
-        if (typeof val === 'number') return val === 1;
-        const str = String(val).toLowerCase().trim();
-        if (str === 'f' || str === 'false' || str === '0' || str === 'n' || str === 'no' || str === 'habis' || str === 'tidak' || str === 'kosong') return false;
-        if (str === 't' || str === 'true' || str === '1' || str === 'y' || str === 'yes' || str === 'tersedia' || str === 'ada') return true;
-        return defaultVal;
-      };
-
-      const transformedMenus: MenuItem[] = menus.map((m: any) => {
-        // Parse meal times from string, array, or 'semua'
-        let parsedMealTimes: ('pagi' | 'siang' | 'malam' | 'snack')[] = ['pagi', 'siang', 'malam'];
-        const rawTimes = m.waktu_makan || m.mealTimes || m.meal_time;
-        if (Array.isArray(rawTimes)) {
-          parsedMealTimes = rawTimes;
-        } else if (typeof rawTimes === 'string') {
-          if (rawTimes.toLowerCase() === 'semua' || rawTimes.toLowerCase() === 'all') {
-            parsedMealTimes = ['pagi', 'siang', 'malam'];
-          } else {
-            try {
-              const decoded = JSON.parse(rawTimes);
-              if (Array.isArray(decoded)) parsedMealTimes = decoded;
-              else parsedMealTimes = rawTimes.split(',').map((s: string) => s.trim().toLowerCase()) as any;
-            } catch {
-              parsedMealTimes = rawTimes.split(',').map((s: string) => s.trim().toLowerCase()) as any;
-            }
-          }
-        }
-
-        return {
-          id: String(m.menu_id || m.id_menu || m.id || `menu-${Date.now()}-${Math.floor(Math.random() * 1000)}`),
-          name: String(m.nama_menu || m.name || 'Menu SIMRS').trim(),
-          price: parsePgNumber(m.harga ?? m.price, 0),
-          category: (m.kategori || m.category || 'makanan_utama') as MenuCategory,
-          mealTimes: parsedMealTimes,
-          calories: parsePgNumber(m.kalori ?? m.calories, 0),
-          protein: parsePgNumber(m.protein_gram ?? m.protein, 0),
-          carbs: parsePgNumber(m.karbohidrat_gram ?? m.karbohidrat ?? m.carbs, 0),
-          fat: parsePgNumber(m.lemak_gram ?? m.lemak ?? m.fat, 0),
-          sodium: parsePgNumber(m.natrium_mg ?? m.natrium ?? m.sodium, 0),
-          description: String(m.deskripsi || m.description || ''),
-          image: parsePgImage(m.foto_url || m.gambar_url || m.image || m.gambar || m.foto || m.url_gambar || m.url_foto || m.photo || m.photo_url || m.img || m.image_url, '', m.nama_menu || m.name, m.kategori || m.category),
-          isAvailable: parsePgBoolean(
-            m.is_tersedia !== undefined 
-              ? m.is_tersedia 
-              : (m.tersedia !== undefined 
-                ? m.tersedia 
-                : (m.isAvailable !== undefined 
-                  ? m.isAvailable 
-                  : (m.is_available !== undefined 
-                    ? m.is_available 
-                    : (m.status !== undefined 
-                      ? m.status 
-                      : (m.status_tersedia !== undefined ? m.status_tersedia : true))))),
-            true
-          ),
-        };
-      });
-
-      // Update in-memory menu items (merge or replace based on ID)
-      transformedMenus.forEach(newMenu => {
-        const existingIdx = menuItems.findIndex(m => m.id === newMenu.id || m.name.toLowerCase() === newMenu.name.toLowerCase());
-        if (existingIdx !== -1) {
-          const existing = menuItems[existingIdx];
-          const hasRealExistingImage = Boolean(existing.image && typeof existing.image === 'string' && existing.image.length > 15 && !existing.image.includes('unsplash.com'));
-          const hasRealNewImage = Boolean(newMenu.image && typeof newMenu.image === 'string' && newMenu.image.length > 15 && !newMenu.image.includes('unsplash.com'));
-          const finalImage = hasRealNewImage ? newMenu.image : (hasRealExistingImage ? existing.image : (newMenu.image || existing.image));
-          menuItems[existingIdx] = {
-            ...existing,
-            ...newMenu,
-            isAvailable: newMenu.isAvailable,
-            image: finalImage,
-            id: existing.id
-          };
-        } else {
-          menuItems.push(newMenu);
-        }
-      });
-      
-      savePersistentMenuItems(menuItems);
-      broadcastEvent('init', { orders, menuItems });
+      console.log(`[SIMRS Fetch] Mengambil data master menu dari: ${rawTargetUrl}`);
+      const updatedMenus = await autoFetchSimrsMenuFromServer(rawTargetUrl, targetToken);
 
       res.json({
         success: true,
-        message: `Berhasil mengambil ${transformedMenus.length} menu dari SIMRS`,
-        data: menuItems,
-        totalMenu: menuItems.length
+        message: `Berhasil mengambil ${updatedMenus.length} master menu langsung dari database SIMRS (rego_master_menu_gizi_m)`,
+        data: updatedMenus,
+        totalMenu: updatedMenus.length
       });
-
     } catch (error: any) {
       console.log('[SIMRS Fetch] Info mengambil menu:', error?.message || error);
       res.status(500).json({

@@ -89,6 +89,18 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
 
   // Active View Tab: Catalog Menu vs Order History
   const [activeTab, setActiveTab] = useState<'catalog' | 'history'>('catalog');
+  const [isRefreshingMenu, setIsRefreshingMenu] = useState(false);
+
+  const handleRefreshMenu = async () => {
+    setIsRefreshingMenu(true);
+    try {
+      await realtimeService.fetchMenuFromSimrs();
+    } catch (err) {
+      console.warn('Gagal refresh menu dari SIMRS:', err);
+    } finally {
+      setIsRefreshingMenu(false);
+    }
+  };
 
   // Operating Hours State (07:00 - 19:00 WIB)
   const [operatingInfo, setOperatingInfo] = useState<OperatingHoursInfo>(() => checkOrderOperatingHours());
@@ -230,7 +242,9 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
     const targetItem = menuItems.find((m) => m.id === menuId);
     if (!targetItem) return;
 
-    const availableStock = targetItem.stock !== undefined ? targetItem.stock : 50;
+    const availableStock = targetItem.stock !== undefined 
+      ? targetItem.stock 
+      : (targetItem.stok !== undefined ? targetItem.stok : 50);
 
     if (!targetItem.isAvailable || availableStock <= 0) {
       setFormError(`Menu "${targetItem.name}" saat ini sudah habis.`);
@@ -302,7 +316,9 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
 
     // Validasi stok sebelum mengirim pesanan: tolak jika melebihi stok yang ada
     for (const { item, qty } of trayItems) {
-      const availableStock = item.stock !== undefined ? item.stock : 50;
+      const availableStock = item.stock !== undefined 
+        ? item.stock 
+        : (item.stok !== undefined ? item.stok : 50);
       if (!item.isAvailable || availableStock <= 0) {
         setFormError(`Menu "${item.name}" saat ini sudah habis. Silakan hapus dari baki pesanan.`);
         return;
@@ -777,16 +793,28 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                 ))}
               </div>
 
-              {/* Search Bar */}
-              <div className="relative w-full sm:w-64">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Cari lauk, sayur, buah..."
-                  className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
+              {/* Search Bar & Refresh */}
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="relative flex-1 sm:w-64">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Cari lauk, sayur, buah..."
+                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRefreshMenu}
+                  disabled={isRefreshingMenu}
+                  title="Segarkan data menu & stok langsung dari SIMRS"
+                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl border border-slate-200 transition-colors disabled:opacity-50 cursor-pointer whitespace-nowrap"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 text-slate-600 ${isRefreshingMenu ? 'animate-spin' : ''}`} />
+                  <span className="hidden sm:inline">Segarkan Menu</span>
+                </button>
               </div>
 
             </div>
@@ -814,7 +842,9 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
           <div className="grid grid-cols-2 gap-2.5 sm:gap-4">
             {filteredMenu.map((item) => {
               const inTrayQty = tray[item.id] || 0;
-              const availableStock = item.stock !== undefined ? item.stock : 50;
+              const availableStock = item.stock !== undefined 
+                ? item.stock 
+                : (item.stok !== undefined ? item.stok : 50);
               const isOutOfStock = !item.isAvailable || availableStock <= 0;
               const isMaxStockReached = inTrayQty >= availableStock;
 
@@ -1139,15 +1169,15 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
                           <button
                             type="button"
                             onClick={() => handleAddItem(item.id)}
-                            disabled={qty >= (item.stock !== undefined ? item.stock : 50)}
+                            disabled={qty >= (item.stock !== undefined ? item.stock : (item.stok !== undefined ? item.stok : 50))}
                             className={`w-5 h-5 flex items-center justify-center rounded transition-colors ${
-                              qty >= (item.stock !== undefined ? item.stock : 50)
+                              qty >= (item.stock !== undefined ? item.stock : (item.stok !== undefined ? item.stok : 50))
                                 ? 'text-slate-300 cursor-not-allowed'
                                 : 'text-emerald-600 hover:bg-emerald-50 cursor-pointer'
                             }`}
                             title={
-                              qty >= (item.stock !== undefined ? item.stock : 50)
-                                ? `Maksimal stok tercapai (${item.stock !== undefined ? item.stock : 50} porsi)`
+                              qty >= (item.stock !== undefined ? item.stock : (item.stok !== undefined ? item.stok : 50))
+                                ? `Maksimal stok tercapai (${item.stock !== undefined ? item.stock : (item.stok !== undefined ? item.stok : 50)} porsi)`
                                 : 'Tambah porsi'
                             }
                           >

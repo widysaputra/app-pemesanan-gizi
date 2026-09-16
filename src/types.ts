@@ -18,6 +18,7 @@ export interface MenuItem {
   description: string;
   isAvailable: boolean;
   stock?: number; // Sisa stok porsi menu (jika 0, ketersediaan otomatis habis)
+  stok?: number; // Alias stok langsung dari kolom DB SIMRS PostgreSQL
   image?: string;
   simrsSync?: {
     synced: boolean;
