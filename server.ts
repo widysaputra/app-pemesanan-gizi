@@ -367,6 +367,9 @@ export async function autoFetchSimrsMenuFromServer(): Promise<MenuItem[]> {
         }
       }
 
+      const hasSimrsStock = (m.stok !== undefined || m.stock !== undefined || m.qty_stok !== undefined || m.sisa_stok !== undefined) && (m.stok !== null && m.stock !== null);
+      const parsedStockFromSimrs = hasSimrsStock ? parsePgNumber(m.stok ?? m.stock ?? m.qty_stok ?? m.sisa_stok, 50) : undefined;
+
       const rawImg = m.foto_url || m.gambar_url || m.gambar || m.foto || m.url_gambar || m.url_foto || m.photo || m.photo_url || m.img || m.image_url || m.image;
       const validSimrsImg = parsePgImage(rawImg, '', m.nama_menu || m.name, m.kategori || m.category);
 
@@ -383,7 +386,7 @@ export async function autoFetchSimrsMenuFromServer(): Promise<MenuItem[]> {
         sodium: parsePgNumber(m.natrium_mg ?? m.natrium ?? m.sodium, 0),
         description: String(m.deskripsi || m.description || 'Penyajian higienis instalasi gizi rumah sakit.'),
         image: validSimrsImg || getCategoryFallbackImageServer(m.kategori || m.category || 'makanan_utama', m.nama_menu || m.name),
-        stock: parsePgNumber(m.stok ?? m.stock ?? m.qty_stok ?? m.sisa_stok, 50),
+        stock: parsedStockFromSimrs as any, // undefined jika SIMRS tidak mengembalikan kolom stok
         isAvailable: parsePgBoolean(
           m.is_tersedia !== undefined 
             ? m.is_tersedia 
@@ -397,42 +400,34 @@ export async function autoFetchSimrsMenuFromServer(): Promise<MenuItem[]> {
                     ? m.status 
                     : (m.status_tersedia !== undefined ? m.status_tersedia : true))))),
           true
-        ) && (parsePgNumber(m.stok ?? m.stock ?? m.qty_stok ?? m.sisa_stok, 50) > 0),
+        ),
       };
     });
 
     if (transformedMenus.length > 0) {
-      let hasChanges = false;
-      transformedMenus.forEach(newMenu => {
-        const existingIdx = menuItems.findIndex(m => m.id === newMenu.id || m.name.toLowerCase() === newMenu.name.toLowerCase());
-        if (existingIdx === -1) {
-          // Hanya tambahkan jika belum ada di katalog lokal
-          menuItems.push(newMenu);
-          hasChanges = true;
-        } else {
-          // Jika sudah ada, sinkronkan ketersediaan terbaru dari SIMRS serta pertahankan gambar kustom lokal jika SIMRS mengembalikan fallback
-          const existing = menuItems[existingIdx];
-          const hasRealExistingImage = Boolean(existing.image && typeof existing.image === 'string' && existing.image.length > 15 && !existing.image.includes('unsplash.com'));
-          const hasRealNewImage = Boolean(newMenu.image && typeof newMenu.image === 'string' && newMenu.image.length > 15 && !newMenu.image.includes('unsplash.com'));
-          const finalImage = hasRealNewImage ? newMenu.image : (hasRealExistingImage ? existing.image : (newMenu.image || existing.image));
-          const preservedPrice = existing.price !== undefined ? existing.price : newMenu.price;
-          const finalStock = newMenu.stock !== undefined ? newMenu.stock : (existing.stock ?? 50);
-          menuItems[existingIdx] = {
-            ...existing,
-            ...newMenu,
-            stock: finalStock,
-            isAvailable: newMenu.isAvailable && (finalStock > 0), // Jika stok 0 otomatis habis
-            image: finalImage,
-            price: preservedPrice,
-            id: existing.id
-          };
-          hasChanges = true;
-        }
+      // Tampilkan HANYA SESUAI RESPONSE DARI DB SIMRS (katalog murni dari response SIMRS)
+      const syncedMenus: MenuItem[] = transformedMenus.map(newMenu => {
+        const existing = menuItems.find(m => m.id === newMenu.id || m.name.toLowerCase() === newMenu.name.toLowerCase());
+        const hasRealExistingImage = Boolean(existing?.image && typeof existing.image === 'string' && existing.image.length > 15 && !existing.image.includes('unsplash.com'));
+        const hasRealNewImage = Boolean(newMenu.image && typeof newMenu.image === 'string' && newMenu.image.length > 15 && !newMenu.image.includes('unsplash.com'));
+        const finalImage = hasRealNewImage ? newMenu.image : (hasRealExistingImage ? existing!.image : (newMenu.image || existing?.image));
+        const finalStock = newMenu.stock !== undefined ? newMenu.stock : (existing?.stock ?? 50);
+        // Menu HANYA bisa dipesan jika di response SIMRS isAvailable/tersedia bernilai true DAN stok > 0
+        const finalIsAvailable = newMenu.isAvailable && (finalStock > 0);
+        return {
+          ...newMenu,
+          id: existing?.id || newMenu.id,
+          stock: finalStock,
+          isAvailable: finalIsAvailable,
+          image: finalImage,
+          price: (existing?.price !== undefined && existing.price > 0) ? existing.price : newMenu.price,
+        };
       });
-      if (hasChanges) {
-        savePersistentMenuItems(menuItems);
-        broadcastEvent('init', { orders, menuItems });
-      }
+
+      menuItems = syncedMenus;
+      savePersistentMenuItems(menuItems);
+      broadcastEvent('init', { orders, menuItems });
+      return menuItems;
     }
     return menuItems;
   } catch (e) {

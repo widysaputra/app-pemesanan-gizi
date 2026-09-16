@@ -1074,6 +1074,8 @@ class GiziSIMRSController extends Controller
                     'isAvailable' => $isAvail,
                     'is_tersedia' => $isAvail,
                     'tersedia'    => $isAvail,
+                    'stok'        => (int)($item->stok ?? $item->stock ?? 50),
+                    'stock'       => (int)($item->stok ?? $item->stock ?? 50),
                     'foto_url'    => (string)($item->foto_url ?? $item->gambar_url ?? $item->image ?? ''),
                     'image'       => $item->foto_url ?? $item->gambar_url ?? $item->image ?? 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
                 ];

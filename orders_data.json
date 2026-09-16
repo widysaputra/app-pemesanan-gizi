@@ -1,5 +1,42 @@
 [
   {
+    "id": "68",
+    "orderNumber": "GZ-20260916-32",
+    "registrationNo": "REG-2026-0032",
+    "createdAt": "2026-09-16 14:11:39",
+    "roomName": "Kamar Test 101",
+    "patientName": "Pasien Test",
+    "phoneNumber": "08123456789",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110419140",
+        "name": "Roti bakar + telur + teh hangat",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 150,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-16 14:11:39",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-16 14:11:39",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
     "id": "67",
     "orderNumber": "GZ-20260916-87",
     "registrationNo": "REG-917077",
