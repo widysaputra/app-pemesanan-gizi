@@ -63,7 +63,7 @@ export const EtiketModal: React.FC<EtiketModalProps> = ({ order, onClose }) => {
             
             {/* Hospital Header */}
             <div className="text-center border-b border-slate-300 pb-3 mb-3">
-              <div className="text-xs font-bold text-slate-500 tracking-wider">RSUP SEHAT SENTOSA</div>
+              <div className="text-xs font-bold text-slate-500 tracking-wider">RS BHAYANGKARA TK II SARTIKAASIH</div>
               <div className="text-sm font-black text-slate-900 uppercase">INSTALASI GIZI &amp; PELAYANAN DIETETIK</div>
               <div className="text-[11px] text-slate-500">Label Distribusi Makanan Rawat Inap</div>
             </div>
