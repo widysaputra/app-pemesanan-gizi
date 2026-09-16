@@ -564,6 +564,56 @@ class EMRController extends Controller
                 $headerData
             );
 
+            // Otomatis kurangi stok pada tabel master menu gizi jika kolom stok tersedia
+            $masterMenuTable = \\Illuminate\\Support\\Facades\\Schema::hasTable("rego_master_menu_gizi_m") 
+                ? "rego_master_menu_gizi_m" 
+                : (\\Illuminate\\Support\\Facades\\Schema::hasTable("master_menu_gizi_m") ? "master_menu_gizi_m" : null);
+
+            if ($masterMenuTable && !empty($orderData["items"]) && is_array($orderData["items"])) {
+                $hasStokCol = \\Illuminate\\Support\\Facades\\Schema::hasColumn($masterMenuTable, "stok") 
+                    || \\Illuminate\\Support\\Facades\\Schema::hasColumn($masterMenuTable, "stock");
+                $stokCol = \\Illuminate\\Support\\Facades\\Schema::hasColumn($masterMenuTable, "stok") ? "stok" : "stock";
+                $menuPkCol = \\Illuminate\\Support\\Facades\\Schema::hasColumn($masterMenuTable, "id_menu") ? "id_menu" : "id";
+
+                if ($hasStokCol) {
+                    foreach ($orderData["items"] as $item) {
+                        $mId = $item["menuItemId"] ?? ($item["id"] ?? null);
+                        $mName = $item["name"] ?? ($item["nama_menu"] ?? null);
+                        $portion = (int)($item["portion"] ?? 1);
+                        if ($portion <= 0) $portion = 1;
+
+                        $menuQuery = \\DB::table($masterMenuTable);
+                        if ($mId) {
+                            $menuQuery->where($menuPkCol, $mId);
+                        } elseif ($mName) {
+                            $menuQuery->where("nama_menu", $mName);
+                        } else {
+                            continue;
+                        }
+
+                        $currentMenu = $menuQuery->first();
+                        if ($currentMenu) {
+                            $currentStok = (int)($currentMenu->$stokCol ?? 50);
+                            $newStok = max(0, $currentStok - $portion);
+                            
+                            $updateData = [
+                                $stokCol     => $newStok,
+                                "updated_at" => date("Y-m-d H:i:s")
+                            ];
+                            if ($newStok === 0) {
+                                if (\\Illuminate\\Support\\Facades\\Schema::hasColumn($masterMenuTable, "is_tersedia")) {
+                                    $updateData["is_tersedia"] = false;
+                                }
+                                if (\\Illuminate\\Support\\Facades\\Schema::hasColumn($masterMenuTable, "tersedia")) {
+                                    $updateData["tersedia"] = false;
+                                }
+                            }
+                            \\DB::table($masterMenuTable)->where($menuPkCol, $currentMenu->$menuPkCol)->update($updateData);
+                        }
+                    }
+                }
+            }
+
             return response()->json([
                 "status"       => "success",
                 "message"      => "Pesanan gizi berhasil disimpan ke tabel rego_pesanan_gizi_t SIMRS!",
@@ -711,6 +761,57 @@ class GiziSIMRSController extends Controller
                 }
                 if (!empty($detailsToInsert)) {
                     DB::table($detailTableName)->insert($detailsToInsert);
+                }
+            }
+
+            // 3. Otomatis kurangi stok pada tabel master menu gizi jika kolom stok tersedia
+            $masterMenuTable = \\Illuminate\\Support\\Facades\\Schema::hasTable('rego_master_menu_gizi_m') 
+                ? 'rego_master_menu_gizi_m' 
+                : (\\Illuminate\\Support\\Facades\\Schema::hasTable('master_menu_gizi_m') ? 'master_menu_gizi_m' : null);
+
+            if ($masterMenuTable && !empty($orderData['items']) && is_array($orderData['items'])) {
+                $hasStokCol = \\Illuminate\\Support\\Facades\\Schema::hasColumn($masterMenuTable, 'stok') 
+                    || \\Illuminate\\Support\\Facades\\Schema::hasColumn($masterMenuTable, 'stock');
+                $stokCol = \\Illuminate\\Support\\Facades\\Schema::hasColumn($masterMenuTable, 'stok') ? 'stok' : 'stock';
+                $menuPkCol = \\Illuminate\\Support\\Facades\\Schema::hasColumn($masterMenuTable, 'id_menu') ? 'id_menu' : 'id';
+
+                if ($hasStokCol) {
+                    foreach ($orderData['items'] as $item) {
+                        $mId = $item['menuItemId'] ?? ($item['id'] ?? null);
+                        $mName = $item['name'] ?? ($item['nama_menu'] ?? null);
+                        $portion = (int)($item['portion'] ?? 1);
+                        if ($portion <= 0) $portion = 1;
+
+                        $menuQuery = DB::table($masterMenuTable);
+                        if ($mId) {
+                            $menuQuery->where($menuPkCol, $mId);
+                        } elseif ($mName) {
+                            $menuQuery->where('nama_menu', $mName);
+                        } else {
+                            continue;
+                        }
+
+                        $currentMenu = $menuQuery->first();
+                        if ($currentMenu) {
+                            $currentStok = (int)($currentMenu->$stokCol ?? 50);
+                            $newStok = max(0, $currentStok - $portion);
+                            
+                            $updateData = [
+                                $stokCol     => $newStok,
+                                'updated_at' => date('Y-m-d H:i:s')
+                            ];
+                            // Jika stok habis (0), otomatis ubah is_tersedia / tersedia jadi false
+                            if ($newStok === 0) {
+                                if (\\Illuminate\\Support\\Facades\\Schema::hasColumn($masterMenuTable, 'is_tersedia')) {
+                                    $updateData['is_tersedia'] = false;
+                                }
+                                if (\\Illuminate\\Support\\Facades\\Schema::hasColumn($masterMenuTable, 'tersedia')) {
+                                    $updateData['tersedia'] = false;
+                                }
+                            }
+                            DB::table($masterMenuTable)->where($menuPkCol, $currentMenu->$menuPkCol)->update($updateData);
+                        }
+                    }
                 }
             }
 

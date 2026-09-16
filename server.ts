@@ -736,20 +736,30 @@ async function syncOrderToSimrs(
 
   try {
     const testOrderNum = order.orderNumber || `TEST-${Date.now()}`;
-    const mappedItems = (order.items || []).map(i => ({
-      id_menu: (i as any).menuItemId || (i as any).id || 'item',
-      menuItemId: (i as any).menuItemId || (i as any).id || 'item',
-      name: i.name,
-      nama_menu: i.name,
-      portion: i.portion,
-      jumlah_porsi: i.portion,
-      price: i.price,
-      harga_satuan: i.price,
-      category: i.category,
-      kategori: i.category,
-      calories: i.calories,
-      kalori: i.calories,
-    }));
+    const mappedItems = (order.items || []).map(i => {
+      const target = menuItems.find(m => String(m.id) === String((i as any).menuItemId) || String(m.id) === String((i as any).id) || (m.name && m.name.toLowerCase().trim() === i.name.toLowerCase().trim()));
+      const curStock = target ? (target.stock !== undefined ? target.stock : 50) : ((i as any).stock ?? 50);
+      return {
+        id_menu: (i as any).menuItemId || (i as any).id || 'item',
+        menuItemId: (i as any).menuItemId || (i as any).id || 'item',
+        name: i.name,
+        nama_menu: i.name,
+        portion: i.portion,
+        jumlah_porsi: i.portion,
+        price: i.price,
+        harga_satuan: i.price,
+        category: i.category,
+        kategori: i.category,
+        calories: i.calories,
+        kalori: i.calories,
+        stock: curStock,
+        stok: curStock,
+        sisa_stok: curStock,
+        remaining_stock: curStock,
+        is_tersedia: curStock > 0,
+        tersedia: curStock > 0,
+      };
+    });
 
     const firstItem = mappedItems[0] || {
       id_menu: 'menu-1',
@@ -2594,10 +2604,37 @@ app.post('/api/simrs/sync-menu', async (req, res) => {
       ],
     };
 
-    // Format WhatsApp Message Content (for direct wa.me link fallback if needed)
+    // 1. Otomatis kurangi stok menu makanan yang dipesan terlebih dahulu
+    let stockChanged = false;
+    const affectedMenuItems: MenuItem[] = [];
+    for (const it of formattedItems) {
+      const targetMenu = menuItems.find(m => String(m.id) === String(it.menuItemId) || (m.name && m.name.toLowerCase().trim() === it.name.toLowerCase().trim()));
+      if (targetMenu) {
+        const curStock = targetMenu.stock !== undefined ? targetMenu.stock : 50;
+        const newStock = Math.max(0, curStock - (it.portion || 1));
+        targetMenu.stock = newStock;
+        if (newStock === 0) {
+          targetMenu.isAvailable = false; // Jika stok habis otomatis ubah ketersediaan jadi false
+        }
+        (it as any).stock = newStock;
+        (it as any).stok = newStock;
+        (it as any).sisa_stok = newStock;
+        (it as any).remaining_stock = newStock;
+        stockChanged = true;
+        affectedMenuItems.push(targetMenu);
+      }
+    }
+
+    if (stockChanged) {
+      savePersistentMenuItems(menuItems);
+      broadcastEvent('init', { orders, menuItems });
+      broadcastEvent('menu_update', { items: affectedMenuItems, action: 'stock_deducted' });
+    }
+
+    // 2. Format WhatsApp Message Content (for direct wa.me link fallback if needed)
     const waMessage = formatWhatsAppOrderMessage(newOrder);
 
-    // Auto-Sync to Hospital SIMRS (PostgreSQL & Laravel API)
+    // 3. Auto-Sync to Hospital SIMRS (PostgreSQL & Laravel API)
     // Pastikan URL pesanan selalu mengarah ke https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi
     const effectiveUrl = simrsConfig?.apiUrl || simrsSettings.apiUrl || 'https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi';
     const effectiveToken = (simrsConfig?.apiKey !== undefined ? simrsConfig.apiKey : simrsSettings.apiKey) || '';
@@ -2633,32 +2670,20 @@ app.post('/api/simrs/sync-menu', async (req, res) => {
     orders.unshift(newOrder);
     savePersistentOrders(orders);
 
-    // Otomatis kurangi stok menu makanan yang dipesan
-    let stockChanged = false;
-    const affectedMenuItems: MenuItem[] = [];
-    for (const it of formattedItems) {
-      const targetMenu = menuItems.find(m => String(m.id) === String(it.menuItemId) || (m.name && m.name.toLowerCase().trim() === it.name.toLowerCase().trim()));
-      if (targetMenu) {
-        const curStock = targetMenu.stock !== undefined ? targetMenu.stock : 50;
-        const newStock = Math.max(0, curStock - (it.portion || 1));
-        targetMenu.stock = newStock;
-        if (newStock === 0) {
-          targetMenu.isAvailable = false; // Jika stok habis otomatis ubah ketersediaan jadi false
-        }
-        stockChanged = true;
-        affectedMenuItems.push(targetMenu);
-      }
-    }
-
-    if (stockChanged) {
-      savePersistentMenuItems(menuItems);
-      broadcastEvent('init', { orders, menuItems });
-      // Otomatis sinkronisasi menu yang stoknya berkurang/habis ke SIMRS
-      if (simrsSettings.apiUrl) {
-        for (const aff of affectedMenuItems) {
-          syncSingleMenuToSimrs(aff).catch(() => {});
-        }
-      }
+    // 4. Otomatis kirim pembaruan stok menu ke database SIMRS via API
+    if (simrsSettings.apiUrl && affectedMenuItems.length > 0) {
+      // Sinkronkan setiap menu yang stoknya berkurang ke SIMRS
+      Promise.allSettled(
+        affectedMenuItems.map(aff =>
+          syncSingleMenuToSimrs(aff).then(res => {
+            console.log(`[SIMRS Stock Auto-Sync] Menu "${aff.name}" sisa stok ${aff.stock} -> ${res.success ? 'Tersimpan' : 'Gagal'}`);
+          }).catch(err => {
+            console.warn(`[SIMRS Stock Auto-Sync] Error sinkronisasi stok menu "${aff.name}":`, err.message);
+          })
+        )
+      );
+      // Sinkronkan juga via batch sync sebagai penguat
+      syncMenuToSimrs(affectedMenuItems).catch(() => {});
     }
 
     // Broadcast in real-time to Admin Dashboard
@@ -2761,9 +2786,8 @@ app.post('/api/simrs/sync-menu', async (req, res) => {
           savePersistentMenuItems(menuItems);
           broadcastEvent('init', { orders, menuItems });
           if (simrsSettings.apiUrl) {
-            for (const aff of affectedItems) {
-              syncSingleMenuToSimrs(aff).catch(() => {});
-            }
+            Promise.allSettled(affectedItems.map(aff => syncSingleMenuToSimrs(aff))).catch(() => {});
+            syncMenuToSimrs(affectedItems).catch(() => {});
           }
         }
       }
