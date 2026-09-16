@@ -127,44 +127,34 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
     if (!orders || !Array.isArray(orders)) return [];
     const validOrders = orders.filter((o) => Boolean(o && o.id && o.id !== 'ord-101' && o.id !== 'ord-102'));
 
-    // 1. If patient types a search query (e.g. No. Pesanan / No. HP / Nama)
+    // 1. If patient specifically tracks by searching their Order Number, Reg Number, or Phone Number
     const q = historySearch.trim().toLowerCase();
-    if (q.length >= 2) {
+    if (q.length >= 3) {
       const qDigits = q.replace(/[^0-9]/g, '');
       return validOrders.filter((o) => {
         const num = (o.orderNumber || '').toLowerCase();
         const reg = (o.registrationNo || '').toLowerCase();
-        const pat = (o.patientName || '').toLowerCase();
-        const room = (o.roomName || '').toLowerCase();
         const phone = (o.phoneNumber || '').replace(/[^0-9]/g, '');
-        return num.includes(q) || reg.includes(q) || pat.includes(q) || room.includes(q) || (qDigits.length >= 4 && phone.includes(qDigits));
+        // Match specific identifiers only (No. Pesanan, No. RM / Registrasi, atau No. HP)
+        const matchNum = num === q || num.includes(q);
+        const matchReg = reg === q || reg.includes(q);
+        const matchPhone = qDigits.length >= 6 && phone.includes(qDigits);
+        return matchNum || matchReg || matchPhone;
       }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }
 
-    // 2. Otherwise, filter exclusively for this patient's orders
+    // 2. Otherwise, filter strictly for this patient's orders on this device or exact phone number
     const cleanPhone = (phoneNumber || '').replace(/[^0-9]/g, '');
-    const cleanPatient = (patientName || '').trim().toLowerCase();
-    const cleanRoom = (roomName || '').trim().toLowerCase();
 
     const filtered = validOrders.filter((o) => {
-      // Match by saved local order IDs/numbers on this phone
+      // Match by saved local order IDs/numbers on this phone (guaranteed this device only)
       const isMyTracked = myOrderIds.includes(String(o.id)) || myOrderIds.includes(String(o.orderNumber));
       if (isMyTracked) return true;
 
-      // Match by phone number if filled (min 8 digits)
+      // Match by exact phone number if filled (min 8 digits)
       if (cleanPhone && cleanPhone.length >= 8) {
         const oPhone = String(o.phoneNumber || '').replace(/[^0-9]/g, '');
-        if (oPhone && (oPhone.includes(cleanPhone) || cleanPhone.includes(oPhone))) return true;
-      }
-
-      // Match by patient name & room if inputted
-      if (cleanPatient && cleanPatient.length >= 3 && cleanPatient !== 'pasien' && cleanPatient !== 'pasien rawat inap') {
-        const oPatient = String(o.patientName || '').trim().toLowerCase();
-        if (oPatient && (oPatient.includes(cleanPatient) || cleanPatient.includes(oPatient))) {
-          if (cleanRoom && cleanRoom.length >= 2 && cleanRoom !== 'kamar rawat inap') {
-            const oRoom = String(o.roomName || '').trim().toLowerCase();
-            return oRoom.includes(cleanRoom) || cleanRoom.includes(oRoom);
-          }
+        if (oPhone && (oPhone === cleanPhone || oPhone.endsWith(cleanPhone) || cleanPhone.endsWith(oPhone))) {
           return true;
         }
       }
@@ -173,7 +163,7 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
     });
 
     return filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [orders, myOrderIds, historySearch, phoneNumber, patientName, roomName]);
+  }, [orders, myOrderIds, historySearch, phoneNumber]);
 
   // Filtered Menu Items
   const filteredMenu = useMemo(() => {

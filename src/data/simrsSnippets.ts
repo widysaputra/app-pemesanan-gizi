@@ -81,6 +81,7 @@ export const SQL_MASTER_MENU_TABLE = `-- =======================================
 -- PERINTAH CEPAT (Bila tabel master_menu_gizi_m sudah ada):
 ALTER TABLE IF EXISTS master_menu_gizi_m ADD COLUMN IF NOT EXISTS foto_url TEXT;
 ALTER TABLE IF EXISTS master_menu_gizi_m ADD COLUMN IF NOT EXISTS gambar_url TEXT;
+ALTER TABLE IF EXISTS master_menu_gizi_m ADD COLUMN IF NOT EXISTS stok INT DEFAULT 50;
 
 CREATE TABLE IF NOT EXISTS master_menu_gizi_m (
     id_menu VARCHAR(50) PRIMARY KEY,
@@ -92,6 +93,7 @@ CREATE TABLE IF NOT EXISTS master_menu_gizi_m (
     karbohidrat NUMERIC(6,2) DEFAULT 0, -- gram
     lemak NUMERIC(6,2) DEFAULT 0,   -- gram
     natrium NUMERIC(6,2) DEFAULT 0, -- mg
+    stok INT DEFAULT 50,           -- Jumlah porsi stok tersedia (0 = habis)
     
     -- Waktu Makan yang Berlaku ('pagi', 'siang', 'malam', 'snack')
     waktu_makan JSONB DEFAULT '["pagi", "siang", "malam"]'::jsonb,
@@ -774,6 +776,7 @@ class GiziSIMRSController extends Controller
                     'gambar_url'   => (string)$request->input('foto_url', $request->input('gambar_url', $request->input('image', ''))),
                     'is_tersedia'  => $isTersedia,
                     'tersedia'     => $isTersedia,
+                    'stok'         => (int)$request->input('stock', $request->input('stok', 50)),
                     'tags_diet'    => is_array($request->input('tags_diet')) ? json_encode($request->input('tags_diet')) : json_encode([]),
                     'updated_at'   => date('Y-m-d H:i:s'),
                     'created_at'   => date('Y-m-d H:i:s')
@@ -849,6 +852,7 @@ class GiziSIMRSController extends Controller
                         'gambar_url'   => $fotoUrl,
                         'is_tersedia'  => $isTersedia,
                         'tersedia'     => $isTersedia,
+                        'stok'         => (int)($item['stock'] ?? $item['stok'] ?? 50),
                         'updated_at'   => date('Y-m-d H:i:s'),
                         'created_at'   => date('Y-m-d H:i:s')
                     ]

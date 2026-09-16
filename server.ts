@@ -20,6 +20,7 @@ export interface MenuItem {
   sodium: number; // mg
   description: string;
   isAvailable: boolean;
+  stock?: number; // Sisa stok porsi menu
   image?: string;
 }
 
@@ -382,6 +383,7 @@ export async function autoFetchSimrsMenuFromServer(): Promise<MenuItem[]> {
         sodium: parsePgNumber(m.natrium_mg ?? m.natrium ?? m.sodium, 0),
         description: String(m.deskripsi || m.description || 'Penyajian higienis instalasi gizi rumah sakit.'),
         image: validSimrsImg || getCategoryFallbackImageServer(m.kategori || m.category || 'makanan_utama', m.nama_menu || m.name),
+        stock: parsePgNumber(m.stok ?? m.stock ?? m.qty_stok ?? m.sisa_stok, 50),
         isAvailable: parsePgBoolean(
           m.is_tersedia !== undefined 
             ? m.is_tersedia 
@@ -395,7 +397,7 @@ export async function autoFetchSimrsMenuFromServer(): Promise<MenuItem[]> {
                     ? m.status 
                     : (m.status_tersedia !== undefined ? m.status_tersedia : true))))),
           true
-        ),
+        ) && (parsePgNumber(m.stok ?? m.stock ?? m.qty_stok ?? m.sisa_stok, 50) > 0),
       };
     });
 
@@ -414,10 +416,12 @@ export async function autoFetchSimrsMenuFromServer(): Promise<MenuItem[]> {
           const hasRealNewImage = Boolean(newMenu.image && typeof newMenu.image === 'string' && newMenu.image.length > 15 && !newMenu.image.includes('unsplash.com'));
           const finalImage = hasRealNewImage ? newMenu.image : (hasRealExistingImage ? existing.image : (newMenu.image || existing.image));
           const preservedPrice = existing.price !== undefined ? existing.price : newMenu.price;
+          const finalStock = newMenu.stock !== undefined ? newMenu.stock : (existing.stock ?? 50);
           menuItems[existingIdx] = {
             ...existing,
             ...newMenu,
-            isAvailable: newMenu.isAvailable, // Ambil status ketersediaan terkini dari SIMRS
+            stock: finalStock,
+            isAvailable: newMenu.isAvailable && (finalStock > 0), // Jika stok 0 otomatis habis
             image: finalImage,
             price: preservedPrice,
             id: existing.id
@@ -920,6 +924,10 @@ function mapMenuItemForSimrs(m: any) {
     photo: img,
     photo_url: img,
     img: img,
+    stock: typeof (m.stock ?? m.stok) === 'number' ? Math.max(0, m.stock ?? m.stok) : (parseInt(String(m.stock ?? m.stok ?? 50), 10) || 0),
+    stok: typeof (m.stock ?? m.stok) === 'number' ? Math.max(0, m.stock ?? m.stok) : (parseInt(String(m.stock ?? m.stok ?? 50), 10) || 0),
+    qty_stok: typeof (m.stock ?? m.stok) === 'number' ? Math.max(0, m.stock ?? m.stok) : (parseInt(String(m.stock ?? m.stok ?? 50), 10) || 0),
+    sisa_stok: typeof (m.stock ?? m.stok) === 'number' ? Math.max(0, m.stock ?? m.stok) : (parseInt(String(m.stock ?? m.stok ?? 50), 10) || 0),
     isAvailable: parsePgBoolean(
       m.isAvailable !== undefined 
         ? m.isAvailable 
@@ -931,7 +939,7 @@ function mapMenuItemForSimrs(m: any) {
               ? m.status 
               : (m.status_tersedia !== undefined ? m.status_tersedia : true)))),
       true
-    ),
+    ) && ((typeof (m.stock ?? m.stok) === 'number' ? (m.stock ?? m.stok) : parseInt(String(m.stock ?? m.stok ?? 50), 10)) > 0),
     is_tersedia: parsePgBoolean(
       m.is_tersedia !== undefined 
         ? m.is_tersedia 
@@ -943,7 +951,7 @@ function mapMenuItemForSimrs(m: any) {
               ? m.status 
               : (m.status_tersedia !== undefined ? m.status_tersedia : true)))),
       true
-    ),
+    ) && ((typeof (m.stock ?? m.stok) === 'number' ? (m.stock ?? m.stok) : parseInt(String(m.stock ?? m.stok ?? 50), 10)) > 0),
     tersedia: parsePgBoolean(
       m.tersedia !== undefined 
         ? m.tersedia 
@@ -955,9 +963,9 @@ function mapMenuItemForSimrs(m: any) {
               ? m.status 
               : (m.status_tersedia !== undefined ? m.status_tersedia : true)))),
       true
-    ),
-    status: parsePgBoolean(m.isAvailable ?? m.is_tersedia ?? m.tersedia ?? m.status ?? true, true) ? 1 : 0,
-    status_tersedia: parsePgBoolean(m.isAvailable ?? m.is_tersedia ?? m.tersedia ?? m.status ?? true, true) ? 1 : 0,
+    ) && ((typeof (m.stock ?? m.stok) === 'number' ? (m.stock ?? m.stok) : parseInt(String(m.stock ?? m.stok ?? 50), 10)) > 0),
+    status: (parsePgBoolean(m.isAvailable ?? m.is_tersedia ?? m.tersedia ?? m.status ?? true, true) && ((typeof (m.stock ?? m.stok) === 'number' ? (m.stock ?? m.stok) : parseInt(String(m.stock ?? m.stok ?? 50), 10)) > 0)) ? 1 : 0,
+    status_tersedia: (parsePgBoolean(m.isAvailable ?? m.is_tersedia ?? m.tersedia ?? m.status ?? true, true) && ((typeof (m.stock ?? m.stok) === 'number' ? (m.stock ?? m.stok) : parseInt(String(m.stock ?? m.stok ?? 50), 10)) > 0)) ? 1 : 0,
   };
 }
 
@@ -1293,13 +1301,16 @@ async function startServer() {
 
   // Admin: Create Menu Item & automatically sync to SIMRS (save-master-menu)
   app.post('/api/menu', async (req, res) => {
-    const { name, price, category, mealTimes, calories, protein, carbs, fat, sodium, description, image, foto_url, gambar_url, isAvailable, simrsApiUrl, simrsApiKey } = req.body;
+    const { name, price, category, mealTimes, calories, protein, carbs, fat, sodium, description, image, foto_url, gambar_url, isAvailable, stock, stok, simrsApiUrl, simrsApiKey } = req.body;
 
     if (!name || name.trim() === '') {
       return res.status(400).json({ error: 'Nama menu wajib diisi' });
     }
 
     const finalImage = (image || foto_url || gambar_url || '').trim() || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80';
+    const rawStock = stock !== undefined ? stock : (stok !== undefined ? stok : 50);
+    const parsedStock = Math.max(0, Number(rawStock) >= 0 ? Number(rawStock) : 50);
+    const effectiveAvailable = (isAvailable !== false) && (parsedStock > 0);
 
     const newItem: MenuItem = {
       id: req.body.id ? String(req.body.id) : `menu-${Date.now()}`,
@@ -1314,7 +1325,8 @@ async function startServer() {
       sodium: Number(sodium) || 20,
       description: description?.trim() || '',
       image: finalImage,
-      isAvailable: isAvailable !== false,
+      stock: parsedStock,
+      isAvailable: effectiveAvailable,
     };
 
     menuItems.unshift(newItem);
@@ -1347,15 +1359,17 @@ async function startServer() {
     res.status(201).json(responsePayload);
   });
 
-  // Admin: Update Menu Item (Price, Name, Availability, Description, Photo, etc.)
+  // Admin: Update Menu Item (Price, Name, Availability, Stock, Description, Photo, etc.)
   app.patch('/api/menu/:id', async (req, res) => {
     const { id } = req.params;
     let item = menuItems.find(m => String(m.id) === String(id) || (req.body.name && m.name && m.name.trim().toLowerCase() === String(req.body.name).trim().toLowerCase()));
     
-    const { name, price, category, mealTimes, calories, protein, carbs, fat, sodium, description, image, foto_url, gambar_url, isAvailable, simrsApiUrl, simrsApiKey } = req.body;
+    const { name, price, category, mealTimes, calories, protein, carbs, fat, sodium, description, image, foto_url, gambar_url, isAvailable, stock, stok, simrsApiUrl, simrsApiKey } = req.body;
     const resolvedImage = image ?? foto_url ?? gambar_url;
+    const rawStock = stock !== undefined ? stock : stok;
 
     if (!item) {
+      const parsedStock = rawStock !== undefined ? Math.max(0, Number(rawStock) || 0) : 50;
       // Upsert: buat item baru jika belum ada di server
       item = {
         id: String(id || `menu-${Date.now()}`),
@@ -1370,7 +1384,8 @@ async function startServer() {
         sodium: sodium !== undefined ? Number(sodium) : 0,
         description: description !== undefined ? String(description).trim() : '',
         image: resolvedImage !== undefined ? String(resolvedImage).trim() : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
-        isAvailable: isAvailable !== false,
+        stock: parsedStock,
+        isAvailable: (isAvailable !== false) && (parsedStock > 0),
       };
       menuItems.unshift(item);
     } else {
@@ -1385,7 +1400,26 @@ async function startServer() {
       if (sodium !== undefined) item.sodium = Number(sodium);
       if (description !== undefined) item.description = String(description).trim();
       if (resolvedImage !== undefined && resolvedImage !== null) item.image = String(resolvedImage).trim();
-      if (isAvailable !== undefined) item.isAvailable = Boolean(isAvailable);
+      
+      // Handle stok & ketersediaan sinkron
+      if (rawStock !== undefined) {
+        const parsedStock = Math.max(0, Number(rawStock) || 0);
+        item.stock = parsedStock;
+        if (parsedStock === 0) {
+          // Jika stok 0, otomatis ketersediaan menjadi false
+          item.isAvailable = false;
+        } else if (isAvailable !== undefined) {
+          item.isAvailable = Boolean(isAvailable);
+        } else if (!item.isAvailable && parsedStock > 0) {
+          // Jika sebelumnya habis lalu stok ditambah, aktifkan kembali
+          item.isAvailable = true;
+        }
+      } else if (isAvailable !== undefined) {
+        item.isAvailable = Boolean(isAvailable);
+        if (item.isAvailable && (item.stock === undefined || item.stock <= 0)) {
+          item.stock = 25; // Beri stok default jika diaktifkan
+        }
+      }
     }
 
     savePersistentMenuItems(menuItems);
@@ -1416,18 +1450,56 @@ async function startServer() {
   });
 
   // Admin: Toggle Availability
-  app.patch('/api/menu/:id/toggle', (req, res) => {
+  app.patch('/api/menu/:id/toggle', async (req, res) => {
     const { id } = req.params;
     const item = menuItems.find(m => m.id === id);
     if (!item) {
       return res.status(404).json({ error: 'Menu tidak ditemukan' });
     }
     item.isAvailable = !item.isAvailable;
+    if (item.isAvailable) {
+      // Jika diaktifkan kembali dan stoknya 0, reset stok ke 25 porsi
+      if (item.stock === undefined || item.stock <= 0) {
+        item.stock = 25;
+      }
+    } else {
+      // Jika dinonaktifkan / habis, set stok ke 0
+      item.stock = 0;
+    }
     savePersistentMenuItems(menuItems);
     broadcastEvent('menu_update', { item, action: 'toggle' });
     broadcastEvent('init', { orders, menuItems });
 
     // Auto-sync ketersediaan menu yang baru diubah ke SIMRS di background
+    if (simrsSettings.apiUrl) {
+      syncSingleMenuToSimrs(item).catch(() => {});
+    }
+
+    res.json(item);
+  });
+
+  // Admin: Quick Update Stock (+, -, or direct number)
+  app.patch('/api/menu/:id/stock', async (req, res) => {
+    const { id } = req.params;
+    const item = menuItems.find(m => m.id === id);
+    if (!item) {
+      return res.status(404).json({ error: 'Menu tidak ditemukan' });
+    }
+    const { stock, delta } = req.body;
+    let newStock = item.stock ?? 50;
+    if (stock !== undefined) {
+      newStock = Math.max(0, Number(stock) || 0);
+    } else if (delta !== undefined) {
+      newStock = Math.max(0, newStock + (Number(delta) || 0));
+    }
+    item.stock = newStock;
+    item.isAvailable = newStock > 0; // Jika stok 0, otomatis ketersediaan false
+
+    savePersistentMenuItems(menuItems);
+    broadcastEvent('menu_update', { item, action: 'stock' });
+    broadcastEvent('init', { orders, menuItems });
+
+    // Auto-sync ke SIMRS
     if (simrsSettings.apiUrl) {
       syncSingleMenuToSimrs(item).catch(() => {});
     }
@@ -2561,6 +2633,34 @@ app.post('/api/simrs/sync-menu', async (req, res) => {
     orders.unshift(newOrder);
     savePersistentOrders(orders);
 
+    // Otomatis kurangi stok menu makanan yang dipesan
+    let stockChanged = false;
+    const affectedMenuItems: MenuItem[] = [];
+    for (const it of formattedItems) {
+      const targetMenu = menuItems.find(m => String(m.id) === String(it.menuItemId) || (m.name && m.name.toLowerCase().trim() === it.name.toLowerCase().trim()));
+      if (targetMenu) {
+        const curStock = targetMenu.stock !== undefined ? targetMenu.stock : 50;
+        const newStock = Math.max(0, curStock - (it.portion || 1));
+        targetMenu.stock = newStock;
+        if (newStock === 0) {
+          targetMenu.isAvailable = false; // Jika stok habis otomatis ubah ketersediaan jadi false
+        }
+        stockChanged = true;
+        affectedMenuItems.push(targetMenu);
+      }
+    }
+
+    if (stockChanged) {
+      savePersistentMenuItems(menuItems);
+      broadcastEvent('init', { orders, menuItems });
+      // Otomatis sinkronisasi menu yang stoknya berkurang/habis ke SIMRS
+      if (simrsSettings.apiUrl) {
+        for (const aff of affectedMenuItems) {
+          syncSingleMenuToSimrs(aff).catch(() => {});
+        }
+      }
+    }
+
     // Broadcast in real-time to Admin Dashboard
     broadcastEvent('new_order', { order: newOrder });
 
@@ -2641,6 +2741,32 @@ app.post('/api/simrs/sync-menu', async (req, res) => {
         note: note || `Status diubah menjadi ${status}`,
       });
       savePersistentOrders(orders);
+
+      // Jika pesanan dibatalkan, kembalikan stok menu makanan secara otomatis
+      if (status === 'dibatalkan' && Array.isArray(order.items)) {
+        let restoredStock = false;
+        const affectedItems: MenuItem[] = [];
+        for (const it of order.items) {
+          const target = menuItems.find(m => String(m.id) === String(it.menuItemId) || (m.name && m.name.toLowerCase().trim() === it.name.toLowerCase().trim()));
+          if (target) {
+            target.stock = (target.stock ?? 0) + (it.portion || 1);
+            if (target.stock > 0) {
+              target.isAvailable = true;
+            }
+            restoredStock = true;
+            affectedItems.push(target);
+          }
+        }
+        if (restoredStock) {
+          savePersistentMenuItems(menuItems);
+          broadcastEvent('init', { orders, menuItems });
+          if (simrsSettings.apiUrl) {
+            for (const aff of affectedItems) {
+              syncSingleMenuToSimrs(aff).catch(() => {});
+            }
+          }
+        }
+      }
 
       // Sinkronisasi status ke tabel rego_pesanan_gizi_t di SIMRS jika URL dan Token tersedia
       if (simrsSettings.apiUrl) {
@@ -2767,11 +2893,11 @@ app.post('/api/simrs/sync-menu', async (req, res) => {
     // Auto-fetch fresh menu & orders from SIMRS on startup
     autoFetchSimrsMenuFromServer().catch(() => {});
     autoFetchSimrsOrdersFromServer().catch(() => {});
-    // Auto-refresh every 30 seconds to keep in sync with SIMRS PostgreSQL smoothly without overloading
+    // Auto-refresh every 60 seconds to keep in sync with SIMRS PostgreSQL smoothly without overloading
     setInterval(() => {
       autoFetchSimrsMenuFromServer().catch(() => {});
       autoFetchSimrsOrdersFromServer().catch(() => {});
-    }, 30000);
+    }, 60000);
   });
 }
 

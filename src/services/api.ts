@@ -221,10 +221,10 @@ export class HospitalRealtimeService {
     if (typeof window === 'undefined') return;
     if (this.pollInterval) clearInterval(this.pollInterval);
 
-    // Background polling every 20 seconds (fallback when SSE is quiet)
+    // Background polling every 60 seconds (fallback when SSE is quiet)
     this.pollInterval = setInterval(() => {
       this.syncWithServer();
-    }, 20000);
+    }, 60000);
   }
 
   public async syncWithServer() {
@@ -440,8 +440,8 @@ export class HospitalRealtimeService {
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
         saveLocalCachedMenu(data);
-        this.notifyListeners('init', { menuItems: data, orders: getLocalCachedOrders() });
-        this.broadcastLocal('init', { menuItems: data, orders: getLocalCachedOrders() });
+        this.notifyListeners('init', { menuItems: data });
+        this.broadcastLocal('init', { menuItems: data });
         return data;
       }
       return getLocalCachedMenu();
@@ -548,6 +548,7 @@ export class HospitalRealtimeService {
             fat: Number(item.fat) || 0,
             sodium: Number(item.sodium) || 0,
             description: String(item.description || ''),
+            stock: item.stock !== undefined ? item.stock : updates.stock,
             isAvailable: item.isAvailable !== false,
             image: item.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
             simrsSync: item.simrsSync,
@@ -575,6 +576,8 @@ export class HospitalRealtimeService {
     const updatedMenu = currentMenu.map(m => {
       if (isTarget(m)) {
         const resolvedImage = updates.image ?? (updates as any).foto_url ?? (updates as any).gambar_url ?? m.image;
+        const newStock = updates.stock !== undefined ? updates.stock : m.stock;
+        const newAvail = updates.isAvailable !== undefined ? Boolean(updates.isAvailable) : (newStock !== undefined ? newStock > 0 : m.isAvailable);
         updatedItem = {
           ...m,
           ...updates,
@@ -584,7 +587,8 @@ export class HospitalRealtimeService {
           description: updates.description !== undefined ? String(updates.description).trim() : m.description,
           category: updates.category || m.category,
           mealTimes: updates.mealTimes || m.mealTimes,
-          isAvailable: updates.isAvailable !== undefined ? Boolean(updates.isAvailable) : m.isAvailable,
+          stock: newStock,
+          isAvailable: newAvail && (newStock === undefined || newStock > 0),
           image: resolvedImage ? String(resolvedImage).trim() : m.image,
         };
         return updatedItem;
@@ -599,6 +603,27 @@ export class HospitalRealtimeService {
       return updatedItem;
     }
     throw new Error('Menu tidak ditemukan');
+  }
+
+  async updateMenuStock(menuId: string, stock: number): Promise<MenuItem> {
+    const finalStock = Math.max(0, Number(stock) || 0);
+    const isAvailable = finalStock > 0;
+    try {
+      const res = await fetch(`/api/menu/${menuId}/stock`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stock: finalStock }),
+      });
+      if (res.ok) {
+        const item = await res.json();
+        if (item && item.id) {
+          return this.updateMenuItem(menuId, { stock: finalStock, isAvailable });
+        }
+      }
+    } catch {
+      // Fallback to local update
+    }
+    return this.updateMenuItem(menuId, { stock: finalStock, isAvailable });
   }
 
   async toggleMenuItem(menuId: string): Promise<MenuItem> {
@@ -622,7 +647,9 @@ export class HospitalRealtimeService {
     let updatedItem: MenuItem | null = null;
     const updatedMenu = currentMenu.map(m => {
       if (m.id === menuId) {
-        updatedItem = { ...m, isAvailable: !m.isAvailable };
+        const nextAvail = !m.isAvailable;
+        const nextStock = nextAvail ? (m.stock && m.stock > 0 ? m.stock : 25) : 0;
+        updatedItem = { ...m, isAvailable: nextAvail, stock: nextStock };
         return updatedItem;
       }
       return m;
@@ -689,16 +716,28 @@ export class HospitalRealtimeService {
         const simrsOrders: HospitalOrder[] = data.data
           .filter((o: any) => o && o.id !== 'ord-101' && o.id !== 'ord-102')
           .map(normalizeHospitalOrder);
-        simrsOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        saveLocalCachedOrders(simrsOrders);
         
-        // notify UI to update all components immediately
-        this.notifyListeners('orders_sync', { orders: simrsOrders, action: 'sync_orders' });
-        this.broadcastLocal('orders_sync', { orders: simrsOrders, action: 'sync_orders' });
-        this.notifyListeners('init', { orders: simrsOrders, menuItems: getLocalCachedMenu() });
-        this.broadcastLocal('init', { orders: simrsOrders, menuItems: getLocalCachedMenu() });
-        data.data = simrsOrders;
-        data.totalOrders = simrsOrders.length;
+        // Merge with locally cached orders so no recent orders are ever dropped
+        const currentCached = getLocalCachedOrders();
+        const map = new Map<string, HospitalOrder>();
+        simrsOrders.forEach(o => {
+          if (o && (o.id || o.orderNumber)) map.set(o.orderNumber || o.id, o);
+        });
+        currentCached.forEach(o => {
+          const k = o.orderNumber || o.id;
+          if (k && !map.has(k)) map.set(k, o);
+        });
+        const mergedOrders = Array.from(map.values())
+          .filter(o => o && o.id !== 'ord-101' && o.id !== 'ord-102')
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+        saveLocalCachedOrders(mergedOrders);
+        
+        // notify UI to update all components immediately with full dataset
+        this.notifyListeners('orders_sync', { orders: mergedOrders, action: 'sync_orders' });
+        this.broadcastLocal('orders_sync', { orders: mergedOrders, action: 'sync_orders' });
+        data.data = mergedOrders;
+        data.totalOrders = mergedOrders.length;
         data.latency = latency;
         return data;
       }
@@ -1584,8 +1623,8 @@ export class HospitalRealtimeService {
             }
           });
           saveLocalCachedMenu(merged);
-          this.notifyListeners('init', { menuItems: merged, orders: getLocalCachedOrders() });
-          this.broadcastLocal('init', { menuItems: merged, orders: getLocalCachedOrders() });
+          this.notifyListeners('init', { menuItems: merged });
+          this.broadcastLocal('init', { menuItems: merged });
           data.latency = latency;
           return data;
         }
@@ -1680,6 +1719,9 @@ export class HospitalRealtimeService {
                   ? m.status 
                   : (m.status_tersedia !== undefined ? m.status_tersedia : true)))));
 
+        const rawStock = parsePgNumber(m.stok ?? m.stock ?? m.qty_stok ?? m.sisa_stok, 50);
+        const effectiveAvail = parsePgBoolean(rawAvail, true) && (rawStock > 0);
+
         return {
           id: String(m.menu_id || m.id_menu || m.id || `menu-${Date.now()}-${Math.floor(Math.random() * 1000)}`),
           name: String(m.nama_menu || m.name || 'Menu SIMRS').trim(),
@@ -1693,7 +1735,8 @@ export class HospitalRealtimeService {
           sodium: parsePgNumber(m.natrium_mg ?? m.natrium ?? m.sodium, 0),
           description: String(m.deskripsi || m.description || ''),
           image: validImg || getCategoryFallbackImage(m.kategori || m.category || 'makanan_utama', m.nama_menu || m.name),
-          isAvailable: parsePgBoolean(rawAvail, true),
+          stock: rawStock,
+          isAvailable: effectiveAvail,
         };
       });
 
@@ -1710,10 +1753,12 @@ export class HospitalRealtimeService {
           const hasRealExistingImage = Boolean(existing.image && typeof existing.image === 'string' && existing.image.length > 15 && !existing.image.includes('unsplash.com'));
           const hasRealSimrsImage = Boolean(simrsMenu.image && typeof simrsMenu.image === 'string' && simrsMenu.image.length > 15 && !simrsMenu.image.includes('unsplash.com'));
           const finalImage = hasRealSimrsImage ? simrsMenu.image : (hasRealExistingImage ? existing.image : (simrsMenu.image || existing.image));
+          const finalStock = simrsMenu.stock !== undefined ? simrsMenu.stock : (existing.stock ?? 50);
           merged[existingIdx] = {
             ...existing,
             ...simrsMenu,
-            isAvailable: simrsMenu.isAvailable,
+            stock: finalStock,
+            isAvailable: simrsMenu.isAvailable && (finalStock > 0),
             image: finalImage,
             price: existing.price !== undefined ? existing.price : simrsMenu.price,
             description: (existing.description && existing.description.trim() !== '') ? existing.description : simrsMenu.description,
@@ -1721,8 +1766,8 @@ export class HospitalRealtimeService {
         }
       });
       saveLocalCachedMenu(merged);
-      this.notifyListeners('init', { menuItems: merged, orders: getLocalCachedOrders() });
-      this.broadcastLocal('init', { menuItems: merged, orders: getLocalCachedOrders() });
+      this.notifyListeners('init', { menuItems: merged });
+      this.broadcastLocal('init', { menuItems: merged });
 
       return {
         success: true,
@@ -1761,7 +1806,8 @@ export class HospitalRealtimeService {
 
     const enrichedItems = items.map(m => {
       const img = m.image || (m as any).foto_url || (m as any).gambar_url || '';
-      const isAvail = m.isAvailable !== false && (m as any).is_tersedia !== false && (m as any).status !== 0;
+      const stockVal = typeof m.stock === 'number' ? m.stock : 50;
+      const isAvail = m.isAvailable !== false && (m as any).is_tersedia !== false && (m as any).status !== 0 && stockVal > 0;
       return {
         ...m,
         id_menu: m.id,
@@ -1773,6 +1819,10 @@ export class HospitalRealtimeService {
         image: img,
         foto: img,
         gambar: img,
+        stock: stockVal,
+        stok: stockVal,
+        qty_stok: stockVal,
+        sisa_stok: stockVal,
         isAvailable: isAvail,
         is_tersedia: isAvail,
         tersedia: isAvail,

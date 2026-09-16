@@ -30,6 +30,24 @@ import {
 
 type AppView = 'patient' | 'admin';
 
+// Helper to safely merge orders without losing existing records or causing partial-list flicker
+const mergeOrdersList = (baseList: HospitalOrder[], incomingList: HospitalOrder[]): HospitalOrder[] => {
+  const map = new Map<string, HospitalOrder>();
+  (baseList || []).forEach((o) => {
+    if (o && (o.id || o.orderNumber)) map.set(o.orderNumber || o.id, o);
+  });
+  (incomingList || []).forEach((o) => {
+    if (o && (o.id || o.orderNumber)) {
+      const k = o.orderNumber || o.id;
+      const existing = map.get(k);
+      map.set(k, existing ? { ...existing, ...o, status: o.status || existing.status } : o);
+    }
+  });
+  const merged = Array.from(map.values()).filter((o) => o && o.id !== 'ord-101' && o.id !== 'ord-102');
+  merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return merged;
+};
+
 export default function App() {
   const [activeView, setActiveView] = useState<AppView>('patient');
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
@@ -58,7 +76,9 @@ export default function App() {
       const localMenu = realtimeService.getLocalMenu();
       const localOrders = realtimeService.getLocalOrders();
       if (localMenu.length > 0) setMenuItems(localMenu);
-      if (localOrders.length > 0) setOrders(localOrders);
+      if (localOrders.length > 0) {
+        setOrders((prev) => mergeOrdersList(prev, localOrders));
+      }
 
       // 2. Tarik data realtime dari backend
       const [fetchedMenu, fetchedOrders] = await Promise.all([
@@ -72,10 +92,11 @@ export default function App() {
       const validOrders = Array.isArray(fetchedOrders) ? fetchedOrders : realtimeService.getLocalOrders();
 
       setMenuItems(validMenu);
-      setOrders(validOrders);
-      if (Array.isArray(fetchedOrders) && fetchedOrders.length > 0) {
-        saveLocalCachedOrders(fetchedOrders);
-      }
+      setOrders((prev) => {
+        const merged = mergeOrdersList(prev, validOrders);
+        saveLocalCachedOrders(merged);
+        return merged;
+      });
 
       // 3. Otomatis sinkronisasi menu & riwayat pesanan terbaru dari SIMRS di latar belakang
       realtimeService.fetchMenuFromSimrs().then((simrsRes) => {
@@ -87,8 +108,11 @@ export default function App() {
 
       realtimeService.fetchOrdersFromSimrs().then((ordersRes) => {
         if (ordersRes && ordersRes.success && Array.isArray(ordersRes.data)) {
-          setOrders(ordersRes.data);
-          saveLocalCachedOrders(ordersRes.data);
+          setOrders((prev) => {
+            const merged = mergeOrdersList(prev, ordersRes.data);
+            saveLocalCachedOrders(merged);
+            return merged;
+          });
         }
       }).catch((e) => console.log('[Auto-Sync SIMRS Orders]:', e));
 

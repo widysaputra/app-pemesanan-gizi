@@ -150,6 +150,7 @@ export const MenuEditModal: React.FC<MenuEditModalProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [stock, setStock] = useState<number>(50);
   const [isAvailable, setIsAvailable] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -304,7 +305,9 @@ export const MenuEditModal: React.FC<MenuEditModalProps> = ({
       setSodium(item.sodium || 0);
       setDescription(item.description || '');
       setImage(item.image || '');
-      setIsAvailable(item.isAvailable !== false);
+      const parsedStock = item.stock !== undefined ? item.stock : 50;
+      setStock(parsedStock);
+      setIsAvailable(item.isAvailable !== false && parsedStock > 0);
     } else {
       // Defaults for new item
       setName('');
@@ -318,6 +321,7 @@ export const MenuEditModal: React.FC<MenuEditModalProps> = ({
       setSodium(30);
       setDescription('');
       setImage(SAMPLE_FOOD_IMAGES[0].url);
+      setStock(50);
       setIsAvailable(true);
     }
     setErrorMsg(null);
@@ -344,6 +348,8 @@ export const MenuEditModal: React.FC<MenuEditModalProps> = ({
     try {
       setIsSaving(true);
       setErrorMsg(null);
+      const parsedStock = Math.max(0, Number(stock) || 0);
+      const effectiveAvail = isAvailable && parsedStock > 0;
       await onSave({
         name: name.trim(),
         price: Number(price) >= 0 ? Number(price) : 0,
@@ -356,7 +362,8 @@ export const MenuEditModal: React.FC<MenuEditModalProps> = ({
         sodium: Number(sodium) || 0,
         description: description.trim(),
         image: image.trim(),
-        isAvailable,
+        stock: parsedStock,
+        isAvailable: effectiveAvail,
       });
       onClose();
     } catch (err: any) {
@@ -434,8 +441,8 @@ export const MenuEditModal: React.FC<MenuEditModalProps> = ({
             </div>
           </div>
 
-          {/* Row 2: Category & Availability */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Row 2: Category, Stock & Availability */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
                 Kategori Menu
@@ -454,35 +461,127 @@ export const MenuEditModal: React.FC<MenuEditModalProps> = ({
             </div>
 
             <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-bold text-slate-700">
+                  Stok Tersedia (Porsi) <span className="text-rose-500">*</span>
+                </label>
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${stock > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                  {stock > 0 ? `${stock} Porsi` : 'Habis (0)'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = Math.max(0, stock - 1);
+                    setStock(next);
+                    if (next === 0) setIsAvailable(false);
+                  }}
+                  className="w-8 h-9 rounded-lg border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-sm flex items-center justify-center cursor-pointer transition-colors"
+                  title="Kurangi 1 porsi"
+                >
+                  -
+                </button>
+                <input
+                  type="number"
+                  min="0"
+                  value={stock}
+                  onChange={(e) => {
+                    const val = Math.max(0, parseInt(e.target.value) || 0);
+                    setStock(val);
+                    if (val === 0) {
+                      setIsAvailable(false);
+                    } else if (!isAvailable) {
+                      setIsAvailable(true);
+                    }
+                  }}
+                  className="w-full text-center py-2 text-sm font-bold rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = stock + 1;
+                    setStock(next);
+                    if (next > 0) setIsAvailable(true);
+                  }}
+                  className="w-8 h-9 rounded-lg border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-sm flex items-center justify-center cursor-pointer transition-colors"
+                  title="Tambah 1 porsi"
+                >
+                  +
+                </button>
+              </div>
+              <div className="flex items-center gap-1 mt-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStock(0);
+                    setIsAvailable(false);
+                  }}
+                  className="text-[10px] px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
+                >
+                  Habiskan (0)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStock(stock + 10);
+                    setIsAvailable(true);
+                  }}
+                  className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
+                >
+                  +10
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStock(50);
+                    setIsAvailable(true);
+                  }}
+                  className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors cursor-pointer"
+                >
+                  Isi 50
+                </button>
+              </div>
+            </div>
+
+            <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
                 Status Ketersediaan
               </label>
-              <div className="flex items-center gap-3 pt-1.5">
-                <label className="inline-flex items-center gap-2 cursor-pointer">
+              <div className="space-y-1.5 pt-0.5">
+                <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="radio"
                     name="isAvailable"
-                    checked={isAvailable}
-                    onChange={() => setIsAvailable(true)}
+                    checked={isAvailable && stock > 0}
+                    onChange={() => {
+                      setIsAvailable(true);
+                      if (stock <= 0) setStock(25);
+                    }}
                     className="text-emerald-600 focus:ring-emerald-500"
                   />
-                  <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                    Tersedia di Menu
+                  <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                    Tersedia ({stock > 0 ? stock : 25} Porsi)
                   </span>
                 </label>
-                <label className="inline-flex items-center gap-2 cursor-pointer">
+                <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="radio"
                     name="isAvailable"
-                    checked={!isAvailable}
-                    onChange={() => setIsAvailable(false)}
+                    checked={!isAvailable || stock === 0}
+                    onChange={() => {
+                      setIsAvailable(false);
+                      setStock(0);
+                    }}
                     className="text-rose-600 focus:ring-rose-500"
                   />
-                  <span className="text-xs font-semibold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
-                    Habis / Kosong
+                  <span className="text-xs font-semibold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200">
+                    Habis / Kosong (0 Porsi)
                   </span>
                 </label>
               </div>
+              <p className="text-[10px] text-slate-400 mt-1">Stok 0 otomatis Tidak Tersedia.</p>
             </div>
           </div>
 

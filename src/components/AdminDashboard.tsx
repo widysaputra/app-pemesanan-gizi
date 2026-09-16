@@ -58,7 +58,8 @@ import {
   FileSpreadsheet,
   Printer,
   Save,
-  X
+  X,
+  Package
 } from 'lucide-react';
 import {
   SQL_PESANAN_GIZI_TABLE,
@@ -116,6 +117,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [isMenuModalOpen, setIsMenuModalOpen] = useState<boolean>(false);
   const [quickPriceEditId, setQuickPriceEditId] = useState<string | null>(null);
   const [quickPriceValue, setQuickPriceValue] = useState<number>(0);
+  const [quickStockEditId, setQuickStockEditId] = useState<string | null>(null);
+  const [quickStockValue, setQuickStockValue] = useState<number>(0);
 
   // Orders Management States
   const [orderStatusFilter, setOrderStatusFilter] = useState<string>('all');
@@ -200,12 +203,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  // Auto-sync pesanan saat admin membuka tab 'orders' atau 'recap'
+  // Track last tab fetch timestamp to prevent rapid repetitive requests
+  const lastTabFetchRef = React.useRef<number>(0);
+
+  // Auto-sync pesanan saat admin membuka tab 'orders' atau 'recap' dengan cooldown minimal 60 detik
   React.useEffect(() => {
     if (activeTab === 'orders' || activeTab === 'recap') {
-      realtimeService.fetchOrdersFromSimrs().then(() => {
-        if (onRefreshOrders) onRefreshOrders();
-      }).catch(() => {});
+      const now = Date.now();
+      if (now - lastTabFetchRef.current > 60000) {
+        lastTabFetchRef.current = now;
+        realtimeService.fetchOrdersFromSimrs().catch(() => {});
+      }
     }
   }, [activeTab]);
 
@@ -415,6 +423,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const handleSaveQuickPrice = async (id: string) => {
     await realtimeService.updateMenuItem(id, { price: quickPriceValue });
     setQuickPriceEditId(null);
+  };
+
+  const handleStartQuickStock = (item: MenuItem) => {
+    setQuickStockEditId(item.id);
+    setQuickStockValue(item.stock !== undefined ? item.stock : (item.isAvailable ? 50 : 0));
+  };
+
+  const handleSaveQuickStock = async (id: string) => {
+    const finalStock = Math.max(0, quickStockValue);
+    setQuickStockEditId(null);
+    try {
+      await realtimeService.updateMenuStock(id, finalStock);
+    } catch (err) {
+      console.warn('Gagal update stok menu:', err);
+    }
+  };
+
+  const handleStepStock = async (item: MenuItem, delta: number) => {
+    const current = item.stock !== undefined ? item.stock : (item.isAvailable ? 50 : 0);
+    const finalStock = Math.max(0, current + delta);
+    try {
+      await realtimeService.updateMenuStock(item.id, finalStock);
+    } catch (err) {
+      console.warn('Gagal step stok menu:', err);
+    }
   };
 
   // Handlers for SIMRS Integration (PostgreSQL + Laravel)
@@ -856,8 +889,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       }`}
                     />
                     
+                    {/* Stock Pill Badge */}
+                    <div className="absolute top-1.5 left-1.5 sm:top-2.5 sm:left-2.5 z-10">
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider backdrop-blur-md shadow-xs border ${
+                        (item.stock !== undefined ? item.stock : (item.isAvailable ? 50 : 0)) > 10
+                          ? 'bg-slate-950/80 text-emerald-300 border-emerald-500/40'
+                          : (item.stock !== undefined ? item.stock : (item.isAvailable ? 50 : 0)) > 0
+                            ? 'bg-slate-950/80 text-amber-300 border-amber-500/40'
+                            : 'bg-rose-950/90 text-rose-300 border-rose-500/50 animate-pulse'
+                      }`}>
+                        Stok: {item.stock !== undefined ? item.stock : (item.isAvailable ? 50 : 0)}
+                      </span>
+                    </div>
+
                     {/* Availability Badge */}
-                    <div className="absolute top-1.5 right-1.5 sm:top-2.5 sm:right-2.5">
+                    <div className="absolute top-1.5 right-1.5 sm:top-2.5 sm:right-2.5 z-10">
                       <button
                         onClick={() => onToggleMenuItem(item.id)}
                         className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-bold shadow-xs cursor-pointer transition-colors flex items-center gap-1 ${
@@ -901,6 +947,80 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <span className="text-slate-400 hidden sm:inline">&bull;</span>
                       <span className="text-[10px] sm:text-xs text-slate-500">P:{item.protein}g</span>
                       <span className="text-[10px] sm:text-xs text-slate-500">K:{item.carbs}g</span>
+                    </div>
+
+                    {/* Stock Control Bar */}
+                    <div className="pt-2 mt-1 border-t border-slate-100 flex items-center justify-between gap-1 text-[11px]">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <Package className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span className="text-slate-500 font-medium text-[10px] sm:text-xs">Stok:</span>
+                        {quickStockEditId === item.id ? (
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="number"
+                              min="0"
+                              value={quickStockValue}
+                              onChange={(e) => setQuickStockValue(Math.max(0, Number(e.target.value)))}
+                              className="w-14 px-1 py-0.5 text-[11px] sm:text-xs font-bold border border-emerald-500 rounded bg-white text-center"
+                              autoFocus
+                            />
+                            <button
+                              onClick={() => handleSaveQuickStock(item.id)}
+                              className="p-0.5 text-emerald-600 hover:bg-emerald-100 rounded cursor-pointer"
+                              title="Simpan Stok"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => setQuickStockEditId(null)}
+                              className="p-0.5 text-slate-400 hover:bg-slate-200 rounded cursor-pointer"
+                              title="Batal"
+                            >
+                              <XCircle className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <span
+                            onClick={() => handleStartQuickStock(item)}
+                            className={`font-black cursor-pointer hover:underline flex items-center gap-0.5 text-[11px] sm:text-xs ${
+                              (item.stock !== undefined ? item.stock : (item.isAvailable ? 50 : 0)) === 0 ? 'text-rose-600' : 'text-slate-800'
+                            }`}
+                            title="Klik untuk ubah angka stok"
+                          >
+                            {item.stock !== undefined ? item.stock : (item.isAvailable ? 50 : 0)} Porsi
+                            <Edit3 className="w-2.5 h-2.5 text-slate-300" />
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Quick Stepper (-1, +1, +10) */}
+                      <div className="flex items-center gap-0.5 bg-slate-100 rounded-lg p-0.5 shrink-0">
+                        <button
+                          type="button"
+                          disabled={(item.stock !== undefined ? item.stock : (item.isAvailable ? 50 : 0)) <= 0}
+                          onClick={() => handleStepStock(item, -1)}
+                          className="w-5 h-5 flex items-center justify-center rounded bg-white hover:bg-slate-200 text-slate-700 font-bold text-xs disabled:opacity-30 cursor-pointer shadow-2xs"
+                          title="Kurangi stok (-1)"
+                        >
+                          -
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleStepStock(item, 1)}
+                          className="w-5 h-5 flex items-center justify-center rounded bg-white hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer shadow-2xs"
+                          title="Tambah stok (+1)"
+                        >
+                          +
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleStepStock(item, 10)}
+                          className="px-1.5 h-5 flex items-center justify-center rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-[10px] cursor-pointer"
+                          title="Tambah stok (+10)"
+                        >
+                          +10
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

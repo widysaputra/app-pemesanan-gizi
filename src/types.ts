@@ -17,6 +17,7 @@ export interface MenuItem {
   sodium: number;
   description: string;
   isAvailable: boolean;
+  stock?: number; // Sisa stok porsi menu (jika 0, ketersediaan otomatis habis)
   image?: string;
   simrsSync?: {
     synced: boolean;
