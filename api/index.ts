@@ -79,16 +79,57 @@ function resolveSimrsFetchOrdersUrl(inputUrl?: string): string {
   return `${u}/riwayat-pesanan-gizi`;
 }
 
-// In-memory runtime storage for Vercel serverless instance
-let simrsConfigState = {
-  apiUrl: process.env.SIMRS_API_URL || 'https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi',
-  apiKey: process.env.SIMRS_TOKEN || process.env.SIMRS_API_KEY || '',
-  authHeaderType: 'X-AUTH-TOKEN' as 'X-AUTH-TOKEN' | 'Bearer' | 'Both',
-  autoSyncOnOrder: true,
-  isConfigured: true,
-};
+// Default SIMRS credentials fallback
+const DEFAULT_SIMRS_URL = 'https://rsbsaonline.com/service/medifirst2000/emr/save-pesanan-gizi';
+const DEFAULT_SIMRS_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhZG1pbi5yZWdpc3RyYXNpIn0.z1sCAtuc6ODM-HKzftAXqvqUPlFs7bm4wd-qTY-EvnBN1uHSk-OHhlHEpgs2vznkiem7u579VFGC2kxAhxD3NA';
 
-let vercelMenuItems: any[] = [];
+function loadVercelSimrsConfig() {
+  const defaultUrl = (process.env.SIMRS_API_URL || DEFAULT_SIMRS_URL).trim();
+  const defToken = (process.env.SIMRS_TOKEN || process.env.SIMRS_API_KEY || DEFAULT_SIMRS_TOKEN).trim();
+  try {
+    const configPath = path.join(process.cwd(), 'simrs_config.json');
+    if (fs.existsSync(configPath)) {
+      const data = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      if (data && typeof data === 'object') {
+        return {
+          apiUrl: (data.apiUrl || defaultUrl).trim(),
+          apiKey: (data.apiKey && data.apiKey.trim().length > 5) ? data.apiKey.trim() : defToken,
+          authHeaderType: (data.authHeaderType || 'X-AUTH-TOKEN') as 'X-AUTH-TOKEN' | 'Bearer' | 'Both',
+          autoSyncOnOrder: data.autoSyncOnOrder !== false,
+          isConfigured: true,
+        };
+      }
+    }
+  } catch {}
+  return {
+    apiUrl: defaultUrl,
+    apiKey: defToken,
+    authHeaderType: 'X-AUTH-TOKEN' as 'X-AUTH-TOKEN' | 'Bearer' | 'Both',
+    autoSyncOnOrder: true,
+    isConfigured: true,
+  };
+}
+
+let simrsConfigState = loadVercelSimrsConfig();
+
+function loadVercelInitialMenuItems(): any[] {
+  try {
+    const menuPath = path.join(process.cwd(), 'menu_items.json');
+    if (fs.existsSync(menuPath)) {
+      const data = JSON.parse(fs.readFileSync(menuPath, 'utf-8'));
+      if (Array.isArray(data) && data.length > 0) {
+        return data.map((m: any) => ({
+          ...m,
+          stock: m.stock !== undefined ? Number(m.stock) : (m.stok !== undefined ? Number(m.stok) : 50),
+          stok: m.stok !== undefined ? Number(m.stok) : (m.stock !== undefined ? Number(m.stock) : 50),
+        }));
+      }
+    }
+  } catch {}
+  return [];
+}
+
+let vercelMenuItems: any[] = loadVercelInitialMenuItems();
 let vercelOrders: any[] = [];
 
 // Admin Security Configuration (File and In-Memory fallback for Serverless)
@@ -862,6 +903,11 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
                     ? m.status 
                     : (m.status_tersedia !== undefined ? m.status_tersedia : true)))));
 
+          const hasSimrsStock = (m.stok !== undefined || m.stock !== undefined || m.qty_stok !== undefined || m.sisa_stok !== undefined) && (m.stok !== null && m.stock !== null);
+          const parsedStockFromSimrs = hasSimrsStock ? parsePgNumber(m.stok ?? m.stock ?? m.qty_stok ?? m.sisa_stok, 50) : undefined;
+          const finalStock = parsedStockFromSimrs !== undefined ? parsedStockFromSimrs : 50;
+          const finalAvail = parsePgBoolean(rawAvail, true) && (finalStock > 0);
+
           return {
             id: String(m.menu_id || m.id_menu || m.id || `menu-${Date.now()}-${Math.floor(Math.random() * 1000)}`),
             name: String(m.nama_menu || m.name || 'Menu SIMRS').trim(),
@@ -875,9 +921,13 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
             sodium: parsePgNumber(m.natrium_mg ?? m.natrium ?? m.sodium, 0),
             description: String(m.deskripsi || m.description || ''),
             image: m.foto_url || m.gambar || m.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
-            isAvailable: parsePgBoolean(rawAvail, true),
+            stock: finalStock,
+            stok: finalStock,
+            isAvailable: finalAvail,
           };
         });
+
+        vercelMenuItems = transformedMenus;
 
         return res.json({
           success: true,
@@ -1034,6 +1084,10 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
                       return s === 't' || s === 'true' || s === '1' || s === 'y';
                     };
 
+                    const hasStock = (m.stok !== undefined || m.stock !== undefined || m.qty_stok !== undefined || m.sisa_stok !== undefined) && (m.stok !== null && m.stock !== null);
+                    const parsedStock = hasStock ? parseNum(m.stok ?? m.stock ?? m.qty_stok ?? m.sisa_stok, 50) : 50;
+                    const isAvail = parseBool(m.tersedia ?? m.isAvailable ?? true) && (parsedStock > 0);
+
                     return {
                       id: String(m.menu_id || m.id_menu || m.id || `menu-${Date.now()}-${Math.floor(Math.random() * 1000)}`),
                       name: String(m.nama_menu || m.name || 'Menu SIMRS').trim(),
@@ -1047,7 +1101,9 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
                       sodium: parseNum(m.natrium_mg ?? m.natrium ?? m.sodium, 0),
                       description: String(m.deskripsi || m.description || ''),
                       image: m.foto_url || m.gambar || m.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
-                      isAvailable: parseBool(m.tersedia ?? m.isAvailable ?? true),
+                      stock: parsedStock,
+                      stok: parsedStock,
+                      isAvailable: isAvail,
                     };
                   });
                   vercelMenuItems = transformed;
@@ -1155,28 +1211,62 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
       const pathParts = parsedPath.split('/');
       const menuId = pathParts[3]; // /api/menu/:id
       const isToggle = pathParts[4] === 'toggle';
+      const isStock = pathParts[4] === 'stock';
 
       if (menuId) {
+        if (isStock && method === 'PATCH') {
+          const item = vercelMenuItems.find(m => String(m.id) === String(menuId));
+          const { stock, delta } = body;
+          let newStock = item ? (item.stock ?? 50) : 50;
+          if (stock !== undefined) {
+            newStock = Math.max(0, Number(stock) || 0);
+          } else if (delta !== undefined) {
+            newStock = Math.max(0, newStock + (Number(delta) || 0));
+          }
+          if (item) {
+            item.stock = newStock;
+            item.stok = newStock;
+            item.isAvailable = newStock > 0;
+            return res.json(item);
+          }
+          return res.json({ id: menuId, stock: newStock, stok: newStock, isAvailable: newStock > 0 });
+        }
+
         if (method === 'PATCH') {
+          const existing = vercelMenuItems.find(m => String(m.id) === String(menuId));
+          const curStock = body.stock !== undefined ? Number(body.stock) : (existing?.stock ?? 50);
+          const isAvail = isToggle 
+            ? !Boolean(body.isAvailable !== undefined ? body.isAvailable : existing?.isAvailable) 
+            : Boolean(body.isAvailable !== false);
+
           const updatedItem = {
             id: menuId,
-            name: body.name ? String(body.name).trim() : 'Menu',
-            price: body.price !== undefined ? Math.max(0, Number(body.price)) : 10000,
-            category: body.category || 'makanan_utama',
-            mealTimes: Array.isArray(body.mealTimes) ? body.mealTimes : ['pagi', 'siang', 'malam'],
-            calories: Number(body.calories) || 100,
-            protein: Number(body.protein) || 5,
-            carbs: Number(body.carbs) || 15,
-            fat: Number(body.fat) || 2,
-            sodium: Number(body.sodium) || 20,
-            description: body.description ? String(body.description).trim() : '',
-            image: body.image ? String(body.image).trim() : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
-            isAvailable: isToggle ? !Boolean(body.isAvailable) : Boolean(body.isAvailable !== false),
+            name: body.name ? String(body.name).trim() : (existing?.name || 'Menu'),
+            price: body.price !== undefined ? Math.max(0, Number(body.price)) : (existing?.price || 10000),
+            category: body.category || existing?.category || 'makanan_utama',
+            mealTimes: Array.isArray(body.mealTimes) ? body.mealTimes : (existing?.mealTimes || ['pagi', 'siang', 'malam']),
+            calories: Number(body.calories) || existing?.calories || 100,
+            protein: Number(body.protein) || existing?.protein || 5,
+            carbs: Number(body.carbs) || existing?.carbs || 15,
+            fat: Number(body.fat) || existing?.fat || 2,
+            sodium: Number(body.sodium) || existing?.sodium || 20,
+            description: body.description ? String(body.description).trim() : (existing?.description || ''),
+            image: body.image ? String(body.image).trim() : (existing?.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80'),
+            stock: curStock,
+            stok: curStock,
+            isAvailable: isAvail && (curStock > 0),
           };
+          if (existing) {
+            Object.assign(existing, updatedItem);
+          }
           return res.json(updatedItem);
         }
 
         if (method === 'DELETE') {
+          const idx = vercelMenuItems.findIndex(m => String(m.id) === String(menuId));
+          if (idx !== -1) {
+            vercelMenuItems.splice(idx, 1);
+          }
           return res.json({ success: true, removedId: menuId });
         }
       }
@@ -1308,6 +1398,29 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
           }
 
           const formattedItems = Array.isArray(items) ? items : [];
+
+          // Validasi stok di Vercel: tolak pesanan jika melebihi sisa stok yang ada
+          for (const it of formattedItems) {
+            const targetMenu = vercelMenuItems.find(m => 
+              String(m.id) === String(it.menuItemId || it.id) || 
+              (m.name && m.name.toLowerCase().trim() === (it.name || '').toLowerCase().trim())
+            );
+            if (targetMenu) {
+              const availableStock = targetMenu.stock !== undefined ? targetMenu.stock : 50;
+              const reqPortion = Number(it.portion) || 1;
+              if (!targetMenu.isAvailable || availableStock <= 0) {
+                return res.status(400).json({ 
+                  error: `Menu "${targetMenu.name}" saat ini sudah habis dan tidak dapat dipesan.` 
+                });
+              }
+              if (reqPortion > availableStock) {
+                return res.status(400).json({ 
+                  error: `Pesanan untuk "${targetMenu.name}" (${reqPortion} porsi) melebihi stok yang ada. Stok saat ini hanya tersisa ${availableStock} porsi.` 
+                });
+              }
+            }
+          }
+
       let totalPrice = 0;
       let totalCalories = 0;
       const parsedItems = formattedItems.map((it: any) => {
@@ -1325,6 +1438,23 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
           calories: cal,
         };
       });
+
+      // Kurangi stok menu makanan yang dipesan di runtime Vercel
+      for (const it of parsedItems) {
+        const targetMenu = vercelMenuItems.find(m => 
+          String(m.id) === String(it.menuItemId) || 
+          (m.name && m.name.toLowerCase().trim() === (it.name || '').toLowerCase().trim())
+        );
+        if (targetMenu) {
+          const curStock = targetMenu.stock !== undefined ? targetMenu.stock : 50;
+          const newStock = Math.max(0, curStock - (it.portion || 1));
+          targetMenu.stock = newStock;
+          targetMenu.stok = newStock;
+          if (newStock === 0) {
+            targetMenu.isAvailable = false;
+          }
+        }
+      }
 
       const now = new Date();
       const orderNumber = `GZ-${now.toISOString().slice(0, 10).replace(/-/g, '')}-${String(Math.floor(10 + Math.random() * 90))}`;

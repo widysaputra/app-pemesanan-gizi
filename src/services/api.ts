@@ -899,6 +899,31 @@ export class HospitalRealtimeService {
           this.broadcastLocal('new_order', { order: result.order });
           const currentOrders = getLocalCachedOrders();
           saveLocalCachedOrders([result.order, ...currentOrders.filter(o => o.id !== result.order.id)]);
+
+          // Kurangi stok menu lokal secara reaktif
+          const curMenu = getLocalCachedMenu();
+          let menuChanged = false;
+          const updatedMenu = curMenu.map(m => {
+            const ord = payload.items.find(i => String(i.menuItemId) === String(m.id) || (m.name && m.name.toLowerCase().trim() === (i.name || '').toLowerCase().trim()));
+            if (ord) {
+              const curS = m.stock !== undefined ? m.stock : (m.stok !== undefined ? m.stok : 50);
+              const nextS = Math.max(0, curS - (ord.portion || 1));
+              menuChanged = true;
+              return {
+                ...m,
+                stock: nextS,
+                stok: nextS,
+                isAvailable: nextS > 0,
+              };
+            }
+            return m;
+          });
+          if (menuChanged) {
+            saveLocalCachedMenu(updatedMenu);
+            this.notifyListeners('init', { menuItems: updatedMenu });
+            this.broadcastLocal('init', { menuItems: updatedMenu });
+          }
+
           return result;
         }
       }
@@ -939,6 +964,30 @@ export class HospitalRealtimeService {
     saveLocalCachedOrders([newOrder, ...currentOrders]);
     this.notifyListeners('new_order', { order: newOrder });
     this.broadcastLocal('new_order', { order: newOrder });
+
+    // Kurangi stok menu lokal pada fallback lokal
+    const curMenuLocal = getLocalCachedMenu();
+    let menuChangedLocal = false;
+    const updatedMenuLocal = curMenuLocal.map(m => {
+      const ord = payload.items.find(i => String(i.menuItemId) === String(m.id) || (m.name && m.name.toLowerCase().trim() === (i.name || '').toLowerCase().trim()));
+      if (ord) {
+        const curS = m.stock !== undefined ? m.stock : (m.stok !== undefined ? m.stok : 50);
+        const nextS = Math.max(0, curS - (ord.portion || 1));
+        menuChangedLocal = true;
+        return {
+          ...m,
+          stock: nextS,
+          stok: nextS,
+          isAvailable: nextS > 0,
+        };
+      }
+      return m;
+    });
+    if (menuChangedLocal) {
+      saveLocalCachedMenu(updatedMenuLocal);
+      this.notifyListeners('init', { menuItems: updatedMenuLocal });
+      this.broadcastLocal('init', { menuItems: updatedMenuLocal });
+    }
 
     // Auto-sync order directly to SIMRS if URL configured
     let simrsSynced = false;
@@ -1730,6 +1779,7 @@ export class HospitalRealtimeService {
           description: String(m.deskripsi || m.description || ''),
           image: validImg || getCategoryFallbackImage(m.kategori || m.category || 'makanan_utama', m.nama_menu || m.name),
           stock: rawStock,
+          stok: rawStock,
           isAvailable: effectiveAvail,
         };
       });
@@ -1752,6 +1802,7 @@ export class HospitalRealtimeService {
             ...existing,
             ...simrsMenu,
             stock: finalStock,
+            stok: finalStock,
             isAvailable: simrsMenu.isAvailable && (finalStock > 0),
             image: finalImage,
             price: existing.price !== undefined ? existing.price : simrsMenu.price,
