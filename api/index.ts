@@ -710,10 +710,12 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
         });
       }
 
-      // Batch sync: Kirim array menu_items tunggal yang ramping tanpa duplikasi berulang
+      // Batch sync: Kirim array items DAN menu_items agar kompatibel dengan seluruh controller SIMRS
       const first = mappedItems[0] || {} as any;
       const batchPayload = {
+        items: mappedItems,
         menu_items: mappedItems,
+        data: mappedItems,
         id: first.id || '1',
         id_menu: first.id || '1',
         name: first.name || 'Batch Menu',
@@ -721,6 +723,16 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
         total_count: mappedItems.length,
         synced_at: new Date().toISOString(),
       };
+
+      // Perbarui in-memory vercelMenuItems
+      for (const inc of mappedItems) {
+        const idx = vercelMenuItems.findIndex(m => String(m.id) === String(inc.id) || (m.name && inc.name && m.name.toLowerCase().trim() === inc.name.toLowerCase().trim()));
+        if (idx !== -1) {
+          vercelMenuItems[idx] = { ...vercelMenuItems[idx], ...inc };
+        } else {
+          vercelMenuItems.push(inc);
+        }
+      }
 
       try {
         const batchRes = await fetch(resolveSimrsBatchMenuUrl(rawTargetUrl), {
@@ -890,7 +902,16 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
 
           const hasSimrsStock = (m.stok !== undefined || m.stock !== undefined || m.qty_stok !== undefined || m.sisa_stok !== undefined) && (m.stok !== null && m.stock !== null);
           const parsedStockFromSimrs = hasSimrsStock ? parsePgNumber(m.stok ?? m.stock ?? m.qty_stok ?? m.sisa_stok, 50) : undefined;
-          const finalStock = parsedStockFromSimrs !== undefined ? parsedStockFromSimrs : 50;
+          
+          const existing = vercelMenuItems.find(ex => String(ex.id) === String(m.menu_id || m.id_menu || m.id) || (ex.name && (m.nama_menu || m.name) && ex.name.toLowerCase().trim() === String(m.nama_menu || m.name).toLowerCase().trim()));
+          let finalStock = existing?.stock ?? 50;
+          if (parsedStockFromSimrs !== undefined) {
+            if (parsedStockFromSimrs !== 50 || existing?.stock === undefined) {
+              finalStock = parsedStockFromSimrs;
+            } else {
+              finalStock = existing.stock;
+            }
+          }
           const finalAvail = parsePgBoolean(rawAvail, true) && (finalStock > 0);
 
           return {
@@ -1201,10 +1222,12 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
       if (menuId) {
         if (isStock && method === 'PATCH') {
           const item = vercelMenuItems.find(m => String(m.id) === String(menuId));
-          const { stock, delta } = body;
+          const { stock, stok, delta, simrsApiUrl, simrsApiKey } = body;
           let newStock = item ? (item.stock ?? 50) : 50;
           if (stock !== undefined) {
             newStock = Math.max(0, Number(stock) || 0);
+          } else if (stok !== undefined) {
+            newStock = Math.max(0, Number(stok) || 0);
           } else if (delta !== undefined) {
             newStock = Math.max(0, newStock + (Number(delta) || 0));
           }
@@ -1212,14 +1235,88 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
             item.stock = newStock;
             item.stok = newStock;
             item.isAvailable = newStock > 0;
-            return res.json(item);
           }
-          return res.json({ id: menuId, stock: newStock, stok: newStock, isAvailable: newStock > 0 });
+
+          // Sinkronkan ke SIMRS via batch (items array) & single endpoint
+          const targetUrl = resolveSimrsSingleMenuUrl(simrsApiUrl || simrsConfigState.apiUrl);
+          const targetToken = (simrsApiKey && typeof simrsApiKey === 'string' && simrsApiKey.trim() !== '')
+            ? simrsApiKey.trim()
+            : (simrsConfigState.apiKey || '').trim();
+
+          let simrsSync: any = { synced: false, statusText: 'SIMRS belum disetel' };
+          if (targetUrl && targetToken) {
+            try {
+              const rawToken = targetToken.replace(/^Bearer\s+/i, '').trim();
+              const payloadItem = item || {
+                id: menuId,
+                name: 'Menu ' + menuId,
+                stock: newStock,
+                stok: newStock,
+                isAvailable: newStock > 0
+              };
+              const mappedSingle = {
+                id: payloadItem.id,
+                id_menu: payloadItem.id,
+                name: payloadItem.name,
+                nama_menu: payloadItem.name,
+                price: payloadItem.price || 0,
+                harga: payloadItem.price || 0,
+                stock: newStock,
+                stok: newStock,
+                qty_stok: newStock,
+                sisa_stok: newStock,
+                isAvailable: newStock > 0,
+                is_tersedia: newStock > 0,
+                tersedia: newStock > 0,
+              };
+
+              // Push to batch endpoint with items array
+              const batchUrl = resolveSimrsBatchMenuUrl(targetUrl);
+              const batchRes = await fetch(batchUrl, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-AUTH-TOKEN': rawToken,
+                  'Authorization': `Bearer ${rawToken}`,
+                },
+                body: JSON.stringify({
+                  items: [mappedSingle],
+                  menu_items: [mappedSingle],
+                  data: [mappedSingle],
+                }),
+              });
+
+              // Push to single endpoint
+              const singleRes = await fetch(targetUrl, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-AUTH-TOKEN': rawToken,
+                  'Authorization': `Bearer ${rawToken}`,
+                },
+                body: JSON.stringify(mappedSingle),
+              });
+
+              const isSuccess = batchRes.ok || singleRes.ok;
+              simrsSync = {
+                synced: isSuccess,
+                statusText: isSuccess ? 'Tersimpan di SIMRS' : 'Gagal simpan ke SIMRS',
+              };
+            } catch (err: any) {
+              simrsSync = { synced: false, statusText: err.message };
+            }
+          }
+
+          const resultItem = item || { id: menuId, stock: newStock, stok: newStock, isAvailable: newStock > 0 };
+          return res.json({
+            ...resultItem,
+            simrsSync,
+          });
         }
 
         if (method === 'PATCH') {
           const existing = vercelMenuItems.find(m => String(m.id) === String(menuId));
-          const curStock = body.stock !== undefined ? Number(body.stock) : (existing?.stock ?? 50);
+          const curStock = body.stock !== undefined ? Number(body.stock) : (body.stok !== undefined ? Number(body.stok) : (existing?.stock ?? 50));
           const isAvail = isToggle 
             ? !Boolean(body.isAvailable !== undefined ? body.isAvailable : existing?.isAvailable) 
             : Boolean(body.isAvailable !== false);
@@ -1244,7 +1341,72 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
           if (existing) {
             Object.assign(existing, updatedItem);
           }
-          return res.json(updatedItem);
+
+          // Otomatis sinkronkan ke SIMRS
+          const targetUrl = resolveSimrsSingleMenuUrl(body.simrsApiUrl || simrsConfigState.apiUrl);
+          const targetToken = (body.simrsApiKey && typeof body.simrsApiKey === 'string' && body.simrsApiKey.trim() !== '')
+            ? body.simrsApiKey.trim()
+            : (simrsConfigState.apiKey || '').trim();
+
+          let simrsSync: any = { synced: false, statusText: 'SIMRS belum disetel' };
+          if (targetUrl && targetToken) {
+            try {
+              const rawToken = targetToken.replace(/^Bearer\s+/i, '').trim();
+              const mappedSingle = {
+                id: updatedItem.id,
+                id_menu: updatedItem.id,
+                name: updatedItem.name,
+                nama_menu: updatedItem.name,
+                price: updatedItem.price,
+                harga: updatedItem.price,
+                category: updatedItem.category,
+                kategori: updatedItem.category,
+                description: updatedItem.description,
+                deskripsi: updatedItem.description,
+                stock: curStock,
+                stok: curStock,
+                qty_stok: curStock,
+                sisa_stok: curStock,
+                isAvailable: updatedItem.isAvailable,
+                is_tersedia: updatedItem.isAvailable,
+                tersedia: updatedItem.isAvailable,
+              };
+
+              const batchUrl = resolveSimrsBatchMenuUrl(targetUrl);
+              const batchRes = await fetch(batchUrl, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-AUTH-TOKEN': rawToken,
+                  'Authorization': `Bearer ${rawToken}`,
+                },
+                body: JSON.stringify({ items: [mappedSingle], menu_items: [mappedSingle], data: [mappedSingle] }),
+              });
+
+              const singleRes = await fetch(targetUrl, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-AUTH-TOKEN': rawToken,
+                  'Authorization': `Bearer ${rawToken}`,
+                },
+                body: JSON.stringify(mappedSingle),
+              });
+
+              const isSuccess = batchRes.ok || singleRes.ok;
+              simrsSync = {
+                synced: isSuccess,
+                statusText: isSuccess ? 'Tersimpan di SIMRS' : 'Gagal simpan ke SIMRS',
+              };
+            } catch (err: any) {
+              simrsSync = { synced: false, statusText: err.message };
+            }
+          }
+
+          return res.json({
+            ...updatedItem,
+            simrsSync,
+          });
         }
 
         if (method === 'DELETE') {

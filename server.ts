@@ -414,7 +414,14 @@ export async function autoFetchSimrsMenuFromServer(overrideUrl?: string, overrid
         const hasRealExistingImage = Boolean(existing?.image && typeof existing.image === 'string' && existing.image.length > 15 && !existing.image.includes('unsplash.com'));
         const hasRealNewImage = Boolean(newMenu.image && typeof newMenu.image === 'string' && newMenu.image.length > 15 && !newMenu.image.includes('unsplash.com'));
         const finalImage = hasRealNewImage ? newMenu.image : (hasRealExistingImage ? existing!.image : (newMenu.image || existing?.image));
-        const finalStock = newMenu.stock !== undefined ? newMenu.stock : (existing?.stock ?? 50);
+        let finalStock = existing?.stock ?? 50;
+        if (newMenu.stock !== undefined && newMenu.stock !== null) {
+          if (newMenu.stock !== 50 || existing?.stock === undefined) {
+            finalStock = newMenu.stock;
+          } else {
+            finalStock = existing.stock;
+          }
+        }
         // Menu HANYA bisa dipesan jika di response SIMRS isAvailable/tersedia bernilai true DAN stok > 0
         const finalIsAvailable = newMenu.isAvailable && (finalStock > 0);
         return {
@@ -1486,14 +1493,17 @@ async function startServer() {
     if (!item) {
       return res.status(404).json({ error: 'Menu tidak ditemukan' });
     }
-    const { stock, delta } = req.body;
+    const { stock, stok, delta, simrsApiUrl, simrsApiKey } = req.body;
     let newStock = item.stock ?? 50;
     if (stock !== undefined) {
       newStock = Math.max(0, Number(stock) || 0);
+    } else if (stok !== undefined) {
+      newStock = Math.max(0, Number(stok) || 0);
     } else if (delta !== undefined) {
       newStock = Math.max(0, newStock + (Number(delta) || 0));
     }
     item.stock = newStock;
+    (item as any).stok = newStock;
     item.isAvailable = newStock > 0; // Jika stok 0, otomatis ketersediaan false
 
     savePersistentMenuItems(menuItems);
@@ -1501,11 +1511,41 @@ async function startServer() {
     broadcastEvent('init', { orders, menuItems });
 
     // Auto-sync ke SIMRS
-    if (simrsSettings.apiUrl) {
-      syncSingleMenuToSimrs(item).catch(() => {});
+    let simrsSyncResult: any = { synced: false, statusText: 'SIMRS belum disetel' };
+    const targetUrl = resolveSimrsSingleMenuUrl(simrsApiUrl || simrsSettings.apiUrl);
+    const targetToken = (simrsApiKey && typeof simrsApiKey === 'string' && simrsApiKey.trim() !== '')
+      ? simrsApiKey.trim()
+      : (simrsSettings.apiKey || '').trim();
+
+    if (targetUrl) {
+      try {
+        const singleRes = await syncSingleMenuToSimrs(item, targetUrl, targetToken);
+        const batchUrl = resolveSimrsBatchMenuUrl(targetUrl);
+        const mappedOne = mapMenuItemForSimrs(item);
+        fetch(batchUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-AUTH-TOKEN': targetToken.replace(/^Bearer\s+/i, '').trim(),
+            'Authorization': `Bearer ${targetToken.replace(/^Bearer\s+/i, '').trim()}`,
+          },
+          body: JSON.stringify({ items: [mappedOne], menu_items: [mappedOne], data: [mappedOne] }),
+        }).catch(() => {});
+
+        simrsSyncResult = {
+          synced: singleRes.success,
+          statusText: singleRes.success ? 'Tersimpan di SIMRS' : (singleRes.error || 'Gagal ke SIMRS'),
+          data: singleRes.data,
+        };
+      } catch (err: any) {
+        simrsSyncResult = { synced: false, statusText: err.message };
+      }
     }
 
-    res.json(item);
+    res.json({
+      ...item,
+      simrsSync: simrsSyncResult,
+    });
   });
 
   // Admin: Delete Menu Item
@@ -2069,14 +2109,24 @@ app.post('/api/simrs/sync-menu', async (req, res) => {
       ? clientItems
       : (Array.isArray(alternativeItems) && alternativeItems.length > 0 ? alternativeItems : null);
 
+    let itemsToSync = menuItems;
     if (incomingItems) {
-      menuItems = incomingItems.map(mapMenuItemForSimrs);
+      const mappedIncoming = incomingItems.map(mapMenuItemForSimrs);
+      for (const inc of mappedIncoming) {
+        const idx = menuItems.findIndex(m => String(m.id) === String(inc.id) || m.name.toLowerCase().trim() === inc.name.toLowerCase().trim());
+        if (idx !== -1) {
+          menuItems[idx] = { ...menuItems[idx], ...inc };
+        } else {
+          menuItems.push(inc);
+        }
+      }
       savePersistentMenuItems(menuItems);
       broadcastEvent('init', { orders, menuItems });
+      itemsToSync = mappedIncoming;
     }
 
     const startTime = Date.now();
-    const result = await syncMenuToSimrs(menuItems, rawTargetUrl, targetToken);
+    const result = await syncMenuToSimrs(itemsToSync, rawTargetUrl, targetToken);
     const latency = Date.now() - startTime;
 
     if (result.success) {

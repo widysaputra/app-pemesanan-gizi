@@ -536,6 +536,7 @@ export class HospitalRealtimeService {
       if (res.ok) {
         const item = await res.json();
         if (item && typeof item === 'object' && item.id && item.name) {
+          const resStock = item.stock !== undefined ? Number(item.stock) : (updates.stock !== undefined ? Number(updates.stock) : (updates.stok !== undefined ? Number(updates.stok) : undefined));
           const sanitizedItem: MenuItem = {
             id: String(item.id),
             name: String(item.name),
@@ -548,8 +549,9 @@ export class HospitalRealtimeService {
             fat: Number(item.fat) || 0,
             sodium: Number(item.sodium) || 0,
             description: String(item.description || ''),
-            stock: item.stock !== undefined ? item.stock : updates.stock,
-            isAvailable: item.isAvailable !== false,
+            stock: resStock,
+            stok: resStock,
+            isAvailable: item.isAvailable !== false && (resStock === undefined || resStock > 0),
             image: item.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
             simrsSync: item.simrsSync,
           };
@@ -576,7 +578,7 @@ export class HospitalRealtimeService {
     const updatedMenu = currentMenu.map(m => {
       if (isTarget(m)) {
         const resolvedImage = updates.image ?? (updates as any).foto_url ?? (updates as any).gambar_url ?? m.image;
-        const newStock = updates.stock !== undefined ? updates.stock : m.stock;
+        const newStock = updates.stock !== undefined ? Number(updates.stock) : (updates.stok !== undefined ? Number(updates.stok) : m.stock);
         const newAvail = updates.isAvailable !== undefined ? Boolean(updates.isAvailable) : (newStock !== undefined ? newStock > 0 : m.isAvailable);
         updatedItem = {
           ...m,
@@ -588,6 +590,7 @@ export class HospitalRealtimeService {
           category: updates.category || m.category,
           mealTimes: updates.mealTimes || m.mealTimes,
           stock: newStock,
+          stok: newStock,
           isAvailable: newAvail && (newStock === undefined || newStock > 0),
           image: resolvedImage ? String(resolvedImage).trim() : m.image,
         };
@@ -608,22 +611,28 @@ export class HospitalRealtimeService {
   async updateMenuStock(menuId: string, stock: number): Promise<MenuItem> {
     const finalStock = Math.max(0, Number(stock) || 0);
     const isAvailable = finalStock > 0;
+    const simrsConfig = getLocalSimrsConfig();
     try {
       const res = await fetch(`/api/menu/${menuId}/stock`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stock: finalStock }),
+        body: JSON.stringify({ 
+          stock: finalStock, 
+          stok: finalStock,
+          simrsApiUrl: simrsConfig.apiUrl,
+          simrsApiKey: simrsConfig.apiKey,
+        }),
       });
       if (res.ok) {
         const item = await res.json();
         if (item && item.id) {
-          return this.updateMenuItem(menuId, { stock: finalStock, isAvailable });
+          return this.updateMenuItem(menuId, { stock: finalStock, stok: finalStock, isAvailable, simrsSync: item.simrsSync });
         }
       }
     } catch {
       // Fallback to local update
     }
-    return this.updateMenuItem(menuId, { stock: finalStock, isAvailable });
+    return this.updateMenuItem(menuId, { stock: finalStock, stok: finalStock, isAvailable });
   }
 
   async toggleMenuItem(menuId: string): Promise<MenuItem> {
@@ -1797,7 +1806,19 @@ export class HospitalRealtimeService {
           const hasRealExistingImage = Boolean(existing.image && typeof existing.image === 'string' && existing.image.length > 15 && !existing.image.includes('unsplash.com'));
           const hasRealSimrsImage = Boolean(simrsMenu.image && typeof simrsMenu.image === 'string' && simrsMenu.image.length > 15 && !simrsMenu.image.includes('unsplash.com'));
           const finalImage = hasRealSimrsImage ? simrsMenu.image : (hasRealExistingImage ? existing.image : (simrsMenu.image || existing.image));
-          const finalStock = simrsMenu.stock !== undefined ? simrsMenu.stock : (existing.stock ?? 50);
+          
+          // Preservasi stok yang diedit admin:
+          // Jika SIMRS mengembalikan nilai default 50 sementara admin lokal sudah mengubah angka stoknya,
+          // pertahankan angka stok admin agar tidak ter-reset menjadi 50 saat menekan sinkronisasi.
+          let finalStock = existing.stock ?? 50;
+          if (simrsMenu.stock !== undefined && simrsMenu.stock !== null) {
+            if (simrsMenu.stock !== 50 || existing.stock === undefined) {
+              finalStock = simrsMenu.stock;
+            } else {
+              finalStock = existing.stock;
+            }
+          }
+
           merged[existingIdx] = {
             ...existing,
             ...simrsMenu,
@@ -1922,6 +1943,7 @@ export class HospitalRealtimeService {
             apiKey: targetToken,
             isSingle: isSingleMenuEndpoint,
             menuItems: currentChunk,
+            items: currentChunk,
           }),
         });
 

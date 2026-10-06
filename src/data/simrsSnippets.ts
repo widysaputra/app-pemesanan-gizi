@@ -78,10 +78,15 @@ export const SQL_MASTER_MENU_TABLE = `-- =======================================
 -- Lengkap dengan Informasi Nutrisi (Kalori, Protein, Karbohidrat, Lemak, Natrium)
 -- ====================================================================
 
--- PERINTAH CEPAT (Bila tabel master_menu_gizi_m sudah ada):
+-- PERINTAH CEPAT (Bila tabel master menu sudah ada):
+ALTER TABLE IF EXISTS rego_master_menu_gizi_m ADD COLUMN IF NOT EXISTS foto_url TEXT;
+ALTER TABLE IF EXISTS rego_master_menu_gizi_m ADD COLUMN IF NOT EXISTS gambar_url TEXT;
+ALTER TABLE IF EXISTS rego_master_menu_gizi_m ADD COLUMN IF NOT EXISTS stok INT DEFAULT 50;
+ALTER TABLE IF EXISTS rego_master_menu_gizi_m ADD COLUMN IF NOT EXISTS stock INT DEFAULT 50;
 ALTER TABLE IF EXISTS master_menu_gizi_m ADD COLUMN IF NOT EXISTS foto_url TEXT;
 ALTER TABLE IF EXISTS master_menu_gizi_m ADD COLUMN IF NOT EXISTS gambar_url TEXT;
 ALTER TABLE IF EXISTS master_menu_gizi_m ADD COLUMN IF NOT EXISTS stok INT DEFAULT 50;
+ALTER TABLE IF EXISTS master_menu_gizi_m ADD COLUMN IF NOT EXISTS stock INT DEFAULT 50;
 
 CREATE TABLE IF NOT EXISTS master_menu_gizi_m (
     id_menu VARCHAR(50) PRIMARY KEY,
@@ -625,6 +630,228 @@ class EMRController extends Controller
             return response()->json([
                 "status"  => "error",
                 "message" => "Gagal menyimpan pesanan ke rego_pesanan_gizi_t: " . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * GET /service/medifirst2000/emr/master-menu-gizi
+     * Mengambil daftar seluruh master menu gizi dari PostgreSQL
+     */
+    public function getMasterMenuGizi(Request $request)
+    {
+        $authError = $this->checkAuthToken($request);
+        if ($authError) return $authError;
+
+        try {
+            $tableName = \\Illuminate\\Support\\Facades\\Schema::hasTable("rego_master_menu_gizi_m") 
+                ? "rego_master_menu_gizi_m" 
+                : "master_menu_gizi_m";
+
+            $query = \\DB::table($tableName);
+            $rawMenus = $query->orderBy("id_menu", "asc")->get();
+
+            $formatted = [];
+            foreach ($rawMenus as $item) {
+                $rawAvail = $item->tersedia ?? ($item->is_tersedia ?? ($item->status ?? true));
+                $isAvail = filter_var($rawAvail, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+                if ($isAvail === null) {
+                    $isAvail = in_array(strtolower((string)$rawAvail), ["1", "t", "true", "yes", "tersedia", "ada"], true);
+                }
+
+                $stokVal = (int)($item->stok ?? ($item->stock ?? 50));
+
+                $waktuMakan = ["pagi", "siang", "malam"];
+                if (!empty($item->waktu_makan)) {
+                    $decoded = json_decode($item->waktu_makan, true);
+                    if (is_array($decoded)) $waktuMakan = $decoded;
+                    elseif (is_string($item->waktu_makan)) $waktuMakan = array_map("trim", explode(",", $item->waktu_makan));
+                }
+
+                $formatted[] = [
+                    "id"          => (string)($item->id_menu ?? ($item->menu_id ?? ($item->id ?? "menu"))),
+                    "name"        => (string)($item->nama_menu ?? ($item->name ?? "Menu")),
+                    "description" => (string)($item->deskripsi ?? ($item->description ?? "")),
+                    "category"    => (string)($item->kategori ?? ($item->category ?? "makanan_utama")),
+                    "price"       => (int)($item->harga ?? ($item->price ?? 0)),
+                    "calories"    => (int)($item->kalori ?? ($item->calories ?? 0)),
+                    "protein"     => (float)($item->protein ?? 0),
+                    "carbs"       => (float)($item->karbohidrat ?? ($item->carbs ?? 0)),
+                    "fat"         => (float)($item->lemak ?? ($item->fat ?? 0)),
+                    "sodium"      => (float)($item->natrium ?? ($item->sodium ?? 0)),
+                    "mealTimes"   => $waktuMakan,
+                    "isAvailable" => $isAvail && ($stokVal > 0),
+                    "is_tersedia" => $isAvail && ($stokVal > 0),
+                    "tersedia"    => $isAvail && ($stokVal > 0),
+                    "stok"        => $stokVal,
+                    "stock"       => $stokVal,
+                    "foto_url"    => (string)($item->foto_url ?? ($item->gambar_url ?? ($item->image ?? ""))),
+                    "image"       => (string)($item->foto_url ?? ($item->gambar_url ?? ($item->image ?? ""))),
+                ];
+            }
+
+            return response()->json([
+                "status"  => "success",
+                "message" => "Berhasil mengambil master menu dari SIMRS",
+                "total"   => count($formatted),
+                "data"    => $formatted
+            ], 200);
+
+        } catch (\\Exception $e) {
+            return response()->json([
+                "status"  => "error",
+                "message" => "Gagal mengambil master menu: " . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * POST /service/medifirst2000/emr/save-master-menu
+     * Simpan / update 1 master menu dan STOK KE DATABASE POSTGRESQL
+     */
+    public function saveMasterMenu(Request $request)
+    {
+        $authError = $this->checkAuthToken($request);
+        if ($authError) return $authError;
+
+        $idMenu = $request->input("id") ?? ($request->input("id_menu") ?? $request->input("kd_menu"));
+        $nama   = $request->input("name") ?? ($request->input("nama_menu") ?? $request->input("nama"));
+
+        if (!$idMenu || !$nama) {
+            return response()->json([
+                "status"  => "error",
+                "message" => "Parameter id dan name menu wajib disertakan."
+            ], 400);
+        }
+
+        try {
+            $tableName = \\Illuminate\\Support\\Facades\\Schema::hasTable("rego_master_menu_gizi_m") 
+                ? "rego_master_menu_gizi_m" 
+                : "master_menu_gizi_m";
+            
+            $pkCol = \\Illuminate\\Support\\Facades\\Schema::hasColumn($tableName, "id_menu") ? "id_menu" : "id";
+
+            $rawAvail = $request->input("isAvailable", $request->input("is_tersedia", $request->input("tersedia", true)));
+            $isAvail = filter_var($rawAvail, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            if ($isAvail === null) {
+                $isAvail = in_array(strtolower((string)$rawAvail), ["1", "t", "true", "yes", "tersedia", "ada"], true);
+            }
+
+            $stokVal = (int)($request->input("stock", $request->input("stok", $request->input("qty_stok", $request->input("sisa_stok", 50)))));
+
+            $data = [
+                "nama_menu"   => $nama,
+                "kategori"    => (string)$request->input("category", $request->input("kategori", "makanan_utama")),
+                "harga"       => (int)$request->input("price", $request->input("harga", 0)),
+                "kalori"      => (int)$request->input("calories", $request->input("kalori", 0)),
+                "protein"     => (float)$request->input("protein", 0),
+                "karbohidrat" => (float)$request->input("carbs", $request->input("karbohidrat", 0)),
+                "lemak"       => (float)$request->input("fat", $request->input("lemak", 0)),
+                "natrium"     => (float)$request->input("sodium", $request->input("natrium", 0)),
+                "deskripsi"   => (string)$request->input("description", $request->input("deskripsi", "")),
+                "foto_url"    => (string)$request->input("foto_url", $request->input("image", $request->input("gambar_url", ""))),
+                "is_tersedia" => $isAvail && ($stokVal > 0),
+                "tersedia"    => $isAvail && ($stokVal > 0),
+                "updated_at"  => date("Y-m-d H:i:s")
+            ];
+
+            // Update kolom stok dan stock jika kolom tersedia di PostgreSQL
+            if (\\Illuminate\\Support\\Facades\\Schema::hasColumn($tableName, "stok")) {
+                $data["stok"] = $stokVal;
+            }
+            if (\\Illuminate\\Support\\Facades\\Schema::hasColumn($tableName, "stock")) {
+                $data["stock"] = $stokVal;
+            }
+
+            \\DB::table($tableName)->updateOrInsert([$pkCol => $idMenu], $data);
+
+            return response()->json([
+                "status"   => "success",
+                "message"  => "Master menu berhasil disimpan.",
+                "menu_id"  => $idMenu,
+                "stok"     => $stokVal
+            ], 200);
+
+        } catch (\\Exception $e) {
+            return response()->json([
+                "status"  => "error",
+                "message" => "Gagal menyimpan master menu: " . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * POST /service/medifirst2000/emr/sync-batch-menu
+     * Sinkronisasi massal seluruh menu dan STOK KE DATABASE POSTGRESQL
+     */
+    public function syncBatchMenu(Request $request)
+    {
+        $authError = $this->checkAuthToken($request);
+        if ($authError) return $authError;
+
+        $items = $request->input("items") ?? ($request->input("menu_items") ?? []);
+        if (empty($items) || !is_array($items)) {
+            return response()->json([
+                "status"  => "error",
+                "message" => "Parameter items (array list menu) wajib disertakan."
+            ], 400);
+        }
+
+        try {
+            $tableName = \\Illuminate\\Support\\Facades\\Schema::hasTable("rego_master_menu_gizi_m") 
+                ? "rego_master_menu_gizi_m" 
+                : "master_menu_gizi_m";
+            
+            $pkCol = \\Illuminate\\Support\\Facades\\Schema::hasColumn($tableName, "id_menu") ? "id_menu" : "id";
+            $hasStok = \\Illuminate\\Support\\Facades\\Schema::hasColumn($tableName, "stok");
+            $hasStock = \\Illuminate\\Support\\Facades\\Schema::hasColumn($tableName, "stock");
+
+            $synced = 0;
+            foreach ($items as $it) {
+                $id = $it["id"] ?? ($it["id_menu"] ?? ($it["kd_menu"] ?? null));
+                $nama = $it["name"] ?? ($it["nama_menu"] ?? ($it["nama"] ?? null));
+                if (!$id || !$nama) continue;
+
+                $stokVal = (int)($it["stock"] ?? ($it["stok"] ?? ($it["qty_stok"] ?? ($it["sisa_stok"] ?? 50))));
+                $rawAvail = $it["isAvailable"] ?? ($it["is_tersedia"] ?? ($it["tersedia"] ?? true));
+                $isAvail = filter_var($rawAvail, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+                if ($isAvail === null) {
+                    $isAvail = in_array(strtolower((string)$rawAvail), ["1", "t", "true", "yes", "tersedia", "ada"], true);
+                }
+
+                $row = [
+                    "nama_menu"   => $nama,
+                    "kategori"    => (string)($it["category"] ?? ($it["kategori"] ?? "makanan_utama")),
+                    "harga"       => (int)($it["price"] ?? ($it["harga"] ?? 0)),
+                    "kalori"      => (int)($it["calories"] ?? ($it["kalori"] ?? 0)),
+                    "protein"     => (float)($it["protein"] ?? 0),
+                    "karbohidrat" => (float)($it["carbs"] ?? ($it["karbohidrat"] ?? 0)),
+                    "lemak"       => (float)($it["fat"] ?? ($it["lemak"] ?? 0)),
+                    "natrium"     => (float)($it["sodium"] ?? ($it["natrium"] ?? 0)),
+                    "deskripsi"   => (string)($it["description"] ?? ($it["deskripsi"] ?? "")),
+                    "foto_url"    => (string)($it["foto_url"] ?? ($it["image"] ?? ($it["gambar_url"] ?? ""))),
+                    "is_tersedia" => $isAvail && ($stokVal > 0),
+                    "tersedia"    => $isAvail && ($stokVal > 0),
+                    "updated_at"  => date("Y-m-d H:i:s")
+                ];
+
+                if ($hasStok) $row["stok"] = $stokVal;
+                if ($hasStock) $row["stock"] = $stokVal;
+
+                \\DB::table($tableName)->updateOrInsert([$pkCol => $id], $row);
+                $synced++;
+            }
+
+            return response()->json([
+                "status"       => "success",
+                "message"      => "Berhasil menyinkronkan {$synced} menu gizi.",
+                "total_synced" => $synced
+            ], 200);
+
+        } catch (\\Exception $e) {
+            return response()->json([
+                "status"  => "error",
+                "message" => "Gagal sinkronisasi batch menu: " . $e->getMessage()
             ], 500);
         }
     }

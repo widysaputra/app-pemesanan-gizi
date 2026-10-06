@@ -363,6 +363,7 @@ export const MenuEditModal: React.FC<MenuEditModalProps> = ({
         description: description.trim(),
         image: image.trim(),
         stock: parsedStock,
+        stok: parsedStock,
         isAvailable: effectiveAvail,
       });
       onClose();

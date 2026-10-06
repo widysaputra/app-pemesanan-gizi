@@ -440,7 +440,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const finalStock = Math.max(0, quickStockValue);
     setQuickStockEditId(null);
     try {
-      await realtimeService.updateMenuStock(id, finalStock);
+      const res = await realtimeService.updateMenuStock(id, finalStock);
+      if (res.simrsSync) {
+        setMenuSyncNotice({
+          success: res.simrsSync.synced,
+          text: res.simrsSync.synced
+            ? `Stok "${res.name}" berhasil diubah menjadi ${finalStock} porsi & tersimpan di SIMRS!`
+            : `Stok "${res.name}" diubah (${finalStock} porsi). SIMRS: ${res.simrsSync.statusText}`,
+        });
+      }
     } catch (err) {
       console.warn('Gagal update stok menu:', err);
     }
