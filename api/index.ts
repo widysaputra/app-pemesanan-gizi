@@ -1278,11 +1278,18 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
                 stok: newStock,
                 isAvailable: newStock > 0
               };
+              const itemPrice = Number((payloadItem as any).price ?? (payloadItem as any).harga ?? 0);
               const mappedSingle = {
                 id: payloadItem.id,
                 id_menu: payloadItem.id,
+                menu_id: payloadItem.id,
+                kd_menu: payloadItem.id,
                 name: payloadItem.name,
                 nama_menu: payloadItem.name,
+                nama: payloadItem.name,
+                price: itemPrice,
+                harga: itemPrice,
+                harga_satuan: itemPrice,
                 stock: newStock,
                 stok: newStock,
                 qty_stok: newStock,

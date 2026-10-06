@@ -636,6 +636,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       const stockItems = menuItems.map(m => ({
         id: m.id,
         name: m.name,
+        price: m.price,
+        harga: m.price,
         stock: getItemStock(m),
       }));
       const res = await realtimeService.syncMenuStockToSimrs(
@@ -673,7 +675,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const stockVal = getItemStock(item);
     try {
       const res = await realtimeService.syncMenuStockToSimrs(
-        [{ id: item.id, name: item.name, stock: stockVal }],
+        [{ id: item.id, name: item.name, price: item.price, harga: item.price, stock: stockVal }],
         simrsApiUrl.trim() || undefined,
         simrsApiKey.trim() || undefined
       );

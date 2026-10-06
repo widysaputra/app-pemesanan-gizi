@@ -1145,12 +1145,19 @@ async function syncMenuToSimrs(
           ? Math.max(0, it.stock ?? (it as any).stok)
           : Math.max(0, parseInt(String(it.stock ?? (it as any).stok ?? 50), 10) || 0);
         const nameVal = String(it.name || (it as any).nama_menu || (it as any).nama || 'Menu');
+        const priceVal = parsePgNumber(it.price ?? (it as any).harga ?? 0);
+        const itemId = String(it.id || (it as any).id_menu || (it as any).menu_id || '');
         return {
-          id: String(it.id || (it as any).id_menu || ''),
-          id_menu: String(it.id || (it as any).id_menu || ''),
+          id: itemId,
+          id_menu: itemId,
+          menu_id: itemId,
+          kd_menu: itemId,
           name: nameVal,
           nama: nameVal,
           nama_menu: nameVal,
+          price: priceVal,
+          harga: priceVal,
+          harga_satuan: priceVal,
           stok: stockVal,
           stock: stockVal,
           qty_stok: stockVal,
@@ -1568,12 +1575,18 @@ async function startServer() {
 
     if (targetUrl) {
       try {
+        const itemPrice = parsePgNumber(item.price ?? (item as any).harga ?? 0);
         const stockPayload = {
           id: item.id,
           id_menu: item.id,
+          menu_id: item.id,
+          kd_menu: item.id,
           name: item.name,
           nama: item.name,
           nama_menu: item.name,
+          price: itemPrice,
+          harga: itemPrice,
+          harga_satuan: itemPrice,
           stok: newStock,
           stock: newStock,
           qty_stok: newStock,

@@ -2050,7 +2050,7 @@ export class HospitalRealtimeService {
    * Dapat dipanggil untuk SATU MENU yang diedit, atau BANYAK MENU sekaligus.
    */
   async syncMenuStockToSimrs(
-    itemsToSync: Array<{ id: string; stock: number; name?: string }>,
+    itemsToSync: Array<{ id: string; stock: number; name?: string; price?: number; harga?: number; [key: string]: any }>,
     apiUrl?: string,
     apiKey?: string
   ): Promise<{
@@ -2080,15 +2080,21 @@ export class HospitalRealtimeService {
     const syncUrl = resolveSimrsBatchMenuUrl(targetUrl);
     const start = Date.now();
 
-    // Format payload minimal: hanya id, nama (identifikasi), dan stok
+    // Format payload: sertakan id, nama, stok, dan harga agar aman dari penimpaan harga 0 di SIMRS
     const minimalPayload = itemsToSync.map(m => {
       const stockVal = Math.max(0, Number(m.stock) || 0);
+      const priceVal = Number((m as any).price ?? (m as any).harga ?? 0);
       return {
         id: m.id,
         id_menu: m.id,
+        menu_id: m.id,
+        kd_menu: m.id,
         name: m.name || 'Menu',
         nama: m.name || 'Menu',
         nama_menu: m.name || 'Menu',
+        price: priceVal,
+        harga: priceVal,
+        harga_satuan: priceVal,
         stok: stockVal,
         stock: stockVal,
         qty_stok: stockVal,
