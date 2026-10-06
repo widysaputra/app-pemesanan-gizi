@@ -179,9 +179,12 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
 
   // Filtered Menu Items
   const filteredMenu = useMemo(() => {
+    const seen = new Set<string>();
     return (menuItems || [])
       .filter((item): item is MenuItem => Boolean(item && item.id && item.name))
       .filter((item) => {
+        if (seen.has(item.id)) return false;
+        seen.add(item.id);
         // Must match meal time filter if active
         const times = Array.isArray(item.mealTimes) && item.mealTimes.length > 0 ? item.mealTimes : ['pagi', 'siang', 'malam', 'snack'];
         const matchMealTime = mealTimeFilter === 'all' || times.includes(mealTimeFilter as MealTime) || times.includes(mealTime);

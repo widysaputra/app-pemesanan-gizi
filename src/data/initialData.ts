@@ -17,6 +17,20 @@ if (typeof window !== 'undefined') {
   } catch {}
 }
 
+export function deduplicateMenuItems(items: MenuItem[]): MenuItem[] {
+  const seen = new Set<string>();
+  const result: MenuItem[] = [];
+  for (const item of items || []) {
+    if (!item || !item.id) continue;
+    const cleanId = String(item.id).trim();
+    if (!seen.has(cleanId)) {
+      seen.add(cleanId);
+      result.push({ ...item, id: cleanId });
+    }
+  }
+  return result;
+}
+
 export function getLocalCachedMenu(): MenuItem[] {
   if (typeof window === 'undefined') return INITIAL_MENU;
   try {
@@ -24,7 +38,7 @@ export function getLocalCachedMenu(): MenuItem[] {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed
+        const mapped = parsed
           .filter((item) => item && typeof item === 'object' && item.id && item.name)
           .map((item) => {
             const hasStock = item.stock !== undefined || item.stok !== undefined;
@@ -48,6 +62,7 @@ export function getLocalCachedMenu(): MenuItem[] {
               stok: stockVal,
             };
           });
+        return deduplicateMenuItems(mapped);
       }
     }
   } catch {
@@ -59,7 +74,8 @@ export function getLocalCachedMenu(): MenuItem[] {
 export function saveLocalCachedMenu(menu: MenuItem[]): void {
   if (typeof window === 'undefined') return;
   try {
-    const valid = (menu || [])
+    const deduped = deduplicateMenuItems(menu || []);
+    const valid = deduped
       .filter((m) => m && typeof m === 'object' && m.id && m.name)
       .map((m) => {
         const hasStock = m.stock !== undefined || m.stok !== undefined;

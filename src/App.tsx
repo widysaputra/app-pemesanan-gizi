@@ -6,7 +6,7 @@ import {
   OrderStatus 
 } from './types';
 import { realtimeService } from './services/api';
-import { saveLocalCachedMenu, saveLocalCachedOrders } from './data/initialData';
+import { saveLocalCachedMenu, saveLocalCachedOrders, deduplicateMenuItems } from './data/initialData';
 import { playHospitalChime } from './utils/audio';
 import { PatientDashboard } from './components/PatientDashboard';
 import { AdminDashboard } from './components/AdminDashboard';
@@ -73,7 +73,7 @@ export default function App() {
   const loadData = useCallback(async () => {
     try {
       // 1. Tampilkan cache lokal segera agar UI langsung muncul tanpa jeda
-      const localMenu = realtimeService.getLocalMenu();
+      const localMenu = deduplicateMenuItems(realtimeService.getLocalMenu());
       const localOrders = realtimeService.getLocalOrders();
       if (localMenu.length > 0) setMenuItems(localMenu);
       if (localOrders.length > 0) {
@@ -86,9 +86,9 @@ export default function App() {
         realtimeService.getOrders().catch(() => realtimeService.getLocalOrders()),
       ]);
 
-      const validMenu = (Array.isArray(fetchedMenu) && fetchedMenu.length > 0)
+      const validMenu = deduplicateMenuItems((Array.isArray(fetchedMenu) && fetchedMenu.length > 0)
         ? fetchedMenu 
-        : realtimeService.getLocalMenu();
+        : realtimeService.getLocalMenu());
       const validOrders = Array.isArray(fetchedOrders) ? fetchedOrders : realtimeService.getLocalOrders();
 
       setMenuItems(validMenu);
@@ -101,8 +101,9 @@ export default function App() {
       // 3. Otomatis sinkronisasi menu & riwayat pesanan terbaru dari SIMRS di latar belakang
       realtimeService.fetchMenuFromSimrs().then((simrsRes) => {
         if (simrsRes && simrsRes.success && Array.isArray(simrsRes.data) && simrsRes.data.length > 0) {
-          setMenuItems(simrsRes.data);
-          saveLocalCachedMenu(simrsRes.data);
+          const dedupedSimrs = deduplicateMenuItems(simrsRes.data);
+          setMenuItems(dedupedSimrs);
+          saveLocalCachedMenu(dedupedSimrs);
         }
       }).catch((e) => console.log('[Auto-Sync SIMRS Menu]:', e));
 
@@ -174,8 +175,9 @@ export default function App() {
           });
         }
         if (Array.isArray(event.data?.menuItems) && event.data.menuItems.length > 0) {
-          setMenuItems(event.data.menuItems);
-          saveLocalCachedMenu(event.data.menuItems);
+          const dedupedInit = deduplicateMenuItems(event.data.menuItems);
+          setMenuItems(dedupedInit);
+          saveLocalCachedMenu(dedupedInit);
         }
       } else if (event.type === 'orders_sync') {
         if (Array.isArray(event.data?.orders) && event.data.orders.length > 0) {
@@ -268,8 +270,9 @@ export default function App() {
               updated = [item, ...list];
             }
           }
-          saveLocalCachedMenu(updated);
-          return updated;
+          const finalDeduped = deduplicateMenuItems(updated);
+          saveLocalCachedMenu(finalDeduped);
+          return finalDeduped;
         });
       } else if (event.type === 'order_deleted') {
         const deletedId = event.data.id;

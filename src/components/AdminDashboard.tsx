@@ -59,7 +59,8 @@ import {
   Printer,
   Save,
   X,
-  Package
+  Package,
+  Zap
 } from 'lucide-react';
 import {
   SQL_PESANAN_GIZI_TABLE,
@@ -235,6 +236,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [orderSyncNotice, setOrderSyncNotice] = useState<{ id: string; success: boolean; text: string; rawResponse?: any; httpStatus?: number } | null>(null);
   const [activeSqlTab, setActiveSqlTab] = useState<'pesanan_gizi' | 'emr_controller' | 'master_menu' | 'routes' | 'controller' | 'json_payload' | 'mmpi'>('emr_controller');
   const [isSyncingMenu, setIsSyncingMenu] = useState<boolean>(false);
+  const [syncingStockId, setSyncingStockId] = useState<string | null>(null);
   const [menuSyncNotice, setMenuSyncNotice] = useState<{ success: boolean; text: string; count?: number; latency?: string } | null>(null);
 
   // Admin Password Management State
@@ -326,9 +328,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // Filtered Menu Items
   const filteredMenuItems = useMemo(() => {
+    const seen = new Set<string>();
     return (menuItems || [])
       .filter((item): item is MenuItem => Boolean(item && item.id && item.name))
       .filter((item) => {
+        if (seen.has(item.id)) return false;
+        seen.add(item.id);
         const matchCat = selectedCategory === 'all' || item.category === selectedCategory;
         const itemName = (item.name || '').toLowerCase();
         const itemDesc = (item.description || '').toLowerCase();
@@ -623,6 +628,76 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
+  // Handler sinkronisasi stok saja ke SIMRS (Payload ringan: hanya id, nama, & stok)
+  const handleSyncStockOnlyToSimrs = async () => {
+    setIsSyncingMenu(true);
+    setMenuSyncNotice(null);
+    try {
+      const stockItems = menuItems.map(m => ({
+        id: m.id,
+        name: m.name,
+        stock: getItemStock(m),
+      }));
+      const res = await realtimeService.syncMenuStockToSimrs(
+        stockItems,
+        simrsApiUrl.trim() || undefined,
+        simrsApiKey.trim() || undefined
+      );
+      if (res.success) {
+        setMenuSyncNotice({
+          success: true,
+          text: res.message || `Berhasil menyinkronkan stok ${stockItems.length} menu ke SIMRS (${res.latency})!`,
+          count: stockItems.length,
+          latency: res.latency,
+        });
+      } else {
+        setMenuSyncNotice({
+          success: false,
+          text: res.error || 'Gagal menyinkronkan stok ke SIMRS.',
+        });
+      }
+    } catch (err: any) {
+      setMenuSyncNotice({
+        success: false,
+        text: err.message || 'Gagal sinkron stok ke SIMRS.',
+      });
+    } finally {
+      setIsSyncingMenu(false);
+    }
+  };
+
+  // Handler sinkronisasi 1 menu item stok ke SIMRS (Instant & Granular)
+  const handleSyncSingleStock = async (item: MenuItem) => {
+    setSyncingStockId(item.id);
+    setMenuSyncNotice(null);
+    const stockVal = getItemStock(item);
+    try {
+      const res = await realtimeService.syncMenuStockToSimrs(
+        [{ id: item.id, name: item.name, stock: stockVal }],
+        simrsApiUrl.trim() || undefined,
+        simrsApiKey.trim() || undefined
+      );
+      if (res.success) {
+        setMenuSyncNotice({
+          success: true,
+          text: `Stok "${item.name}" (${stockVal} porsi) berhasil disinkronkan ke SIMRS (${res.latency || 'ok'})!`,
+        });
+      } else {
+        setMenuSyncNotice({
+          success: false,
+          text: res.error || `Gagal sinkron stok "${item.name}" ke SIMRS`,
+        });
+      }
+    } catch (err: any) {
+      setMenuSyncNotice({
+        success: false,
+        text: `Error saat sinkron: ${err.message}`,
+      });
+    } finally {
+      setSyncingStockId(null);
+    }
+  };
+
   const handleSyncAllMenuToSimrs = async () => {
     setIsSyncingMenu(true);
     setMenuSyncNotice(null);
@@ -853,14 +928,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               )}
 
               <button
+                onClick={handleSyncStockOnlyToSimrs}
+                disabled={isSyncingMenu || menuItems.length === 0}
+                type="button"
+                className="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold rounded-xl border border-amber-300 shadow-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+                title="Hanya kirim ID dan Stok seluruh menu ke SIMRS (Payload ringan & cepat)"
+              >
+                <Zap className="w-3.5 h-3.5 text-amber-600" />
+                <span>{isSyncingMenu ? 'Menyinkronkan...' : `⚡ Sync Stok SIMRS (${menuItems.length})`}</span>
+              </button>
+
+              <button
                 onClick={handleSyncAllMenuToSimrs}
                 disabled={isSyncingMenu || menuItems.length === 0}
                 type="button"
-                className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl border border-indigo-200 shadow-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 disabled:opacity-50"
-                title="Kirim seluruh daftar master menu ke API SIMRS"
+                className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl border border-indigo-200 shadow-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+                title="Kirim seluruh daftar master menu lengkap (harga, foto, nutrisi) ke API SIMRS"
               >
                 <Database className="w-3.5 h-3.5" />
-                <span>{isSyncingMenu ? 'Menyinkronkan...' : `Sync ke SIMRS (${menuItems.length})`}</span>
+                <span>Sync Lengkap</span>
               </button>
 
               <button
@@ -1033,6 +1119,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           title="Tambah stok (+10)"
                         >
                           +10
+                        </button>
+                        <button
+                          type="button"
+                          disabled={syncingStockId === item.id}
+                          onClick={() => handleSyncSingleStock(item)}
+                          className="px-1.5 h-5 flex items-center gap-1 rounded bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-[10px] cursor-pointer border border-indigo-200 disabled:opacity-50"
+                          title="Kirim hanya ID dan Stok menu ini saja ke SIMRS (sync-batch-menu)"
+                        >
+                          <RefreshCw className={`w-2.5 h-2.5 ${syncingStockId === item.id ? 'animate-spin' : ''}`} />
+                          <span>{syncingStockId === item.id ? 'Sync...' : 'Sync'}</span>
                         </button>
                       </div>
                     </div>

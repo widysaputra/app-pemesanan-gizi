@@ -81,24 +81,39 @@ const INITIAL_ORDERS: HospitalOrder[] = [];
 const MENU_DATA_FILE = path.join(process.cwd(), 'menu_items.json');
 const ORDERS_DATA_FILE = path.join(process.cwd(), 'orders_data.json');
 
+function deduplicateMenuItemsServer(items: MenuItem[]): MenuItem[] {
+  const seen = new Set<string>();
+  const result: MenuItem[] = [];
+  for (const it of items || []) {
+    if (!it || !it.id) continue;
+    const cleanId = String(it.id).trim();
+    if (!seen.has(cleanId)) {
+      seen.add(cleanId);
+      result.push({ ...it, id: cleanId });
+    }
+  }
+  return result;
+}
+
 function loadPersistentMenuItems(): MenuItem[] {
   try {
     if (fs.existsSync(MENU_DATA_FILE)) {
       const raw = fs.readFileSync(MENU_DATA_FILE, 'utf-8');
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        return deduplicateMenuItemsServer(parsed);
       }
     }
   } catch (err) {
     console.warn('[Storage] Gagal membaca menu_items.json:', err);
   }
-  return [...INITIAL_MENU];
+  return deduplicateMenuItemsServer([...INITIAL_MENU]);
 }
 
 function savePersistentMenuItems(items: MenuItem[]) {
   try {
-    fs.writeFileSync(MENU_DATA_FILE, JSON.stringify(items, null, 2), 'utf-8');
+    const deduped = deduplicateMenuItemsServer(items);
+    fs.writeFileSync(MENU_DATA_FILE, JSON.stringify(deduped, null, 2), 'utf-8');
   } catch (err) {
     console.warn('[Storage] Gagal menyimpan menu_items.json:', err);
   }
@@ -426,7 +441,7 @@ export async function autoFetchSimrsMenuFromServer(overrideUrl?: string, overrid
         const finalIsAvailable = newMenu.isAvailable && (finalStock > 0);
         return {
           ...newMenu,
-          id: existing?.id || newMenu.id,
+          id: newMenu.id || existing?.id || `menu-${Date.now()}`,
           stock: finalStock,
           stok: finalStock,
           isAvailable: finalIsAvailable,
@@ -435,7 +450,7 @@ export async function autoFetchSimrsMenuFromServer(overrideUrl?: string, overrid
         };
       });
 
-      menuItems = syncedMenus;
+      menuItems = deduplicateMenuItemsServer(syncedMenus);
       savePersistentMenuItems(menuItems);
       broadcastEvent('init', { orders, menuItems });
       return menuItems;
@@ -1051,7 +1066,8 @@ async function syncMenuToSimrs(
   items: MenuItem[],
   overrideUrl?: string,
   overrideToken?: string,
-  overrideAuthHeaderType?: 'X-AUTH-TOKEN' | 'Bearer' | 'Both'
+  overrideAuthHeaderType?: 'X-AUTH-TOKEN' | 'Bearer' | 'Both',
+  options?: { stockOnly?: boolean }
 ): Promise<{ success: boolean; data?: any; error?: string; totalSynced?: number; targetUrl?: string }> {
   const rawUrl = (overrideUrl || simrsSettings.apiUrl || 'https://rsbsaonline.com/service/medifirst2000/emr/sync-batch-menu').trim();
   const isSingle = rawUrl.includes('save-master-menu');
@@ -1087,7 +1103,7 @@ async function syncMenuToSimrs(
       headers['Authorization'] = `Bearer ${rawToken}`;
     }
 
-    const mappedItems = items.map(mapMenuItemForSimrs);
+    const isStockOnly = options?.stockOnly === true;
 
     // Jika target URL secara spesifik adalah save-master-menu (menyimpan 1 menu per request)
     if (url.includes('save-master-menu')) {
@@ -1120,38 +1136,71 @@ async function syncMenuToSimrs(
       }
     }
 
-    // Batch Sync: kirim data array lengkap dengan seluruh alias parameter
-    const first = mappedItems[0] || {} as any;
-    const payload = {
-      menu_items: mappedItems,
-      items: mappedItems,
-      data: mappedItems,
-      menus: mappedItems,
-      hasil_json: {
+    // Batch Sync ke /sync-batch-menu:
+    // Jika mode stockOnly aktif, HANYA kirim id dan stok untuk menghemat payload dan bandwidth
+    let payload: any;
+    if (isStockOnly) {
+      const stockItems = items.map(it => {
+        const stockVal = typeof (it.stock ?? (it as any).stok) === 'number'
+          ? Math.max(0, it.stock ?? (it as any).stok)
+          : Math.max(0, parseInt(String(it.stock ?? (it as any).stok ?? 50), 10) || 0);
+        const nameVal = String(it.name || (it as any).nama_menu || (it as any).nama || 'Menu');
+        return {
+          id: String(it.id || (it as any).id_menu || ''),
+          id_menu: String(it.id || (it as any).id_menu || ''),
+          name: nameVal,
+          nama: nameVal,
+          nama_menu: nameVal,
+          stok: stockVal,
+          stock: stockVal,
+          qty_stok: stockVal,
+          sisa_stok: stockVal,
+          isAvailable: stockVal > 0,
+          is_tersedia: stockVal > 0,
+          tersedia: stockVal > 0,
+        };
+      });
+      payload = {
+        items: stockItems,
+        menu_items: stockItems,
+        data: stockItems,
+        total: stockItems.length,
+        stock_only: true,
+      };
+    } else {
+      const mappedItems = items.map(mapMenuItemForSimrs);
+      const first = mappedItems[0] || {} as any;
+      payload = {
         menu_items: mappedItems,
         items: mappedItems,
+        data: mappedItems,
+        menus: mappedItems,
+        hasil_json: {
+          menu_items: mappedItems,
+          items: mappedItems,
+          total: mappedItems.length,
+        },
+        id: first.id || '1',
+        id_menu: first.id || '1',
+        name: first.name || 'Batch Menu',
+        nama: first.nama || 'Batch Menu',
+        nama_menu: first.nama_menu || 'Batch Menu',
+        category: first.category || 'makanan_utama',
+        kategori: first.kategori || 'makanan_utama',
+        price: first.price || 0,
+        harga: first.harga || 0,
+        calories: first.calories || 0,
+        kalori: first.kalori || 0,
+        foto_url: first.foto_url || first.image || '',
+        gambar_url: first.gambar_url || first.image || '',
+        image: first.image || '',
+        foto: first.foto || first.image || '',
+        gambar: first.gambar || first.image || '',
         total: mappedItems.length,
-      },
-      id: first.id || '1',
-      id_menu: first.id || '1',
-      name: first.name || 'Batch Menu',
-      nama: first.nama || 'Batch Menu',
-      nama_menu: first.nama_menu || 'Batch Menu',
-      category: first.category || 'makanan_utama',
-      kategori: first.kategori || 'makanan_utama',
-      price: first.price || 0,
-      harga: first.harga || 0,
-      calories: first.calories || 0,
-      kalori: first.kalori || 0,
-      foto_url: first.foto_url || first.image || '',
-      gambar_url: first.gambar_url || first.image || '',
-      image: first.image || '',
-      foto: first.foto || first.image || '',
-      gambar: first.gambar || first.image || '',
-      total: mappedItems.length,
-      total_count: mappedItems.length,
-      synced_at: new Date().toISOString(),
-    };
+        total_count: mappedItems.length,
+        synced_at: new Date().toISOString(),
+      };
+    }
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
@@ -1519,23 +1568,41 @@ async function startServer() {
 
     if (targetUrl) {
       try {
-        const singleRes = await syncSingleMenuToSimrs(item, targetUrl, targetToken);
+        const stockPayload = {
+          id: item.id,
+          id_menu: item.id,
+          name: item.name,
+          nama: item.name,
+          nama_menu: item.name,
+          stok: newStock,
+          stock: newStock,
+          qty_stok: newStock,
+          sisa_stok: newStock,
+          isAvailable: newStock > 0,
+          is_tersedia: newStock > 0,
+          tersedia: newStock > 0,
+        };
         const batchUrl = resolveSimrsBatchMenuUrl(targetUrl);
-        const mappedOne = mapMenuItemForSimrs(item);
-        fetch(batchUrl, {
+        const batchRes = await fetch(batchUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'X-AUTH-TOKEN': targetToken.replace(/^Bearer\s+/i, '').trim(),
             'Authorization': `Bearer ${targetToken.replace(/^Bearer\s+/i, '').trim()}`,
           },
-          body: JSON.stringify({ items: [mappedOne], menu_items: [mappedOne], data: [mappedOne] }),
-        }).catch(() => {});
+          body: JSON.stringify({ items: [stockPayload], menu_items: [stockPayload], data: [stockPayload], stock_only: true }),
+        }).catch(() => null);
 
+        let singleRes: any = null;
+        if (targetUrl.includes('save-master-menu')) {
+          singleRes = await syncSingleMenuToSimrs(item, targetUrl, targetToken);
+        }
+
+        const isSuccess = Boolean((batchRes && batchRes.ok) || (singleRes && singleRes.success));
         simrsSyncResult = {
-          synced: singleRes.success,
-          statusText: singleRes.success ? 'Tersimpan di SIMRS' : (singleRes.error || 'Gagal ke SIMRS'),
-          data: singleRes.data,
+          synced: isSuccess,
+          statusText: isSuccess ? 'Tersimpan di SIMRS' : (singleRes?.error || 'Gagal ke SIMRS'),
+          data: singleRes?.data,
         };
       } catch (err: any) {
         simrsSyncResult = { synced: false, statusText: err.message };
@@ -2095,7 +2162,7 @@ app.post('/api/simrs/fetch-menu', async (req, res) => {
   });
 
 app.post('/api/simrs/sync-menu', async (req, res) => {
-    const { apiUrl, apiKey, menuItems: clientItems, items: alternativeItems } = req.body;
+    const { apiUrl, apiKey, menuItems: clientItems, items: alternativeItems, stockOnly, mode } = req.body;
     const rawTargetUrl = (apiUrl || simrsSettings.apiUrl || 'https://rsbsaonline.com/service/medifirst2000/emr/sync-batch-menu').trim();
     const targetToken = (apiKey && typeof apiKey === 'string' && apiKey.trim() !== '')
       ? apiKey.trim()
@@ -2109,35 +2176,47 @@ app.post('/api/simrs/sync-menu', async (req, res) => {
       ? clientItems
       : (Array.isArray(alternativeItems) && alternativeItems.length > 0 ? alternativeItems : null);
 
+    const isStockOnly = stockOnly === true || mode === 'stock_only' || Boolean(
+      incomingItems && incomingItems.length > 0 && incomingItems.every(x => (x.stock !== undefined || x.stok !== undefined) && !x.category && !x.protein && !x.mealTimes)
+    );
+
     let itemsToSync = menuItems;
     if (incomingItems) {
-      const mappedIncoming = incomingItems.map(mapMenuItemForSimrs);
-      for (const inc of mappedIncoming) {
-        const idx = menuItems.findIndex(m => String(m.id) === String(inc.id) || m.name.toLowerCase().trim() === inc.name.toLowerCase().trim());
+      for (const inc of incomingItems) {
+        const idx = menuItems.findIndex(m => String(m.id) === String(inc.id) || (inc.name && m.name.toLowerCase().trim() === String(inc.name).toLowerCase().trim()));
         if (idx !== -1) {
-          menuItems[idx] = { ...menuItems[idx], ...inc };
-        } else {
-          menuItems.push(inc);
+          const sVal = inc.stock !== undefined ? inc.stock : (inc.stok !== undefined ? inc.stok : menuItems[idx].stock);
+          if (isStockOnly) {
+            menuItems[idx].stock = sVal;
+            (menuItems[idx] as any).stok = sVal;
+            menuItems[idx].isAvailable = sVal > 0;
+          } else {
+            menuItems[idx] = { ...menuItems[idx], ...mapMenuItemForSimrs(inc) };
+          }
+        } else if (!isStockOnly) {
+          menuItems.push(mapMenuItemForSimrs(inc));
         }
       }
+      menuItems = deduplicateMenuItemsServer(menuItems);
       savePersistentMenuItems(menuItems);
       broadcastEvent('init', { orders, menuItems });
-      itemsToSync = mappedIncoming;
+      itemsToSync = incomingItems;
     }
 
     const startTime = Date.now();
-    const result = await syncMenuToSimrs(itemsToSync, rawTargetUrl, targetToken);
+    const result = await syncMenuToSimrs(itemsToSync, rawTargetUrl, targetToken, undefined, { stockOnly: isStockOnly });
     const latency = Date.now() - startTime;
 
     if (result.success) {
       res.json({
         success: true,
         message: result.totalSynced 
-          ? `Berhasil menyinkronkan ${result.totalSynced} item master menu ke endpoint SIMRS (${result.targetUrl})!`
-          : 'Berhasil menyinkronkan master menu ke SIMRS!',
+          ? `Berhasil menyinkronkan ${result.totalSynced} ${isStockOnly ? 'stok' : 'item master'} menu ke endpoint SIMRS (${result.targetUrl})!`
+          : 'Berhasil menyinkronkan menu ke SIMRS!',
         latency: `${latency}ms`,
         targetUrl: result.targetUrl,
-        totalSynced: result.totalSynced || menuItems.length,
+        totalSynced: result.totalSynced || itemsToSync.length,
+        stockOnly: isStockOnly,
         data: result.data,
       });
     } else {
@@ -2146,6 +2225,7 @@ app.post('/api/simrs/sync-menu', async (req, res) => {
         error: result.error,
         targetUrl: result.targetUrl,
         latency: `${latency}ms`,
+        stockOnly: isStockOnly,
         data: result.data,
       });
     }

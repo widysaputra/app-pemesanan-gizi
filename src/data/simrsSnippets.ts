@@ -717,19 +717,35 @@ class EMRController extends Controller
         $idMenu = $request->input("id") ?? ($request->input("id_menu") ?? $request->input("kd_menu"));
         $nama   = $request->input("name") ?? ($request->input("nama_menu") ?? $request->input("nama"));
 
-        if (!$idMenu || !$nama) {
+        if (!$idMenu) {
             return response()->json([
                 "status"  => "error",
-                "message" => "Parameter id dan name menu wajib disertakan."
+                "message" => "Parameter id menu wajib disertakan."
             ], 400);
         }
 
         try {
-            $tableName = \\Illuminate\\Support\\Facades\\Schema::hasTable("rego_master_menu_gizi_m") 
-                ? "rego_master_menu_gizi_m" 
-                : "master_menu_gizi_m";
-            
-            $pkCol = \\Illuminate\\Support\\Facades\\Schema::hasColumn($tableName, "id_menu") ? "id_menu" : "id";
+            $tableName = "rego_master_menu_gizi_m";
+            try {
+                if (!\\Illuminate\\Support\\Facades\\Schema::hasTable($tableName)) {
+                    $tableName = \\Illuminate\\Support\\Facades\\Schema::hasTable("master_menu_gizi_m") ? "master_menu_gizi_m" : "rego_master_menu_gizi_m";
+                }
+            } catch (\\Throwable $e) {}
+
+            $existing = \\DB::table($tableName)
+                ->where(function($q) use ($idMenu) {
+                    $q->where('id', $idMenu)
+                      ->orWhere('id_menu', $idMenu)
+                      ->orWhere('menu_id', $idMenu);
+                })->first();
+
+            $pkCol = "id";
+            if ($existing) {
+                $pkCol = isset($existing->id_menu) ? 'id_menu' : (isset($existing->menu_id) ? 'menu_id' : 'id');
+                if (empty($nama)) {
+                    $nama = $existing->nama_menu ?? ($existing->nama ?? "Menu {$idMenu}");
+                }
+            }
 
             $rawAvail = $request->input("isAvailable", $request->input("is_tersedia", $request->input("tersedia", true)));
             $isAvail = filter_var($rawAvail, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
@@ -739,31 +755,74 @@ class EMRController extends Controller
 
             $stokVal = (int)($request->input("stock", $request->input("stok", $request->input("qty_stok", $request->input("sisa_stok", 50)))));
 
-            $data = [
-                "nama_menu"   => $nama,
-                "kategori"    => (string)$request->input("category", $request->input("kategori", "makanan_utama")),
-                "harga"       => (int)$request->input("price", $request->input("harga", 0)),
-                "kalori"      => (int)$request->input("calories", $request->input("kalori", 0)),
-                "protein"     => (float)$request->input("protein", 0),
-                "karbohidrat" => (float)$request->input("carbs", $request->input("karbohidrat", 0)),
-                "lemak"       => (float)$request->input("fat", $request->input("lemak", 0)),
-                "natrium"     => (float)$request->input("sodium", $request->input("natrium", 0)),
-                "deskripsi"   => (string)$request->input("description", $request->input("deskripsi", "")),
-                "foto_url"    => (string)$request->input("foto_url", $request->input("image", $request->input("gambar_url", ""))),
-                "is_tersedia" => $isAvail && ($stokVal > 0),
-                "tersedia"    => $isAvail && ($stokVal > 0),
-                "updated_at"  => date("Y-m-d H:i:s")
-            ];
+            if ($existing) {
+                $updateData = [
+                    "updated_at" => date("Y-m-d H:i:s")
+                ];
+                if (!empty($nama)) $updateData["nama_menu"] = $nama;
+                if ($request->has("stock") || $request->has("stok") || $request->has("qty_stok") || $request->has("sisa_stok")) {
+                    $updateData["stok"] = $stokVal;
+                    $updateData["is_tersedia"] = $isAvail && ($stokVal > 0);
+                    $updateData["tersedia"] = $isAvail && ($stokVal > 0);
+                }
+                if ($request->has("price") || $request->has("harga")) $updateData["harga"] = (int)$request->input("price", $request->input("harga"));
+                if ($request->has("category") || $request->has("kategori")) $updateData["kategori"] = (string)$request->input("category", $request->input("kategori"));
+                if ($request->has("calories") || $request->has("kalori")) $updateData["kalori"] = (int)$request->input("calories", $request->input("kalori"));
+                if ($request->has("protein")) $updateData["protein"] = (float)$request->input("protein");
+                if ($request->has("carbs") || $request->has("karbohidrat")) $updateData["karbohidrat"] = (float)$request->input("carbs", $request->input("karbohidrat"));
+                if ($request->has("fat") || $request->has("lemak")) $updateData["lemak"] = (float)$request->input("fat", $request->input("lemak"));
+                if ($request->has("sodium") || $request->has("natrium")) $updateData["natrium"] = (float)$request->input("sodium", $request->input("natrium"));
+                if ($request->has("description") || $request->has("deskripsi")) $updateData["deskripsi"] = (string)$request->input("description", $request->input("deskripsi"));
+                if ($request->has("foto_url") || $request->has("image") || $request->has("gambar_url")) {
+                    $updateData["foto_url"] = (string)$request->input("foto_url", $request->input("image", $request->input("gambar_url")));
+                }
 
-            // Update kolom stok dan stock jika kolom tersedia di PostgreSQL
-            if (\\Illuminate\\Support\\Facades\\Schema::hasColumn($tableName, "stok")) {
-                $data["stok"] = $stokVal;
+                try {
+                    \\DB::table($tableName)->where($pkCol, $idMenu)->update($updateData);
+                } catch (\\Throwable $e) {
+                    if (isset($updateData["stok"])) {
+                        $updateData["stock"] = $updateData["stok"];
+                        unset($updateData["stok"]);
+                        try {
+                            \\DB::table($tableName)->where($pkCol, $idMenu)->update($updateData);
+                        } catch (\\Throwable $e2) {
+                            unset($updateData["stock"]);
+                            \\DB::table($tableName)->where($pkCol, $idMenu)->update($updateData);
+                        }
+                    }
+                }
+            } else {
+                $insertData = [
+                    $pkCol        => $idMenu,
+                    "nama_menu"   => $nama ?: "Menu {$idMenu}",
+                    "kategori"    => (string)$request->input("category", $request->input("kategori", "makanan_utama")),
+                    "harga"       => (int)$request->input("price", $request->input("harga", 0)),
+                    "kalori"      => (int)$request->input("calories", $request->input("kalori", 0)),
+                    "protein"     => (float)$request->input("protein", 0),
+                    "karbohidrat" => (float)$request->input("carbs", $request->input("karbohidrat", 0)),
+                    "lemak"       => (float)$request->input("fat", $request->input("lemak", 0)),
+                    "natrium"     => (float)$request->input("sodium", $request->input("natrium", 0)),
+                    "deskripsi"   => (string)$request->input("description", $request->input("deskripsi", "")),
+                    "foto_url"    => (string)$request->input("foto_url", $request->input("image", $request->input("gambar_url", ""))),
+                    "is_tersedia" => $isAvail && ($stokVal > 0),
+                    "tersedia"    => $isAvail && ($stokVal > 0),
+                    "stok"        => $stokVal,
+                    "stock"       => $stokVal,
+                    "created_at"  => date("Y-m-d H:i:s"),
+                    "updated_at"  => date("Y-m-d H:i:s")
+                ];
+                try {
+                    \\DB::table($tableName)->insert($insertData);
+                } catch (\\Throwable $e) {
+                    unset($insertData["stock"]);
+                    try {
+                        \\DB::table($tableName)->insert($insertData);
+                    } catch (\\Throwable $e2) {
+                        unset($insertData["stok"]);
+                        \\DB::table($tableName)->insert($insertData);
+                    }
+                }
             }
-            if (\\Illuminate\\Support\\Facades\\Schema::hasColumn($tableName, "stock")) {
-                $data["stock"] = $stokVal;
-            }
-
-            \\DB::table($tableName)->updateOrInsert([$pkCol => $idMenu], $data);
 
             return response()->json([
                 "status"   => "success",
@@ -798,54 +857,128 @@ class EMRController extends Controller
         }
 
         try {
-            $tableName = \\Illuminate\\Support\\Facades\\Schema::hasTable("rego_master_menu_gizi_m") 
-                ? "rego_master_menu_gizi_m" 
-                : "master_menu_gizi_m";
-            
-            $pkCol = \\Illuminate\\Support\\Facades\\Schema::hasColumn($tableName, "id_menu") ? "id_menu" : "id";
-            $hasStok = \\Illuminate\\Support\\Facades\\Schema::hasColumn($tableName, "stok");
-            $hasStock = \\Illuminate\\Support\\Facades\\Schema::hasColumn($tableName, "stock");
+            $tableName = "rego_master_menu_gizi_m";
+            try {
+                if (!\\Illuminate\\Support\\Facades\\Schema::hasTable($tableName)) {
+                    $tableName = \\Illuminate\\Support\\Facades\\Schema::hasTable("master_menu_gizi_m") ? "master_menu_gizi_m" : "rego_master_menu_gizi_m";
+                }
+            } catch (\\Throwable $e) {}
+
+            // Pastikan kolom 'stok' dan ketersediaan ada di tabel PostgreSQL
+            try {
+                \\DB::statement("ALTER TABLE {$tableName} ADD COLUMN IF NOT EXISTS stok INT DEFAULT 50");
+                \\DB::statement("ALTER TABLE {$tableName} ADD COLUMN IF NOT EXISTS is_tersedia BOOLEAN DEFAULT TRUE");
+            } catch (\\Throwable $colEx) {}
 
             $synced = 0;
-            foreach ($items as $it) {
-                $id = $it["id"] ?? ($it["id_menu"] ?? ($it["kd_menu"] ?? null));
-                $nama = $it["name"] ?? ($it["nama_menu"] ?? ($it["nama"] ?? null));
-                if (!$id || !$nama) continue;
+            $updatedIds = [];
 
-                $stokVal = (int)($it["stock"] ?? ($it["stok"] ?? ($it["qty_stok"] ?? ($it["sisa_stok"] ?? 50))));
+            foreach ($items as $it) {
+                $id = $it["id"] ?? ($it["id_menu"] ?? ($it["kd_menu"] ?? ($it["menu_id"] ?? null)));
+                if (!$id) continue;
+
+                $nama = $it["name"] ?? ($it["nama_menu"] ?? ($it["nama"] ?? null));
+
+                $existing = \\DB::table($tableName)
+                    ->where(function($q) use ($id) {
+                        $q->where('id', $id)
+                          ->orWhere('id_menu', $id)
+                          ->orWhere('menu_id', $id);
+                    })->first();
+
+                $matchPk = 'id';
+                if ($existing) {
+                    $matchPk = isset($existing->id_menu) ? 'id_menu' : (isset($existing->menu_id) ? 'menu_id' : 'id');
+                    if (empty($nama)) {
+                        $nama = $existing->nama_menu ?? ($existing->nama ?? null);
+                    }
+                }
+
+                $stokVal = (int)($it["stok"] ?? ($it["stock"] ?? ($it["qty_stok"] ?? ($it["sisa_stok"] ?? 50))));
                 $rawAvail = $it["isAvailable"] ?? ($it["is_tersedia"] ?? ($it["tersedia"] ?? true));
                 $isAvail = filter_var($rawAvail, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
                 if ($isAvail === null) {
                     $isAvail = in_array(strtolower((string)$rawAvail), ["1", "t", "true", "yes", "tersedia", "ada"], true);
                 }
+                if ($existing) {
+                    // MODE UPDATE PARSIAL: Jangan timpa harga/kalori dengan 0 jika request hanya mengirim stok!
+                    $updateRow = [
+                        "updated_at" => date("Y-m-d H:i:s")
+                    ];
+                    if (isset($it["stok"]) || isset($it["stock"]) || isset($it["qty_stok"]) || isset($it["sisa_stok"])) {
+                        $updateRow["stok"] = $stokVal;
+                        $updateRow["is_tersedia"] = $isAvail && ($stokVal > 0);
+                        $updateRow["tersedia"] = $isAvail && ($stokVal > 0);
+                    }
+                    if (!empty($nama)) $updateRow["nama_menu"] = $nama;
+                    if (isset($it["price"]) || isset($it["harga"])) $updateRow["harga"] = (int)($it["price"] ?? $it["harga"]);
+                    if (isset($it["category"]) || isset($it["kategori"])) $updateRow["kategori"] = (string)($it["category"] ?? $it["kategori"]);
+                    if (isset($it["calories"]) || isset($it["kalori"])) $updateRow["kalori"] = (int)($it["calories"] ?? $it["kalori"]);
+                    if (isset($it["protein"])) $updateRow["protein"] = (float)$it["protein"];
+                    if (isset($it["carbs"]) || isset($it["karbohidrat"])) $updateRow["karbohidrat"] = (float)($it["carbs"] ?? $it["karbohidrat"]);
+                    if (isset($it["fat"]) || isset($it["lemak"])) $updateRow["lemak"] = (float)($it["fat"] ?? $it["lemak"]);
+                    if (isset($it["sodium"]) || isset($it["natrium"])) $updateRow["natrium"] = (float)($it["sodium"] ?? $it["natrium"]);
+                    if (isset($it["description"]) || isset($it["deskripsi"])) $updateRow["deskripsi"] = (string)($it["description"] ?? $it["deskripsi"]);
+                    if (!empty($it["foto_url"]) || !empty($it["image"]) || !empty($it["gambar_url"])) {
+                        $updateRow["foto_url"] = (string)($it["foto_url"] ?? ($it["image"] ?? $it["gambar_url"]));
+                    }
 
-                $row = [
-                    "nama_menu"   => $nama,
-                    "kategori"    => (string)($it["category"] ?? ($it["kategori"] ?? "makanan_utama")),
-                    "harga"       => (int)($it["price"] ?? ($it["harga"] ?? 0)),
-                    "kalori"      => (int)($it["calories"] ?? ($it["kalori"] ?? 0)),
-                    "protein"     => (float)($it["protein"] ?? 0),
-                    "karbohidrat" => (float)($it["carbs"] ?? ($it["karbohidrat"] ?? 0)),
-                    "lemak"       => (float)($it["fat"] ?? ($it["lemak"] ?? 0)),
-                    "natrium"     => (float)($it["sodium"] ?? ($it["natrium"] ?? 0)),
-                    "deskripsi"   => (string)($it["description"] ?? ($it["deskripsi"] ?? "")),
-                    "foto_url"    => (string)($it["foto_url"] ?? ($it["image"] ?? ($it["gambar_url"] ?? ""))),
-                    "is_tersedia" => $isAvail && ($stokVal > 0),
-                    "tersedia"    => $isAvail && ($stokVal > 0),
-                    "updated_at"  => date("Y-m-d H:i:s")
-                ];
+                    try {
+                        \\DB::table($tableName)->where($matchPk, $id)->update($updateRow);
+                    } catch (\\Throwable $e) {
+                        // Jika kolom bernama 'stock' di DB bukan 'stok'
+                        if (isset($updateRow["stok"])) {
+                            $updateRow["stock"] = $updateRow["stok"];
+                            unset($updateRow["stok"]);
+                            try {
+                                \\DB::table($tableName)->where($matchPk, $id)->update($updateRow);
+                            } catch (\\Throwable $e2) {
+                                unset($updateRow["stock"]);
+                                \\DB::table($tableName)->where($matchPk, $id)->update($updateRow);
+                            }
+                        }
+                    }
+                } else {
+                    $row = [
+                        "nama_menu"   => $nama ?: "Menu Baru",
+                        "kategori"    => (string)($it["category"] ?? ($it["kategori"] ?? "makanan_utama")),
+                        "harga"       => (int)($it["price"] ?? ($it["harga"] ?? 0)),
+                        "kalori"      => (int)($it["calories"] ?? ($it["kalori"] ?? 0)),
+                        "protein"     => (float)($it["protein"] ?? 0),
+                        "karbohidrat" => (float)($it["carbs"] ?? ($it["karbohidrat"] ?? 0)),
+                        "lemak"       => (float)($it["fat"] ?? ($it["lemak"] ?? 0)),
+                        "natrium"     => (float)($it["sodium"] ?? ($it["natrium"] ?? 0)),
+                        "deskripsi"   => (string)($it["description"] ?? ($it["deskripsi"] ?? "")),
+                        "foto_url"    => (string)($it["foto_url"] ?? ($it["image"] ?? ($it["gambar_url"] ?? ""))),
+                        "is_tersedia" => $isAvail && ($stokVal > 0),
+                        "tersedia"    => $isAvail && ($stokVal > 0),
+                        "stok"        => $stokVal,
+                        "stock"       => $stokVal,
+                        "created_at"  => date("Y-m-d H:i:s"),
+                        "updated_at"  => date("Y-m-d H:i:s")
+                    ];
 
-                if ($hasStok) $row["stok"] = $stokVal;
-                if ($hasStock) $row["stock"] = $stokVal;
-
-                \\DB::table($tableName)->updateOrInsert([$pkCol => $id], $row);
+                    try {
+                        \\DB::table($tableName)->insert($row);
+                    } catch (\\Throwable $e) {
+                        unset($row["stock"]);
+                        try {
+                            \\DB::table($tableName)->insert($row);
+                        } catch (\\Throwable $e2) {
+                            unset($row["stok"]);
+                            \\DB::table($tableName)->insert($row);
+                        }
+                    }
+                }
                 $synced++;
+                $updatedIds[] = $id;
             }
 
             return response()->json([
                 "status"       => "success",
                 "message"      => "Berhasil menyinkronkan {$synced} menu gizi.",
-                "total_synced" => $synced
+                "total_synced" => $synced,
+                "updated_ids"  => $updatedIds
             ], 200);
 
         } catch (\\Exception $e) {
@@ -1069,28 +1202,83 @@ class GiziSIMRSController extends Controller
         $idMenu = $request->input('id_menu') ?? $request->input('id') ?? $request->input('kd_menu');
         $nama   = $request->input('nama_menu') ?? $request->input('name') ?? $request->input('nama');
 
-        if (!$idMenu || !$nama) {
+        if (!$idMenu) {
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Parameter id_menu dan nama_menu wajib dikirim.'
+                'message' => 'Parameter id_menu wajib dikirim.'
             ], 400);
         }
 
-        // Parsing ketersediaan boolean secara ketat
-        $rawAvail = $request->input('isAvailable', $request->input('is_tersedia', $request->input('tersedia', $request->input('status', true))));
-        $isTersedia = filter_var($rawAvail, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
-        if ($isTersedia === null) {
-            $isTersedia = in_array(strtolower((string)$rawAvail), ['1', 't', 'true', 'yes', 'tersedia', 'ada'], true);
-        }
-
         try {
-            $tableName = DB::getSchemaBuilder()->hasTable('rego_master_menu_gizi_m') ? 'rego_master_menu_gizi_m' : 'master_menu_gizi_m';
-            $primaryKey = DB::getSchemaBuilder()->hasColumn($tableName, 'id_menu') ? 'id_menu' : (DB::getSchemaBuilder()->hasColumn($tableName, 'menu_id') ? 'menu_id' : 'id');
+            $tableName = 'rego_master_menu_gizi_m';
+            try {
+                if (!DB::getSchemaBuilder()->hasTable($tableName)) {
+                    $tableName = DB::getSchemaBuilder()->hasTable('master_menu_gizi_m') ? 'master_menu_gizi_m' : 'rego_master_menu_gizi_m';
+                }
+            } catch (\Throwable $e) {}
 
-            DB::table($tableName)->updateOrInsert(
-                [$primaryKey => $idMenu],
-                [
-                    'nama_menu'    => $nama,
+            $existing = DB::table($tableName)
+                ->where(function($q) use ($idMenu) {
+                    $q->where('id', $idMenu)
+                      ->orWhere('id_menu', $idMenu)
+                      ->orWhere('menu_id', $idMenu);
+                })->first();
+
+            $primaryKey = 'id';
+            if ($existing) {
+                $primaryKey = isset($existing->id_menu) ? 'id_menu' : (isset($existing->menu_id) ? 'menu_id' : 'id');
+                if (empty($nama)) {
+                    $nama = $existing->nama_menu ?? ($existing->nama ?? "Menu {$idMenu}");
+                }
+            }
+
+            // Parsing ketersediaan boolean secara ketat
+            $rawAvail = $request->input('isAvailable', $request->input('is_tersedia', $request->input('tersedia', $request->input('status', true))));
+            $isTersedia = filter_var($rawAvail, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            if ($isTersedia === null) {
+                $isTersedia = in_array(strtolower((string)$rawAvail), ['1', 't', 'true', 'yes', 'tersedia', 'ada'], true);
+            }
+
+            $stokVal = (int)$request->input('stock', $request->input('stok', $request->input('qty_stok', $request->input('sisa_stok', 50))));
+
+            if ($existing) {
+                $updateData = [
+                    'updated_at' => date('Y-m-d H:i:s')
+                ];
+                if (!empty($nama)) $updateData['nama_menu'] = $nama;
+                if ($request->has('stock') || $request->has('stok') || $request->has('qty_stok') || $request->has('sisa_stok')) {
+                    $updateData['stok'] = $stokVal;
+                    $updateData['stock'] = $stokVal;
+                    $updateData['is_tersedia'] = $isTersedia && ($stokVal > 0);
+                    $updateData['tersedia'] = $isTersedia && ($stokVal > 0);
+                }
+                if ($request->has('harga') || $request->has('price')) $updateData['harga'] = (int)$request->input('harga', $request->input('price'));
+                if ($request->has('kategori') || $request->has('category')) $updateData['kategori'] = (string)$request->input('kategori', $request->input('category'));
+                if ($request->has('kalori') || $request->has('calories')) $updateData['kalori'] = (int)$request->input('kalori', $request->input('calories'));
+                if ($request->has('protein')) $updateData['protein'] = (float)$request->input('protein');
+                if ($request->has('karbohidrat') || $request->has('carbs')) $updateData['karbohidrat'] = (float)$request->input('karbohidrat', $request->input('carbs'));
+                if ($request->has('lemak') || $request->has('fat')) $updateData['lemak'] = (float)$request->input('lemak', $request->input('fat'));
+                if ($request->has('natrium') || $request->has('sodium')) $updateData['natrium'] = (float)$request->input('natrium', $request->input('sodium'));
+                if ($request->has('deskripsi') || $request->has('description')) $updateData['deskripsi'] = (string)$request->input('deskripsi', $request->input('description'));
+                if ($request->has('foto_url') || $request->has('gambar_url') || $request->has('image')) {
+                    $updateData['foto_url'] = (string)$request->input('foto_url', $request->input('gambar_url', $request->input('image')));
+                }
+
+                try {
+                    DB::table($tableName)->where($primaryKey, $idMenu)->update($updateData);
+                } catch (\Throwable $e) {
+                    unset($updateData['stock']);
+                    try {
+                        DB::table($tableName)->where($primaryKey, $idMenu)->update($updateData);
+                    } catch (\Throwable $e2) {
+                        unset($updateData['stok']);
+                        DB::table($tableName)->where($primaryKey, $idMenu)->update($updateData);
+                    }
+                }
+            } else {
+                $insertData = [
+                    $primaryKey    => $idMenu,
+                    'nama_menu'    => $nama ?: "Menu {$idMenu}",
                     'kategori'     => $request->input('kategori', $request->input('category', 'makanan_utama')),
                     'harga'        => (int)$request->input('harga', $request->input('price', 0)),
                     'kalori'       => (int)$request->input('kalori', $request->input('calories', 0)),
@@ -1102,19 +1290,32 @@ class GiziSIMRSController extends Controller
                     'deskripsi'    => (string)$request->input('deskripsi', $request->input('description', '')),
                     'foto_url'     => (string)$request->input('foto_url', $request->input('gambar_url', $request->input('image', ''))),
                     'gambar_url'   => (string)$request->input('foto_url', $request->input('gambar_url', $request->input('image', ''))),
-                    'is_tersedia'  => $isTersedia,
-                    'tersedia'     => $isTersedia,
-                    'stok'         => (int)$request->input('stock', $request->input('stok', 50)),
+                    'is_tersedia'  => $isTersedia && ($stokVal > 0),
+                    'tersedia'     => $isTersedia && ($stokVal > 0),
+                    'stok'         => $stokVal,
+                    'stock'        => $stokVal,
                     'tags_diet'    => is_array($request->input('tags_diet')) ? json_encode($request->input('tags_diet')) : json_encode([]),
                     'updated_at'   => date('Y-m-d H:i:s'),
                     'created_at'   => date('Y-m-d H:i:s')
-                ]
-            );
+                ];
+                try {
+                    DB::table($tableName)->insert($insertData);
+                } catch (\Throwable $e) {
+                    unset($insertData['stock']);
+                    try {
+                        DB::table($tableName)->insert($insertData);
+                    } catch (\Throwable $e2) {
+                        unset($insertData['stok']);
+                        DB::table($tableName)->insert($insertData);
+                    }
+                }
+            }
 
             return response()->json([
                 'status'      => 'success',
                 'message'     => "Master menu '{$nama}' berhasil disimpan ke SIMRS!",
                 'id_menu'     => $idMenu,
+                'stok'        => $stokVal,
                 'is_tersedia' => $isTersedia
             ], 200);
 
@@ -1128,7 +1329,8 @@ class GiziSIMRSController extends Controller
 
     /**
      * POST /api/sync-batch-menu
-     * Sinkronisasi Sekaligus Seluruh Menu Makanan (Batch Sync)
+     * Sinkronisasi Sekaligus Seluruh Menu Makanan (Batch Sync) atau HANYA STOK (Parsial)
+     * Mendukung 1 menu diedit maupun update massal tanpa menimpa data lain.
      */
     public function syncBatchMenu(Request $request)
     {
@@ -1137,36 +1339,90 @@ class GiziSIMRSController extends Controller
         if (empty($menuList) || !is_array($menuList)) {
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Array menu_items tidak boleh kosong.'
+                'message' => 'Array menu_items / items tidak boleh kosong.'
             ], 400);
         }
 
         DB::beginTransaction();
         try {
-            $tableName = DB::getSchemaBuilder()->hasTable('rego_master_menu_gizi_m') ? 'rego_master_menu_gizi_m' : 'master_menu_gizi_m';
-            $primaryKey = DB::getSchemaBuilder()->hasColumn($tableName, 'id_menu') ? 'id_menu' : (DB::getSchemaBuilder()->hasColumn($tableName, 'menu_id') ? 'menu_id' : 'id');
+            $tableName = 'rego_master_menu_gizi_m';
+            try {
+                if (!DB::getSchemaBuilder()->hasTable($tableName)) {
+                    $tableName = DB::getSchemaBuilder()->hasTable('master_menu_gizi_m') ? 'master_menu_gizi_m' : 'rego_master_menu_gizi_m';
+                }
+            } catch (\Throwable $e) {}
 
             $syncedCount = 0;
+            $updatedIds = [];
+
             foreach ($menuList as $item) {
-                $idMenu = $item['id'] ?? $item['id_menu'] ?? $item['kd_menu'] ?? null;
-                $nama   = $item['name'] ?? $item['nama_menu'] ?? $item['nama'] ?? null;
+                $idMenu = $item['id'] ?? $item['id_menu'] ?? $item['kd_menu'] ?? ($item['menu_id'] ?? null);
+                if (!$idMenu) continue;
 
-                if (!$idMenu || !$nama) continue;
+                $nama = $item['name'] ?? $item['nama_menu'] ?? ($item['nama'] ?? null);
 
-                // Parsing ketersediaan boolean secara ketat
+                $existing = DB::table($tableName)
+                    ->where(function($q) use ($idMenu) {
+                        $q->where('id', $idMenu)
+                          ->orWhere('id_menu', $idMenu)
+                          ->orWhere('menu_id', $idMenu);
+                    })->first();
+
+                $matchPk = 'id';
+                if ($existing) {
+                    $matchPk = isset($existing->id_menu) ? 'id_menu' : (isset($existing->menu_id) ? 'menu_id' : 'id');
+                    if (empty($nama)) {
+                        $nama = $existing->nama_menu ?? ($existing->nama ?? null);
+                    }
+                }
+
                 $rawAvail = $item['isAvailable'] ?? $item['is_tersedia'] ?? $item['tersedia'] ?? $item['status'] ?? true;
                 $isTersedia = filter_var($rawAvail, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
                 if ($isTersedia === null) {
                     $isTersedia = in_array(strtolower((string)$rawAvail), ['1', 't', 'true', 'yes', 'tersedia', 'ada'], true);
                 }
 
-                $waktuMakan = $item['mealTimes'] ?? $item['waktu_makan'] ?? ['pagi','siang','malam'];
-                $fotoUrl = $item['foto_url'] ?? $item['image'] ?? $item['gambar_url'] ?? '';
+                $stokVal = (int)($item['stock'] ?? ($item['stok'] ?? ($item['qty_stok'] ?? ($item['sisa_stok'] ?? 50))));
 
-                DB::table($tableName)->updateOrInsert(
-                    [$primaryKey => $idMenu],
-                    [
-                        'nama_menu'    => $nama,
+                if ($existing) {
+                    // Update parsial: jangan timpa harga/kalori dengan 0 jika hanya kirim stok!
+                    $updateRow = [
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ];
+                    if (isset($item['stock']) || isset($item['stok']) || isset($item['qty_stok']) || isset($item['sisa_stok'])) {
+                        $updateRow['stok'] = $stokVal;
+                        $updateRow['stock'] = $stokVal;
+                        $updateRow['is_tersedia'] = $isTersedia && ($stokVal > 0);
+                        $updateRow['tersedia'] = $isTersedia && ($stokVal > 0);
+                    }
+                    if (!empty($nama)) $updateRow['nama_menu'] = $nama;
+                    if (isset($item['price']) || isset($item['harga'])) $updateRow['harga'] = (int)($item['price'] ?? $item['harga']);
+                    if (isset($item['category']) || isset($item['kategori'])) $updateRow['kategori'] = (string)($item['category'] ?? $item['kategori']);
+                    if (isset($item['calories']) || isset($item['kalori'])) $updateRow['kalori'] = (int)($item['calories'] ?? $item['kalori']);
+                    if (isset($item['protein'])) $updateRow['protein'] = (float)$item['protein'];
+                    if (isset($item['carbs']) || isset($item['karbohidrat'])) $updateRow['karbohidrat'] = (float)($item['carbs'] ?? $item['karbohidrat']);
+                    if (isset($item['fat']) || isset($item['lemak'])) $updateRow['lemak'] = (float)($item['fat'] ?? $item['lemak']);
+                    if (isset($item['sodium']) || isset($item['natrium'])) $updateRow['natrium'] = (float)($item['sodium'] ?? $item['natrium']);
+                    if (isset($item['description']) || isset($item['deskripsi'])) $updateRow['deskripsi'] = (string)($item['description'] ?? $item['deskripsi']);
+                    if (!empty($item['foto_url']) || !empty($item['image']) || !empty($item['gambar_url'])) {
+                        $updateRow['foto_url'] = (string)($item['foto_url'] ?? ($item['image'] ?? $item['gambar_url']));
+                    }
+
+                    try {
+                        DB::table($tableName)->where($matchPk, $idMenu)->update($updateRow);
+                    } catch (\Throwable $e) {
+                        unset($updateRow['stock']);
+                        try {
+                            DB::table($tableName)->where($matchPk, $idMenu)->update($updateRow);
+                        } catch (\Throwable $e2) {
+                            unset($updateRow['stok']);
+                            DB::table($tableName)->where($matchPk, $idMenu)->update($updateRow);
+                        }
+                    }
+                } else {
+                    $insertRow = [
+                        $matchPk       => $idMenu,
+                        'nama_menu'    => $nama ?: "Menu {$idMenu}",
                         'kategori'     => $item['category'] ?? $item['kategori'] ?? 'makanan_utama',
                         'harga'        => (int)($item['price'] ?? $item['harga'] ?? 0),
                         'kalori'       => (int)($item['calories'] ?? $item['kalori'] ?? 0),
@@ -1174,18 +1430,31 @@ class GiziSIMRSController extends Controller
                         'carbs'        => (float)($item['carbs'] ?? $item['karbohidrat'] ?? 0),
                         'lemak'        => (float)($item['fat'] ?? $item['lemak'] ?? 0),
                         'natrium'      => (float)($item['sodium'] ?? $item['natrium'] ?? 0),
-                        'waktu_makan'  => is_array($waktuMakan) ? json_encode($waktuMakan) : (string)$waktuMakan,
+                        'waktu_makan'  => is_array($item['mealTimes'] ?? null) ? json_encode($item['mealTimes']) : (string)($item['waktu_makan'] ?? json_encode(['pagi','siang','malam'])),
                         'deskripsi'    => (string)($item['description'] ?? $item['deskripsi'] ?? ''),
-                        'foto_url'     => $fotoUrl,
-                        'gambar_url'   => $fotoUrl,
-                        'is_tersedia'  => $isTersedia,
-                        'tersedia'     => $isTersedia,
-                        'stok'         => (int)($item['stock'] ?? $item['stok'] ?? 50),
+                        'foto_url'     => (string)($item['foto_url'] ?? $item['image'] ?? $item['gambar_url'] ?? ''),
+                        'gambar_url'   => (string)($item['foto_url'] ?? $item['image'] ?? $item['gambar_url'] ?? ''),
+                        'is_tersedia'  => $isTersedia && ($stokVal > 0),
+                        'tersedia'     => $isTersedia && ($stokVal > 0),
+                        'stok'         => $stokVal,
+                        'stock'        => $stokVal,
                         'updated_at'   => date('Y-m-d H:i:s'),
                         'created_at'   => date('Y-m-d H:i:s')
-                    ]
-                );
+                    ];
+                    try {
+                        DB::table($tableName)->insert($insertRow);
+                    } catch (\Throwable $e) {
+                        unset($insertRow['stock']);
+                        try {
+                            DB::table($tableName)->insert($insertRow);
+                        } catch (\Throwable $e2) {
+                            unset($insertRow['stok']);
+                            DB::table($tableName)->insert($insertRow);
+                        }
+                    }
+                }
                 $syncedCount++;
+                $updatedIds[] = $idMenu;
             }
 
             DB::commit();
@@ -1193,7 +1462,8 @@ class GiziSIMRSController extends Controller
             return response()->json([
                 'status'       => 'success',
                 'message'      => "Berhasil menyinkronkan {$syncedCount} menu ke {$tableName} (PostgreSQL).",
-                'total_synced' => $syncedCount
+                'total_synced' => $syncedCount,
+                'updated_ids'  => $updatedIds
             ], 200);
 
         } catch (\\Exception $e) {

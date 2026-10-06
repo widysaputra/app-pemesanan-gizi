@@ -619,6 +619,7 @@ export class HospitalRealtimeService {
         body: JSON.stringify({ 
           stock: finalStock, 
           stok: finalStock,
+          stockOnly: true,
           simrsApiUrl: simrsConfig.apiUrl,
           simrsApiKey: simrsConfig.apiKey,
         }),
@@ -1846,7 +1847,11 @@ export class HospitalRealtimeService {
     }
   }
 
-  async syncAllMenuToSimrs(apiUrl?: string, apiKey?: string): Promise<{
+  async syncAllMenuToSimrs(
+    apiUrl?: string,
+    apiKey?: string,
+    options?: { stockOnly?: boolean; targetItems?: MenuItem[] }
+  ): Promise<{
     success: boolean;
     message: string;
     totalSynced?: number;
@@ -1854,7 +1859,10 @@ export class HospitalRealtimeService {
     data?: any;
     error?: string;
   }> {
-    const items = getLocalCachedMenu();
+    const isStockOnly = options?.stockOnly === true;
+    const items = (options?.targetItems && options.targetItems.length > 0)
+      ? options.targetItems
+      : getLocalCachedMenu();
     const config = getLocalSimrsConfig();
     const targetUrl = (apiUrl || config.apiUrl || '').trim();
     const targetToken = (apiKey !== undefined ? apiKey : config.apiKey || '').trim();
@@ -1876,7 +1884,20 @@ export class HospitalRealtimeService {
       ? resolveSimrsSingleMenuUrl(targetUrl) 
       : resolveSimrsBatchMenuUrl(targetUrl);
 
-    // Optimasi payload: gunakan 1 field foto_url dan hapus duplikasi properti gambar ganda
+    // Jika mode stockOnly, gunakan format minimal: hanya id, nama, dan stok
+    if (isStockOnly) {
+      return this.syncMenuStockToSimrs(
+        items.map(m => ({
+          id: m.id,
+          name: m.name,
+          stock: typeof m.stock === 'number' ? m.stock : (typeof (m as any).stok === 'number' ? (m as any).stok : 50),
+        })),
+        syncUrl,
+        targetToken
+      );
+    }
+
+    // Optimasi payload penuh: gunakan 1 field foto_url dan hapus duplikasi properti gambar ganda
     const cleanItems = items.map(m => {
       const rawImg = m.image || (m as any).foto_url || (m as any).gambar || '';
       const stockVal = typeof m.stock === 'number' ? m.stock : (typeof (m as any).stok === 'number' ? (m as any).stok : 50);
@@ -2022,6 +2043,105 @@ export class HospitalRealtimeService {
       message: lastError || 'Gagal menyinkronkan menu ke SIMRS',
       error: lastError || 'Gagal menyinkronkan menu ke SIMRS',
     };
+  }
+
+  /**
+   * Sinkronisasi STOK SAJA ke SIMRS (Hanya mengirim ID dan Stok, tanpa seluruh data foto/nutrisi)
+   * Dapat dipanggil untuk SATU MENU yang diedit, atau BANYAK MENU sekaligus.
+   */
+  async syncMenuStockToSimrs(
+    itemsToSync: Array<{ id: string; stock: number; name?: string }>,
+    apiUrl?: string,
+    apiKey?: string
+  ): Promise<{
+    success: boolean;
+    message: string;
+    totalSynced?: number;
+    latency?: string;
+    data?: any;
+    error?: string;
+  }> {
+    const config = getLocalSimrsConfig();
+    const targetUrl = (apiUrl || config.apiUrl || '').trim();
+    const targetToken = (apiKey !== undefined ? apiKey : config.apiKey || '').trim();
+
+    if (!targetUrl) {
+      throw new Error('URL Endpoint SIMRS belum dikonfigurasi');
+    }
+
+    if (!itemsToSync || itemsToSync.length === 0) {
+      return {
+        success: true,
+        message: 'Tidak ada item menu untuk disinkronkan.',
+        totalSynced: 0,
+      };
+    }
+
+    const syncUrl = resolveSimrsBatchMenuUrl(targetUrl);
+    const start = Date.now();
+
+    // Format payload minimal: hanya id, nama (identifikasi), dan stok
+    const minimalPayload = itemsToSync.map(m => {
+      const stockVal = Math.max(0, Number(m.stock) || 0);
+      return {
+        id: m.id,
+        id_menu: m.id,
+        name: m.name || 'Menu',
+        nama: m.name || 'Menu',
+        nama_menu: m.name || 'Menu',
+        stok: stockVal,
+        stock: stockVal,
+        qty_stok: stockVal,
+        sisa_stok: stockVal,
+        isAvailable: stockVal > 0,
+        is_tersedia: stockVal > 0,
+        tersedia: stockVal > 0,
+      };
+    });
+
+    try {
+      const res = await fetch('/api/simrs/sync-menu', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          apiUrl: syncUrl,
+          apiKey: targetToken,
+          stockOnly: true,
+          mode: 'stock_only',
+          items: minimalPayload,
+          menuItems: minimalPayload,
+        }),
+      });
+
+      const latency = `${Date.now() - start}ms`;
+      if (res.ok) {
+        const result = await res.json().catch(() => ({}));
+        return {
+          success: true,
+          message: result.message || `Berhasil menyinkronkan stok ${minimalPayload.length} menu ke SIMRS (${latency})!`,
+          totalSynced: result.totalSynced || minimalPayload.length,
+          latency,
+          data: result.data,
+        };
+      } else {
+        const errJson = await res.json().catch(() => null);
+        const errMsg = errJson?.error || errJson?.message || `HTTP ${res.status}: Gagal sinkron stok ke SIMRS`;
+        return {
+          success: false,
+          message: errMsg,
+          error: errMsg,
+          latency,
+        };
+      }
+    } catch (err: any) {
+      const errMsg = err.message || 'Gagal menghubungi server SIMRS';
+      return {
+        success: false,
+        message: errMsg,
+        error: errMsg,
+        latency: `${Date.now() - start}ms`,
+      };
+    }
   }
 
   // --- ADMIN SECURITY & PASSWORD ---

@@ -601,9 +601,9 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
       });
     }
 
-    // Sync All Master Menus to Laravel SIMRS API endpoint
+    // Sync Master Menus / Stock to Laravel SIMRS API endpoint
     if (parsedPath.endsWith('/api/simrs/sync-menu') && method === 'POST') {
-      const { apiUrl, apiKey, menuItems: clientItems, items: rawItems } = body;
+      const { apiUrl, apiKey, menuItems: clientItems, items: rawItems, stockOnly, mode } = body;
       const targetItems = Array.isArray(clientItems) ? clientItems : (Array.isArray(rawItems) ? rawItems : []);
       const rawTargetUrl = (apiUrl || simrsConfigState.apiUrl || 'https://rsbsaonline.com/service/medifirst2000/emr/sync-batch-menu').trim();
       const targetToken = (apiKey && typeof apiKey === 'string' && apiKey.trim() !== '')
@@ -618,6 +618,10 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
         return res.status(400).json({ success: false, error: 'Tidak ada item menu untuk disinkronkan' });
       }
 
+      const isStockOnly = stockOnly === true || mode === 'stock_only' || Boolean(
+        targetItems.length > 0 && targetItems.every(x => (x.stock !== undefined || x.stok !== undefined) && !x.category && !x.protein && !x.mealTimes)
+      );
+
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         Accept: 'application/json',
@@ -629,6 +633,24 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
       }
 
       const mappedItems = targetItems.map((m: any) => {
+        const stockVal = typeof m.stock === 'number' ? Math.max(0, m.stock) : (typeof m.stok === 'number' ? Math.max(0, m.stok) : 50);
+        const nameVal = String(m.name || m.nama_menu || m.nama || 'Menu');
+        if (isStockOnly) {
+          return {
+            id: m.id,
+            id_menu: m.id,
+            name: nameVal,
+            nama: nameVal,
+            nama_menu: nameVal,
+            stock: stockVal,
+            stok: stockVal,
+            qty_stok: stockVal,
+            sisa_stok: stockVal,
+            isAvailable: stockVal > 0,
+            is_tersedia: stockVal > 0,
+            tersedia: stockVal > 0,
+          };
+        }
         const rawAvail = m.isAvailable !== undefined 
           ? m.isAvailable 
           : (m.is_tersedia !== undefined 
@@ -643,33 +665,35 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
           id: m.id,
           id_menu: m.id,
           kd_menu: m.id,
-          name: m.name,
-          nama: m.name,
-          nama_menu: m.name,
-          category: m.category,
-          kategori: m.category,
-          price: m.price,
-          harga: m.price,
-          calories: m.calories,
-          kalori: m.calories,
-          protein: m.protein,
-          carbs: m.carbs,
-          karbohidrat: m.carbs,
-          fat: m.fat,
-          lemak: m.fat,
-          sodium: m.sodium,
-          natrium: m.sodium,
-          waktu_makan: m.mealTimes,
-          deskripsi: m.description,
+          name: nameVal,
+          nama: nameVal,
+          nama_menu: nameVal,
+          category: m.category || 'makanan_utama',
+          kategori: m.category || 'makanan_utama',
+          price: m.price || 0,
+          harga: m.price || 0,
+          calories: m.calories || 0,
+          kalori: m.calories || 0,
+          protein: m.protein || 0,
+          carbs: m.carbs || 0,
+          karbohidrat: m.carbs || 0,
+          fat: m.fat || 0,
+          lemak: m.fat || 0,
+          sodium: m.sodium || 0,
+          natrium: m.sodium || 0,
+          waktu_makan: m.mealTimes || ['pagi', 'siang', 'malam'],
+          deskripsi: m.description || '',
           foto_url: m.foto_url || m.image || m.gambar || '',
           gambar: m.foto_url || m.image || m.gambar || '',
-          stock: typeof m.stock === 'number' ? m.stock : (typeof m.stok === 'number' ? m.stok : 50),
-          stok: typeof m.stock === 'number' ? m.stock : (typeof m.stok === 'number' ? m.stok : 50),
-          isAvailable: isAvail,
-          is_tersedia: isAvail,
-          tersedia: isAvail,
-          status: isAvail ? 1 : 0,
-          status_tersedia: isAvail ? 1 : 0,
+          stock: stockVal,
+          stok: stockVal,
+          qty_stok: stockVal,
+          sisa_stok: stockVal,
+          isAvailable: isAvail && stockVal > 0,
+          is_tersedia: isAvail && stockVal > 0,
+          tersedia: isAvail && stockVal > 0,
+          status: (isAvail && stockVal > 0) ? 1 : 0,
+          status_tersedia: (isAvail && stockVal > 0) ? 1 : 0,
         };
       });
 
@@ -1259,8 +1283,6 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
                 id_menu: payloadItem.id,
                 name: payloadItem.name,
                 nama_menu: payloadItem.name,
-                price: payloadItem.price || 0,
-                harga: payloadItem.price || 0,
                 stock: newStock,
                 stok: newStock,
                 qty_stok: newStock,
