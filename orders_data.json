@@ -1,5 +1,3764 @@
 [
   {
+    "id": "287",
+    "orderNumber": "GZ-20261006-66",
+    "registrationNo": "REG-691678",
+    "createdAt": "2026-10-06 12:14:52",
+    "roomName": "Instalasi gizi",
+    "patientName": "Nahdah",
+    "phoneNumber": "089637417554",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110830889",
+        "name": "Teh manis hangat/es",
+        "portion": 1,
+        "price": 4000,
+        "category": "minuman",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1790145429302",
+        "name": "roti bakar coklat",
+        "portion": 1,
+        "price": 10000,
+        "category": "buah_snack",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 14000,
+    "totalCalories": 300,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-10-06 12:14:52",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-10-06 12:14:52",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "286",
+    "orderNumber": "GZ-20261006-23",
+    "registrationNo": "REG-698845",
+    "createdAt": "2026-10-06 08:54:59",
+    "roomName": "instalasi gizi",
+    "patientName": "olip",
+    "phoneNumber": "+62 831-7044-3034",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1790145530742",
+        "name": "roti bakar selai bluberry",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 150,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-10-06 08:54:59",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-10-06 08:54:59",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "285",
+    "orderNumber": "GZ-20261006-16",
+    "registrationNo": "REG-200673",
+    "createdAt": "2026-10-06 08:13:21",
+    "roomName": "instalasi gizi",
+    "patientName": "nanda",
+    "phoneNumber": "082319870271",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1790145530742",
+        "name": "roti bakar selai bluberry",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789110830889",
+        "name": "Teh manis hangat/es",
+        "portion": 1,
+        "price": 4000,
+        "category": "minuman",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 14000,
+    "totalCalories": 300,
+    "patientNotes": "teh hangat",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-10-06 08:13:21",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-10-06 08:13:21",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "284",
+    "orderNumber": "GZ-20261005-89",
+    "registrationNo": "REG-185275",
+    "createdAt": "2026-10-05 14:09:45",
+    "roomName": "pengadaan",
+    "patientName": "robert",
+    "phoneNumber": "081999613689",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110720484",
+        "name": "Mie goreng (mie, telur, sayur)",
+        "portion": 1,
+        "price": 15000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1790145429302",
+        "name": "roti bakar coklat",
+        "portion": 1,
+        "price": 10000,
+        "category": "buah_snack",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 25000,
+    "totalCalories": 300,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-10-05 14:09:45",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-10-05 14:09:45",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "283",
+    "orderNumber": "GZ-20261005-41",
+    "registrationNo": "REG-815256",
+    "createdAt": "2026-10-05 11:16:56",
+    "roomName": "R pengadaan",
+    "patientName": "P tedy",
+    "phoneNumber": "08111353568",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110504741",
+        "name": "Nasi + ayam goreng + tahu/tempe + sayur + sambal",
+        "portion": 1,
+        "price": 25000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 25000,
+    "totalCalories": 150,
+    "patientNotes": "Bagian paha bawah",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-10-05 11:16:56",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-10-05 11:16:56",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "282",
+    "orderNumber": "GZ-20261005-31",
+    "registrationNo": "REG-058723",
+    "createdAt": "2026-10-05 10:30:59",
+    "roomName": "Poli Dalam",
+    "patientName": "dr. Ayatullah sp.pd",
+    "phoneNumber": "085860000080",
+    "mealTime": "pagi",
+    "items": [
+      {
+        "menuItemId": "menu-1789110419140",
+        "name": "roti bakar, telur, teh",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 100
+      },
+      {
+        "menuItemId": "menu-1789110594638",
+        "name": "Nasi telur balado + tahu + sayur",
+        "portion": 1,
+        "price": 25000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 35000,
+    "totalCalories": 250,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-10-05 10:30:59",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-10-05 10:30:59",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "281",
+    "orderNumber": "GZ-20261005-90",
+    "registrationNo": "REG-091204",
+    "createdAt": "2026-10-05 09:24:51",
+    "roomName": "Ruang lily ( kebidanan )",
+    "patientName": "Cucum hotimah",
+    "phoneNumber": "082118931236",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110504741",
+        "name": "Nasi + ayam goreng + tahu/tempe + sayur + sambal",
+        "portion": 1,
+        "price": 25000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789110830889",
+        "name": "Teh manis hangat/es",
+        "portion": 1,
+        "price": 4000,
+        "category": "minuman",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 29000,
+    "totalCalories": 300,
+    "patientNotes": "Es teh nya manis panas",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-10-05 09:24:51",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-10-05 09:24:51",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "280",
+    "orderNumber": "GZ-20261005-45",
+    "registrationNo": "REG-614096",
+    "createdAt": "2026-10-05 09:16:54",
+    "roomName": "Kamar kebidanan, lantai 3",
+    "patientName": "Rezki Fadilah",
+    "phoneNumber": "085156128649",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110830889",
+        "name": "Teh manis hangat/es",
+        "portion": 1,
+        "price": 4000,
+        "category": "minuman",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 4000,
+    "totalCalories": 150,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-10-05 09:16:54",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-10-05 09:16:54",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "279",
+    "orderNumber": "GZ-20261005-75",
+    "registrationNo": "REG-054704",
+    "createdAt": "2026-10-05 08:00:55",
+    "roomName": "R.promoter",
+    "patientName": "Bubur ayam",
+    "phoneNumber": "081218905623",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1790145429302",
+        "name": "roti bakar coklat",
+        "portion": 1,
+        "price": 10000,
+        "category": "buah_snack",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 150,
+    "patientNotes": "Tidak pakai kacang",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-10-05 08:00:55",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-10-05 08:00:55",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "278",
+    "orderNumber": "GZ-20261005-99",
+    "registrationNo": "REG-000305",
+    "createdAt": "2026-10-05 08:00:01",
+    "roomName": "Farmasi",
+    "patientName": "Ai Ratnengsih",
+    "phoneNumber": "081223100824",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110419140",
+        "name": "roti bakar, telur, teh",
+        "portion": 2,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 100
+      }
+    ],
+    "totalPrice": 20000,
+    "totalCalories": 200,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-10-05 08:00:01",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-10-05 08:00:01",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "277",
+    "orderNumber": "GZ-20261005-10",
+    "registrationNo": "REG-892192",
+    "createdAt": "2026-10-05 07:58:12",
+    "roomName": "Farmasi",
+    "patientName": "Ai Ratnengsih",
+    "phoneNumber": "081223100824",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110419140",
+        "name": "roti bakar, telur, teh",
+        "portion": 2,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 100
+      }
+    ],
+    "totalPrice": 20000,
+    "totalCalories": 200,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-10-05 07:58:12",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-10-05 07:58:12",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "276",
+    "orderNumber": "GZ-20261005-27",
+    "registrationNo": "REG-816554",
+    "createdAt": "2026-10-05 07:06:57",
+    "roomName": "instalasi gizi",
+    "patientName": "mila",
+    "phoneNumber": "085717753800",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1790145429302",
+        "name": "roti bakar coklat",
+        "portion": 1,
+        "price": 10000,
+        "category": "buah_snack",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789353018255",
+        "name": "Kopi Hangat / Es",
+        "portion": 1,
+        "price": 6000,
+        "category": "minuman",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 16000,
+    "totalCalories": 300,
+    "patientNotes": "kopi extra ice, gula 1,5 sdt\nroti bakar (kering)",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-10-05 07:06:57",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-10-05 07:06:57",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "275",
+    "orderNumber": "GZ-20261004-38",
+    "registrationNo": "REG-617736",
+    "createdAt": "2026-10-04 11:53:38",
+    "roomName": "LODAYA 2 Kamar 203",
+    "patientName": "Taufik Indra",
+    "phoneNumber": "081321699251",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110504741",
+        "name": "Nasi + ayam goreng + tahu/tempe + sayur + sambal",
+        "portion": 1,
+        "price": 25000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 25000,
+    "totalCalories": 150,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-10-04 11:53:38",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-10-04 11:53:38",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "274",
+    "orderNumber": "GZ-20261003-23",
+    "registrationNo": "REG-127664",
+    "createdAt": "2026-10-03 15:12:07",
+    "roomName": "LODAYA 2 Kamar 203",
+    "patientName": "Taufik Indra",
+    "phoneNumber": "081321699251",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110830889",
+        "name": "Teh manis hangat/es",
+        "portion": 1,
+        "price": 4000,
+        "category": "minuman",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 4000,
+    "totalCalories": 150,
+    "patientNotes": "hangat",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-10-03 15:12:07",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-10-03 15:12:07",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "273",
+    "orderNumber": "GZ-20261003-11",
+    "registrationNo": "REG-549619",
+    "createdAt": "2026-10-03 12:15:50",
+    "roomName": "R pengadaan",
+    "patientName": "Pa tedy",
+    "phoneNumber": "0811353568",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1790145429302",
+        "name": "roti bakar coklat",
+        "portion": 1,
+        "price": 10000,
+        "category": "buah_snack",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789110830889",
+        "name": "Teh manis hangat/es",
+        "portion": 1,
+        "price": 4000,
+        "category": "minuman",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 14000,
+    "totalCalories": 300,
+    "patientNotes": "Es teh manis",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-10-03 12:15:50",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-10-03 12:15:50",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "272",
+    "orderNumber": "GZ-20261003-25",
+    "registrationNo": "REG-958329",
+    "createdAt": "2026-10-03 08:45:59",
+    "roomName": "lodaya 2  202 vip",
+    "patientName": "arin",
+    "phoneNumber": "0895331429278",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110754478",
+        "name": "Mie kuah (mie, telur, sayur)",
+        "portion": 2,
+        "price": 15000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789110830889",
+        "name": "Teh manis hangat/es",
+        "portion": 1,
+        "price": 4000,
+        "category": "minuman",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 34000,
+    "totalCalories": 450,
+    "patientNotes": "mienya satu pedes banget satu jangan pedes\nteh manisnya pake es",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-10-03 08:45:59",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-10-03 08:45:59",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "271",
+    "orderNumber": "GZ-20261003-77",
+    "registrationNo": "REG-293196",
+    "createdAt": "2026-10-03 07:11:33",
+    "roomName": "LODAYA 2 Kamar 203",
+    "patientName": "Taufik Indra",
+    "phoneNumber": "081321699251",
+    "mealTime": "pagi",
+    "items": [
+      {
+        "menuItemId": "menu-1789110504741",
+        "name": "Nasi + ayam goreng + tahu/tempe + sayur + sambal",
+        "portion": 1,
+        "price": 25000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 25000,
+    "totalCalories": 150,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-10-03 07:11:33",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-10-03 07:11:33",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "270",
+    "orderNumber": "GZ-20261002-93",
+    "registrationNo": "REG-966388",
+    "createdAt": "2026-10-02 16:56:07",
+    "roomName": "LODAYA 2 kamar 203",
+    "patientName": "Taufik Indra",
+    "phoneNumber": "081321699251",
+    "mealTime": "malam",
+    "items": [
+      {
+        "menuItemId": "menu-1789110504741",
+        "name": "Nasi + ayam goreng + tahu/tempe + sayur + sambal",
+        "portion": 1,
+        "price": 25000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 25000,
+    "totalCalories": 150,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-10-02 16:56:07",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-10-02 16:56:07",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "269",
+    "orderNumber": "GZ-20261002-28",
+    "registrationNo": "REG-712871",
+    "createdAt": "2026-10-02 13:31:53",
+    "roomName": "Poli eksekutif",
+    "patientName": "Wida",
+    "phoneNumber": "081221742522",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1790145530742",
+        "name": "roti bakar selai bluberry",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 150,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-10-02 13:31:53",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-10-02 13:31:53",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "268",
+    "orderNumber": "GZ-20261002-12",
+    "registrationNo": "REG-565272",
+    "createdAt": "2026-10-02 13:29:26",
+    "roomName": "Poli eksekutif",
+    "patientName": "Wida",
+    "phoneNumber": "081221742522",
+    "mealTime": "malam",
+    "items": [
+      {
+        "menuItemId": "menu-1789110504741",
+        "name": "Nasi + ayam goreng + tahu/tempe + sayur + sambal",
+        "portion": 1,
+        "price": 25000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 25000,
+    "totalCalories": 150,
+    "patientNotes": "Ayam goreng nya minta dada",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-10-02 13:29:26",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-10-02 13:29:26",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "267",
+    "orderNumber": "GZ-20261002-16",
+    "registrationNo": "REG-438177",
+    "createdAt": "2026-10-02 09:00:38",
+    "roomName": "wasintern",
+    "patientName": "Evie",
+    "phoneNumber": "081122209222",
+    "mealTime": "pagi",
+    "items": [
+      {
+        "menuItemId": "menu-1789110754478",
+        "name": "Mie kuah (mie, telur, sayur)",
+        "portion": 1,
+        "price": 15000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 15000,
+    "totalCalories": 150,
+    "patientNotes": "telurnya  terpisah di rebus ya",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-10-02 09:00:38",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-10-02 09:00:38",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "266",
+    "orderNumber": "GZ-20261002-41",
+    "registrationNo": "REG-938222",
+    "createdAt": "2026-10-02 07:45:38",
+    "roomName": "Radiologi",
+    "patientName": "Ambu",
+    "phoneNumber": "081220462264",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110419140",
+        "name": "roti bakar, telur, teh",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 100
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 100,
+    "patientNotes": "Minta saos nya ka",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-10-02 07:45:38",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-10-02 07:45:38",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "265",
+    "orderNumber": "GZ-20261001-40",
+    "registrationNo": "REG-380948",
+    "createdAt": "2026-10-01 14:23:01",
+    "roomName": "Diteksi keet",
+    "patientName": "Yusril iza mahendra",
+    "phoneNumber": "085852034888",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1790145429302",
+        "name": "roti bakar coklat",
+        "portion": 1,
+        "price": 10000,
+        "category": "buah_snack",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1790145530742",
+        "name": "roti bakar selai bluberry",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 20000,
+    "totalCalories": 300,
+    "patientNotes": "Yang cepat dan padatkan isian rotinya",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-10-01 14:23:01",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-10-01 14:23:01",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "263",
+    "orderNumber": "GZ-20261001-83",
+    "registrationNo": "REG-932116",
+    "createdAt": "2026-10-01 13:42:12",
+    "roomName": "farmasi lantai 3",
+    "patientName": "ana",
+    "phoneNumber": "081224029424",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1790145429302",
+        "name": "roti bakar coklat",
+        "portion": 1,
+        "price": 10000,
+        "category": "buah_snack",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1790145530742",
+        "name": "roti bakar selai bluberry",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 20000,
+    "totalCalories": 300,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-10-01 13:42:12",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-10-01 13:42:12",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "262",
+    "orderNumber": "GZ-20261001-56",
+    "registrationNo": "REG-930286",
+    "createdAt": "2026-10-01 10:38:51",
+    "roomName": "Presisi 3 bed 4.1",
+    "patientName": "Susi",
+    "phoneNumber": "081386010286",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110504741",
+        "name": "Nasi + ayam goreng + tahu/tempe + sayur + sambal",
+        "portion": 1,
+        "price": 25000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 25000,
+    "totalCalories": 150,
+    "patientNotes": "Tambah dadar telor",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-10-01 10:38:51",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-10-01 10:38:51",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "261",
+    "orderNumber": "GZ-20261001-14",
+    "registrationNo": "REG-144188",
+    "createdAt": "2026-10-01 10:25:45",
+    "roomName": "instalasi gizi",
+    "patientName": "mila",
+    "phoneNumber": "085717753800",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789353018255",
+        "name": "Kopi Hangat / Es",
+        "portion": 2,
+        "price": 6000,
+        "category": "minuman",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1790145530742",
+        "name": "roti bakar selai bluberry",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1790145429302",
+        "name": "roti bakar coklat",
+        "portion": 1,
+        "price": 10000,
+        "category": "buah_snack",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 32000,
+    "totalCalories": 600,
+    "patientNotes": "kopi es, gula 1sdt (2) gula 1,5 sdt (1)",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-10-01 10:25:45",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-10-01 10:25:45",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "260",
+    "orderNumber": "GZ-20261001-61",
+    "registrationNo": "REG-297530",
+    "createdAt": "2026-10-01 08:48:18",
+    "roomName": "instalasi gizi",
+    "patientName": "sinta mahasiswa pkl",
+    "phoneNumber": "087829460875",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789353018255",
+        "name": "Kopi Hangat / Es",
+        "portion": 2,
+        "price": 6000,
+        "category": "minuman",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 12000,
+    "totalCalories": 300,
+    "patientNotes": "ga pake gula, es",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-10-01 08:48:18",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-10-01 08:48:18",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "259",
+    "orderNumber": "GZ-20261001-93",
+    "registrationNo": "REG-408070",
+    "createdAt": "2026-10-01 08:16:48",
+    "roomName": "R pengadaan",
+    "patientName": "P tedy",
+    "phoneNumber": "0811353568",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110419140",
+        "name": "roti bakar, telur, teh",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 100
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 100,
+    "patientNotes": "Teh hangat",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-10-01 08:16:48",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-10-01 08:16:48",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "258",
+    "orderNumber": "GZ-20261001-19",
+    "registrationNo": "REG-131302",
+    "createdAt": "2026-10-01 08:12:12",
+    "roomName": "r pengadaan",
+    "patientName": "p tedi",
+    "phoneNumber": "0811353568",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110419140",
+        "name": "roti bakar, telur, teh",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 100
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 100,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-10-01 08:12:12",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-10-01 08:12:12",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "257",
+    "orderNumber": "GZ-20261001-94",
+    "registrationNo": "REG-599930",
+    "createdAt": "2026-10-01 07:30:00",
+    "roomName": "R. Programmer",
+    "patientName": "UAN",
+    "phoneNumber": "083824924787",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1790145530742",
+        "name": "roti bakar selai bluberry",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 150,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-10-01 07:30:00",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-10-01 07:30:00",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "256",
+    "orderNumber": "GZ-20261001-11",
+    "registrationNo": "REG-005454",
+    "createdAt": "2026-10-01 07:03:26",
+    "roomName": "instalasi gizi",
+    "patientName": "wawa",
+    "phoneNumber": "081388071618",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110365112",
+        "name": "Nasi Kuning + telur + orek tempe + timun",
+        "portion": 3,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789110904040",
+        "name": "Air mineral",
+        "portion": 1,
+        "price": 3000,
+        "category": "minuman",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 33000,
+    "totalCalories": 600,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-10-01 07:03:26",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-10-01 07:03:26",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "255",
+    "orderNumber": "GZ-20260930-85",
+    "registrationNo": "REG-560541",
+    "createdAt": "2026-09-30 18:59:21",
+    "roomName": "203 lodaya",
+    "patientName": "DEDEH",
+    "phoneNumber": "081214999201",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789353018255",
+        "name": "Kopi Hangat / Es",
+        "portion": 2,
+        "price": 6000,
+        "category": "minuman",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 12000,
+    "totalCalories": 300,
+    "patientNotes": "Es teh manis",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-30 18:59:21",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-30 18:59:21",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "254",
+    "orderNumber": "GZ-20260930-63",
+    "registrationNo": "REG-911733",
+    "createdAt": "2026-09-30 14:38:31",
+    "roomName": "203",
+    "patientName": "DEDEH",
+    "phoneNumber": "081214999201",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110830889",
+        "name": "Teh manis hangat/es",
+        "portion": 1,
+        "price": 4000,
+        "category": "minuman",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789110720484",
+        "name": "Mie goreng (mie, telur, sayur)",
+        "portion": 1,
+        "price": 15000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 19000,
+    "totalCalories": 300,
+    "patientNotes": "Es teh manis",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-30 14:38:31",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-30 14:38:31",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "253",
+    "orderNumber": "GZ-20260930-43",
+    "registrationNo": "REG-960069",
+    "createdAt": "2026-09-30 12:26:00",
+    "roomName": "instalasi gizi",
+    "patientName": "kirey",
+    "phoneNumber": "081224202697",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110830889",
+        "name": "Teh manis hangat/es",
+        "portion": 2,
+        "price": 4000,
+        "category": "minuman",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789353018255",
+        "name": "Kopi Hangat / Es",
+        "portion": 2,
+        "price": 6000,
+        "category": "minuman",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 20000,
+    "totalCalories": 600,
+    "patientNotes": "es kopi gula sedikit (1) gula normal (1)\nes teh (2)",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-30 12:26:00",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-30 12:26:00",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "252",
+    "orderNumber": "GZ-20260930-46",
+    "registrationNo": "REG-004021",
+    "createdAt": "2026-09-30 10:13:24",
+    "roomName": "Poli eksekutif",
+    "patientName": "Wida",
+    "phoneNumber": "085274115221",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110419140",
+        "name": "roti bakar, telur, teh",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 100
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 100,
+    "patientNotes": "Teh panas",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-30 10:13:24",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-30 10:13:24",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "251",
+    "orderNumber": "GZ-20260930-34",
+    "registrationNo": "REG-562346",
+    "createdAt": "2026-09-30 10:06:03",
+    "roomName": "Ruang Simak",
+    "patientName": "Fadlal",
+    "phoneNumber": "085798079894",
+    "mealTime": "pagi",
+    "items": [
+      {
+        "menuItemId": "menu-1790145530742",
+        "name": "roti bakar selai bluberry",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789110754478",
+        "name": "Mie kuah (mie, telur, sayur)",
+        "portion": 1,
+        "price": 15000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 25000,
+    "totalCalories": 300,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-30 10:06:03",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-30 10:06:03",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "250",
+    "orderNumber": "GZ-20260930-39",
+    "registrationNo": "REG-041786",
+    "createdAt": "2026-09-30 09:40:42",
+    "roomName": "R. Programmer",
+    "patientName": "Wendy",
+    "phoneNumber": "083824924787",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110365112",
+        "name": "Nasi Kuning + telur + orek tempe + timun",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1790145530742",
+        "name": "roti bakar selai bluberry",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 20000,
+    "totalCalories": 300,
+    "patientNotes": "kalau boleh roti bakarnya di mix blueberry sama coklat hehe :)",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-30 09:40:42",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-30 09:40:42",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "249",
+    "orderNumber": "GZ-20260930-91",
+    "registrationNo": "REG-862730",
+    "createdAt": "2026-09-30 09:04:23",
+    "roomName": "Farmasi",
+    "patientName": "Ai Ratnengsih",
+    "phoneNumber": "081223100824",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1790145530742",
+        "name": "roti bakar selai bluberry",
+        "portion": 2,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1790145429302",
+        "name": "roti bakar coklat",
+        "portion": 2,
+        "price": 10000,
+        "category": "buah_snack",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789353018255",
+        "name": "Kopi Hangat / Es",
+        "portion": 1,
+        "price": 6000,
+        "category": "minuman",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 46000,
+    "totalCalories": 750,
+    "patientNotes": "Kirim jam 10.00",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-30 09:04:23",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-30 09:04:23",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "248",
+    "orderNumber": "GZ-20260930-11",
+    "registrationNo": "REG-241991",
+    "createdAt": "2026-09-30 08:20:42",
+    "roomName": "Instalasi gizi",
+    "patientName": "Ligar",
+    "phoneNumber": "082127149242",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1790145429302",
+        "name": "roti bakar coklat",
+        "portion": 1,
+        "price": 10000,
+        "category": "buah_snack",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 150,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-30 08:20:42",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-30 08:20:42",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "247",
+    "orderNumber": "GZ-20260930-52",
+    "registrationNo": "REG-618400",
+    "createdAt": "2026-09-30 07:53:39",
+    "roomName": "Instalasi Gizi",
+    "patientName": "Nanda",
+    "phoneNumber": "083135247272",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110391032",
+        "name": "Bubur ayam lengkap",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 150,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-30 07:53:39",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-30 07:53:39",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "246",
+    "orderNumber": "GZ-20260930-95",
+    "registrationNo": "REG-515431",
+    "createdAt": "2026-09-30 07:51:56",
+    "roomName": "Poli eksekutif",
+    "patientName": "Wida",
+    "phoneNumber": "081221742522",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110419140",
+        "name": "roti bakar, telur, teh",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 100
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 100,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-30 07:51:56",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-30 07:51:56",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "245",
+    "orderNumber": "GZ-20260930-23",
+    "registrationNo": "REG-290792",
+    "createdAt": "2026-09-30 07:31:31",
+    "roomName": "instalasi gizi",
+    "patientName": "ratu",
+    "phoneNumber": "081388071618",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1790145429302",
+        "name": "roti bakar coklat",
+        "portion": 1,
+        "price": 10000,
+        "category": "buah_snack",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 150,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-30 07:31:31",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-30 07:31:31",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "244",
+    "orderNumber": "GZ-20260930-35",
+    "registrationNo": "REG-401444",
+    "createdAt": "2026-09-30 07:16:42",
+    "roomName": "203 lodaya",
+    "patientName": "DEDEH",
+    "phoneNumber": "081214999201",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110419140",
+        "name": "roti bakar, telur, teh",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 100
+      },
+      {
+        "menuItemId": "menu-1789110365112",
+        "name": "Nasi Kuning + telur + orek tempe + timun",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 20000,
+    "totalCalories": 250,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-30 07:16:42",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-30 07:16:42",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "243",
+    "orderNumber": "GZ-20260929-80",
+    "registrationNo": "REG-160261",
+    "createdAt": "2026-09-29 12:19:20",
+    "roomName": "308",
+    "patientName": "dedeh",
+    "phoneNumber": "081214999201",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110594638",
+        "name": "Nasi telur balado + tahu + sayur",
+        "portion": 1,
+        "price": 25000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789110904040",
+        "name": "Air mineral",
+        "portion": 1,
+        "price": 3000,
+        "category": "minuman",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 28000,
+    "totalCalories": 300,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-29 12:19:20",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-29 12:19:20",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "242",
+    "orderNumber": "GZ-20260929-96",
+    "registrationNo": "REG-351333",
+    "createdAt": "2026-09-29 11:49:12",
+    "roomName": "Nerstation lodaya 3",
+    "patientName": "Rifdah nurul",
+    "phoneNumber": "082126690588",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110659549",
+        "name": "Nasi + ayam kecap + tumis sayur",
+        "portion": 1,
+        "price": 25000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 25000,
+    "totalCalories": 150,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-29 11:49:12",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-29 11:49:12",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "241",
+    "orderNumber": "GZ-20260929-89",
+    "registrationNo": "REG-988793",
+    "createdAt": "2026-09-29 11:26:29",
+    "roomName": "nurse station lodaya 3",
+    "patientName": "sarah",
+    "phoneNumber": "082316040231",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110504741",
+        "name": "Nasi + ayam goreng + tahu/tempe + sayur + sambal",
+        "portion": 1,
+        "price": 25000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789110830889",
+        "name": "Teh manis hangat/es",
+        "portion": 1,
+        "price": 4000,
+        "category": "minuman",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 29000,
+    "totalCalories": 300,
+    "patientNotes": "teh dingin",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-29 11:26:29",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-29 11:26:29",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "240",
+    "orderNumber": "GZ-20260929-45",
+    "registrationNo": "REG-360027",
+    "createdAt": "2026-09-29 09:02:40",
+    "roomName": "R. Programmer",
+    "patientName": "Asep Bangbung",
+    "phoneNumber": "083824924787",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1790145530742",
+        "name": "roti bakar selai bluberry",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 150,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-29 09:02:40",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-29 09:02:40",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "239",
+    "orderNumber": "GZ-20260929-66",
+    "registrationNo": "REG-849758",
+    "createdAt": "2026-09-29 08:20:50",
+    "roomName": "Instalasi Gizi",
+    "patientName": "wawa",
+    "phoneNumber": "089673701582",
+    "mealTime": "pagi",
+    "items": [
+      {
+        "menuItemId": "menu-1789110365112",
+        "name": "Nasi Kuning + telur + orek tempe + timun",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 150,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-29 08:20:50",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-29 08:20:50",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "238",
+    "orderNumber": "GZ-20260929-73",
+    "registrationNo": "REG-645770",
+    "createdAt": "2026-09-29 08:17:26",
+    "roomName": "Lab",
+    "patientName": "Rudi",
+    "phoneNumber": "085222884392",
+    "mealTime": "pagi",
+    "items": [
+      {
+        "menuItemId": "menu-1789110365112",
+        "name": "Nasi Kuning + telur + orek tempe + timun",
+        "portion": 2,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 20000,
+    "totalCalories": 300,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-29 08:17:26",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-29 08:17:26",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "237",
+    "orderNumber": "GZ-20260929-33",
+    "registrationNo": "REG-629125",
+    "createdAt": "2026-09-29 08:00:29",
+    "roomName": "instalasi gizi",
+    "patientName": "milaa",
+    "phoneNumber": "085717753800",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789353018255",
+        "name": "Kopi Hangat / Es",
+        "portion": 2,
+        "price": 6000,
+        "category": "minuman",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789110365112",
+        "name": "Nasi Kuning + telur + orek tempe + timun",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789110391032",
+        "name": "Bubur ayam lengkap",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 32000,
+    "totalCalories": 600,
+    "patientNotes": "es kopi gula 1 sdt",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-29 08:00:29",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-29 08:00:29",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "236",
+    "orderNumber": "GZ-20260929-76",
+    "registrationNo": "REG-545834",
+    "createdAt": "2026-09-29 07:59:06",
+    "roomName": "Pengadaan",
+    "patientName": "P tedy",
+    "phoneNumber": "0811353568",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1790145429302",
+        "name": "roti bakar coklat",
+        "portion": 1,
+        "price": 10000,
+        "category": "buah_snack",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789353018255",
+        "name": "Kopi Hangat / Es",
+        "portion": 1,
+        "price": 6000,
+        "category": "minuman",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 16000,
+    "totalCalories": 300,
+    "patientNotes": "rotu bakar Kopi panas",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-29 07:59:06",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-29 07:59:06",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "235",
+    "orderNumber": "GZ-20260929-47",
+    "registrationNo": "REG-587836",
+    "createdAt": "2026-09-29 07:43:08",
+    "roomName": "Radiologi",
+    "patientName": "Ambu",
+    "phoneNumber": "081220462264",
+    "mealTime": "pagi",
+    "items": [
+      {
+        "menuItemId": "menu-1789110391032",
+        "name": "Bubur ayam lengkap",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 150,
+    "patientNotes": "Banyak kecap",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-29 07:43:08",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-29 07:43:08",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "234",
+    "orderNumber": "GZ-20260929-98",
+    "registrationNo": "REG-401047",
+    "createdAt": "2026-09-29 07:40:01",
+    "roomName": "Instalasi gizi",
+    "patientName": "Ligar",
+    "phoneNumber": "082127149242",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110365112",
+        "name": "Nasi Kuning + telur + orek tempe + timun",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789110830889",
+        "name": "Teh manis hangat/es",
+        "portion": 1,
+        "price": 4000,
+        "category": "minuman",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 14000,
+    "totalCalories": 300,
+    "patientNotes": "Teh hangat",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-29 07:40:01",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-29 07:40:01",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "233",
+    "orderNumber": "GZ-20260929-17",
+    "registrationNo": "REG-060267",
+    "createdAt": "2026-09-29 07:34:21",
+    "roomName": "Farmasi",
+    "patientName": "Ai Ratnengsih",
+    "phoneNumber": "081223100824",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110365112",
+        "name": "Nasi Kuning + telur + orek tempe + timun",
+        "portion": 2,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1790145429302",
+        "name": "roti bakar coklat",
+        "portion": 1,
+        "price": 10000,
+        "category": "buah_snack",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 30000,
+    "totalCalories": 450,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-29 07:34:21",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-29 07:34:21",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "232",
+    "orderNumber": "GZ-20260928-54",
+    "registrationNo": "REG-439928",
+    "createdAt": "2026-09-28 13:20:40",
+    "roomName": "Pangestu, anyelir 5",
+    "patientName": "Dini",
+    "phoneNumber": "083832611133",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110504741",
+        "name": "Nasi + ayam goreng + tahu/tempe + sayur + sambal",
+        "portion": 1,
+        "price": 25000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 25000,
+    "totalCalories": 150,
+    "patientNotes": "Panaskan",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-28 13:20:40",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-28 13:20:40",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "231",
+    "orderNumber": "GZ-20260928-95",
+    "registrationNo": "REG-382420",
+    "createdAt": "2026-09-28 11:06:23",
+    "roomName": "207",
+    "patientName": "Faidah",
+    "phoneNumber": "0895351855030",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110391032",
+        "name": "Bubur ayam lengkap",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 150,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-28 11:06:23",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-28 11:06:23",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "230",
+    "orderNumber": "GZ-20260928-98",
+    "registrationNo": "REG-069695",
+    "createdAt": "2026-09-28 09:37:49",
+    "roomName": "instalasi gizi",
+    "patientName": "Nahdah",
+    "phoneNumber": "089637417554",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110391032",
+        "name": "Bubur ayam lengkap",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789110830889",
+        "name": "Teh manis hangat/es",
+        "portion": 1,
+        "price": 4000,
+        "category": "minuman",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 14000,
+    "totalCalories": 300,
+    "patientNotes": "es teh manis",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-28 09:37:49",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-28 09:37:49",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "229",
+    "orderNumber": "GZ-20260928-26",
+    "registrationNo": "REG-717162",
+    "createdAt": "2026-09-28 09:31:57",
+    "roomName": "Ruang Simak",
+    "patientName": "Fadlal",
+    "phoneNumber": "085798079894",
+    "mealTime": "pagi",
+    "items": [
+      {
+        "menuItemId": "menu-1789110720484",
+        "name": "Mie goreng (mie, telur, sayur)",
+        "portion": 1,
+        "price": 15000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789110419140",
+        "name": "roti bakar, telur, teh",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 100
+      }
+    ],
+    "totalPrice": 25000,
+    "totalCalories": 250,
+    "patientNotes": "Es Teh manis",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-28 09:31:57",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-28 09:31:57",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "227",
+    "orderNumber": "GZ-20260928-16",
+    "registrationNo": "REG-993371",
+    "createdAt": "2026-09-28 08:46:34",
+    "roomName": "Instalasi Gizi",
+    "patientName": "Nanda",
+    "phoneNumber": "83135247272",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110365112",
+        "name": "Nasi Kuning + telur + orek tempe + timun",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789110391032",
+        "name": "Bubur ayam lengkap",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789353018255",
+        "name": "Kopi Hangat / Es",
+        "portion": 1,
+        "price": 6000,
+        "category": "minuman",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 26000,
+    "totalCalories": 450,
+    "patientNotes": "Kopi + es + gula(1 sdt) es nya banyakin",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-28 08:46:34",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-28 08:46:34",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "226",
+    "orderNumber": "GZ-20260928-34",
+    "registrationNo": "REG-935042",
+    "createdAt": "2026-09-28 08:28:55",
+    "roomName": "R. Programmer",
+    "patientName": "Ramon",
+    "phoneNumber": "083824924787",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1790145429302",
+        "name": "roti bakar coklat",
+        "portion": 1,
+        "price": 10000,
+        "category": "buah_snack",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789110391032",
+        "name": "Bubur ayam lengkap",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 20000,
+    "totalCalories": 300,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-28 08:28:55",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-28 08:28:55",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "225",
+    "orderNumber": "GZ-20260928-70",
+    "registrationNo": "REG-584059",
+    "createdAt": "2026-09-28 08:06:24",
+    "roomName": "Teibrata kamar V1",
+    "patientName": "Evie",
+    "phoneNumber": "081122209222",
+    "mealTime": "pagi",
+    "items": [
+      {
+        "menuItemId": "menu-1789110391032",
+        "name": "Bubur ayam lengkap",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1790145429302",
+        "name": "roti bakar coklat",
+        "portion": 1,
+        "price": 10000,
+        "category": "buah_snack",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1790145530742",
+        "name": "roti bakar selai bluberry",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 30000,
+    "totalCalories": 450,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-28 08:06:24",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-28 08:06:24",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "224",
+    "orderNumber": "GZ-20260928-43",
+    "registrationNo": "REG-534002",
+    "createdAt": "2026-09-28 07:48:54",
+    "roomName": "IBS",
+    "patientName": "Merry afni",
+    "phoneNumber": "085322227874",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110365112",
+        "name": "Nasi Kuning + telur + orek tempe + timun",
+        "portion": 2,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 20000,
+    "totalCalories": 300,
+    "patientNotes": "Pesan nasi kuning 2 porsi .sekarang",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-28 07:48:54",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-28 07:48:54",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "223",
+    "orderNumber": "GZ-20260928-37",
+    "registrationNo": "REG-505591",
+    "createdAt": "2026-09-28 07:31:46",
+    "roomName": "Apotek Lantai 3",
+    "patientName": "Amalia",
+    "phoneNumber": "081322913998",
+    "mealTime": "pagi",
+    "items": [
+      {
+        "menuItemId": "menu-1789110365112",
+        "name": "Nasi Kuning + telur + orek tempe + timun",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789110419140",
+        "name": "roti bakar, telur, teh",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 100
+      },
+      {
+        "menuItemId": "menu-1789110904040",
+        "name": "Air mineral",
+        "portion": 1,
+        "price": 3000,
+        "category": "minuman",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 23000,
+    "totalCalories": 400,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-28 07:31:46",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-28 07:31:46",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "222",
+    "orderNumber": "GZ-20260928-28",
+    "registrationNo": "REG-569846",
+    "createdAt": "2026-09-28 07:16:10",
+    "roomName": "Ruang tunggu icu",
+    "patientName": "Nasi kuning",
+    "phoneNumber": "089663100005",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110365112",
+        "name": "Nasi Kuning + telur + orek tempe + timun",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 150,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-28 07:16:10",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-28 07:16:10",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "221",
+    "orderNumber": "GZ-20260928-51",
+    "registrationNo": "REG-531468",
+    "createdAt": "2026-09-28 07:15:32",
+    "roomName": "Ruang tunggu icu",
+    "patientName": "Nasi kuning",
+    "phoneNumber": "089663100005",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110365112",
+        "name": "Nasi Kuning + telur + orek tempe + timun",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 150,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-28 07:15:32",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-28 07:15:32",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "220",
+    "orderNumber": "GZ-20260927-64",
+    "registrationNo": "REG-828470",
+    "createdAt": "2026-09-27 18:33:49",
+    "roomName": "Kamar Lodaya 2 Nomor 204",
+    "patientName": "Sandy",
+    "phoneNumber": "081324965848",
+    "mealTime": "malam",
+    "items": [
+      {
+        "menuItemId": "menu-1789110659549",
+        "name": "Nasi + ayam kecap + tumis sayur",
+        "portion": 1,
+        "price": 25000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 25000,
+    "totalCalories": 150,
+    "patientNotes": "mau alat makan",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-27 18:33:49",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-27 18:33:49",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "219",
+    "orderNumber": "GZ-20260927-74",
+    "registrationNo": "REG-060100",
+    "createdAt": "2026-09-27 14:44:20",
+    "roomName": "Tribrata v4 lt5",
+    "patientName": "Bu rita",
+    "phoneNumber": "08131178098",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110720484",
+        "name": "Mie goreng (mie, telur, sayur)",
+        "portion": 1,
+        "price": 15000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 15000,
+    "totalCalories": 150,
+    "patientNotes": "Telor di dadar",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-27 14:44:20",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-27 14:44:20",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "218",
+    "orderNumber": "GZ-20260927-29",
+    "registrationNo": "REG-760972",
+    "createdAt": "2026-09-27 14:39:21",
+    "roomName": "Tribrata v4 lt5",
+    "patientName": "Bu rita",
+    "phoneNumber": "08131178098",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110365112",
+        "name": "Nasi Kuning + telur + orek tempe + timun",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 150,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-27 14:39:21",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-27 14:39:21",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "217",
+    "orderNumber": "GZ-20260927-92",
+    "registrationNo": "REG-461749",
+    "createdAt": "2026-09-27 14:34:22",
+    "roomName": "Tribrata-V1",
+    "patientName": "Evi Kurnia",
+    "phoneNumber": "081122209222",
+    "mealTime": "malam",
+    "items": [
+      {
+        "menuItemId": "menu-1790145530742",
+        "name": "roti bakar selai bluberry",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1790145429302",
+        "name": "roti bakar coklat",
+        "portion": 1,
+        "price": 10000,
+        "category": "buah_snack",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 20000,
+    "totalCalories": 300,
+    "patientNotes": "Mau minta gula ya kak 🙏🏻",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-27 14:34:22",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-27 14:34:22",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "215",
+    "orderNumber": "GZ-20260927-14",
+    "registrationNo": "REG-344380",
+    "createdAt": "2026-09-27 11:45:45",
+    "roomName": "instalasi gizi",
+    "patientName": "kirey",
+    "phoneNumber": "081224202697",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789353018255",
+        "name": "Kopi Hangat / Es",
+        "portion": 2,
+        "price": 6000,
+        "category": "minuman",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 12000,
+    "totalCalories": 300,
+    "patientNotes": "es\n1 : gula normal\n2 : gapake gula",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-27 11:45:45",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-27 11:45:45",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "214",
+    "orderNumber": "GZ-20260927-17",
+    "registrationNo": "REG-144164",
+    "createdAt": "2026-09-27 09:29:05",
+    "roomName": "Lodaya 207",
+    "patientName": "Marrina Rahmawati",
+    "phoneNumber": "082320793623",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1790145429302",
+        "name": "roti bakar coklat",
+        "portion": 1,
+        "price": 10000,
+        "category": "buah_snack",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789110570808",
+        "name": "Nasi + ikan goreng + sayur + sambal",
+        "portion": 1,
+        "price": 25000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 35000,
+    "totalCalories": 300,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-27 09:29:05",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-27 09:29:05",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "213",
+    "orderNumber": "GZ-20260927-57",
+    "registrationNo": "REG-589598",
+    "createdAt": "2026-09-27 07:06:32",
+    "roomName": "Kamar Lodaya 204",
+    "patientName": "Sandy",
+    "phoneNumber": "081324965848",
+    "mealTime": "pagi",
+    "items": [
+      {
+        "menuItemId": "menu-1789110365112",
+        "name": "Nasi Kuning + telur + orek tempe + timun",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 150,
+    "patientNotes": "mau alat makan",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-27 07:06:32",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-27 07:06:32",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "212",
+    "orderNumber": "GZ-20260927-51",
+    "registrationNo": "REG-498809",
+    "createdAt": "2026-09-27 07:04:59",
+    "roomName": "Kamar Lodaya 204",
+    "patientName": "Sandy",
+    "phoneNumber": "081324965848",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110365112",
+        "name": "Nasi Kuning + telur + orek tempe + timun",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 150,
+    "patientNotes": "mau alat makan",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-27 07:04:59",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-27 07:04:59",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "211",
+    "orderNumber": "GZ-20260926-68",
+    "registrationNo": "REG-144862",
+    "createdAt": "2026-09-26 18:45:45",
+    "roomName": "Lodaya 207",
+    "patientName": "Marrina Rahmawati",
+    "phoneNumber": "082320793623",
+    "mealTime": "malam",
+    "items": [
+      {
+        "menuItemId": "menu-1789110504741",
+        "name": "Nasi + ayam goreng + tahu/tempe + sayur + sambal",
+        "portion": 1,
+        "price": 25000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789110720484",
+        "name": "Mie goreng (mie, telur, sayur)",
+        "portion": 1,
+        "price": 15000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 40000,
+    "totalCalories": 300,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-26 18:45:45",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-26 18:45:45",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "209",
+    "orderNumber": "GZ-20260926-16",
+    "registrationNo": "REG-117039",
+    "createdAt": "2026-09-26 13:11:57",
+    "roomName": "Tribata v4 lt 5",
+    "patientName": "Bu rita",
+    "phoneNumber": "08131178098",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110365112",
+        "name": "Nasi Kuning + telur + orek tempe + timun",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789110720484",
+        "name": "Mie goreng (mie, telur, sayur)",
+        "portion": 1,
+        "price": 15000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 25000,
+    "totalCalories": 300,
+    "patientNotes": "Mie goreng jangan pake sayur",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-26 13:11:57",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-26 13:11:57",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "208",
+    "orderNumber": "GZ-20260926-97",
+    "registrationNo": "REG-136637",
+    "createdAt": "2026-09-26 12:22:17",
+    "roomName": "Icu",
+    "patientName": "Yoko",
+    "phoneNumber": "089663100005",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110365112",
+        "name": "Nasi Kuning + telur + orek tempe + timun",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 150,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-26 12:22:17",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-26 12:22:17",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "207",
+    "orderNumber": "GZ-20260926-73",
+    "registrationNo": "REG-146186",
+    "createdAt": "2026-09-26 09:02:27",
+    "roomName": "Gizi",
+    "patientName": "Ligar",
+    "phoneNumber": "082127149242",
+    "mealTime": "pagi",
+    "items": [
+      {
+        "menuItemId": "menu-1790145429302",
+        "name": "roti bakar coklat",
+        "portion": 1,
+        "price": 10000,
+        "category": "buah_snack",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 150,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-26 09:02:27",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-26 09:02:27",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "206",
+    "orderNumber": "GZ-20260926-60",
+    "registrationNo": "REG-067370",
+    "createdAt": "2026-09-26 08:11:08",
+    "roomName": "Ruangan pangestu, kamar no 8c",
+    "patientName": "Arinn",
+    "phoneNumber": "085864482575",
+    "mealTime": "pagi",
+    "items": [
+      {
+        "menuItemId": "menu-1789454954937",
+        "name": "Nasi goreng",
+        "portion": 1,
+        "price": 15000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789110391032",
+        "name": "Bubur ayam lengkap",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 25000,
+    "totalCalories": 300,
+    "patientNotes": "Nasi goreng pedes manis",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-26 08:11:08",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-26 08:11:08",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "205",
+    "orderNumber": "GZ-20260926-91",
+    "registrationNo": "REG-074822",
+    "createdAt": "2026-09-26 07:37:55",
+    "roomName": "Kamar Lodaya 207",
+    "patientName": "Marrina Rahmawati",
+    "phoneNumber": "082320793623",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789454954937",
+        "name": "Nasi goreng",
+        "portion": 1,
+        "price": 15000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1790145429302",
+        "name": "roti bakar coklat",
+        "portion": 1,
+        "price": 10000,
+        "category": "buah_snack",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 25000,
+    "totalCalories": 300,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-26 07:37:55",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-26 07:37:55",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "203",
+    "orderNumber": "GZ-20260925-81",
+    "registrationNo": "REG-049769",
+    "createdAt": "2026-09-25 17:27:30",
+    "roomName": "Farmasi lantai 3",
+    "patientName": "Neneng",
+    "phoneNumber": "085221418842",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1790145429302",
+        "name": "roti bakar coklat",
+        "portion": 1,
+        "price": 10000,
+        "category": "buah_snack",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789110904040",
+        "name": "Air mineral",
+        "portion": 1,
+        "price": 3000,
+        "category": "minuman",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789454954937",
+        "name": "Nasi goreng",
+        "portion": 1,
+        "price": 15000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 28000,
+    "totalCalories": 450,
+    "patientNotes": "Nasi goreng pedes sedang tanpa tomat",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-25 17:27:30",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-25 17:27:30",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "202",
+    "orderNumber": "GZ-20260925-88",
+    "registrationNo": "REG-706412",
+    "createdAt": "2026-09-25 15:58:27",
+    "roomName": "Direksit proyek",
+    "patientName": "Abdul yusril",
+    "phoneNumber": "08562030060",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110659549",
+        "name": "Nasi + ayam kecap + tumis sayur",
+        "portion": 2,
+        "price": 25000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 50000,
+    "totalCalories": 300,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-25 15:58:27",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-25 15:58:27",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "201",
+    "orderNumber": "GZ-20260925-76",
+    "registrationNo": "REG-262684",
+    "createdAt": "2026-09-25 11:07:43",
+    "roomName": "farmasi lantai 3",
+    "patientName": "ana",
+    "phoneNumber": "081224029424",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1790145530742",
+        "name": "roti bakar selai bluberry",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1790145429302",
+        "name": "roti bakar coklat",
+        "portion": 1,
+        "price": 10000,
+        "category": "buah_snack",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 20000,
+    "totalCalories": 300,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-25 11:07:43",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-25 11:07:43",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "200",
+    "orderNumber": "GZ-20260925-82",
+    "registrationNo": "REG-342822",
+    "createdAt": "2026-09-25 10:52:23",
+    "roomName": "Presidnt suit no 3",
+    "patientName": "dr ayatullah",
+    "phoneNumber": "081213110959",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110504741",
+        "name": "Nasi + ayam goreng + tahu/tempe + sayur + sambal",
+        "portion": 1,
+        "price": 25000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 25000,
+    "totalCalories": 150,
+    "patientNotes": "Sendok",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-25 10:52:23",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-25 10:52:23",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "199",
+    "orderNumber": "GZ-20260925-42",
+    "registrationNo": "REG-460860",
+    "createdAt": "2026-09-25 10:37:41",
+    "roomName": "Tribata lt5 v4",
+    "patientName": "Bu rita",
+    "phoneNumber": "08131178098",
+    "mealTime": "malam",
+    "items": [
+      {
+        "menuItemId": "menu-1789110720484",
+        "name": "Mie goreng (mie, telur, sayur)",
+        "portion": 1,
+        "price": 15000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 15000,
+    "totalCalories": 150,
+    "patientNotes": "Jangan pake sayur pakee telurr",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-25 10:37:41",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-25 10:37:41",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "197",
+    "orderNumber": "GZ-20260925-26",
+    "registrationNo": "REG-544555",
+    "createdAt": "2026-09-25 10:05:45",
+    "roomName": "loby informasi",
+    "patientName": "keyca cs",
+    "phoneNumber": "083141622493",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110365112",
+        "name": "Nasi Kuning + telur + orek tempe + timun",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 10000,
+    "totalCalories": 150,
+    "patientNotes": "pedess",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-25 10:05:45",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-25 10:05:45",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "196",
+    "orderNumber": "GZ-20260925-10",
+    "registrationNo": "REG-178208",
+    "createdAt": "2026-09-25 09:26:18",
+    "roomName": "Spri karumkit",
+    "patientName": "Melani",
+    "phoneNumber": "089656059586",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110365112",
+        "name": "Nasi Kuning + telur + orek tempe + timun",
+        "portion": 4,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789454954937",
+        "name": "Nasi goreng",
+        "portion": 4,
+        "price": 15000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 100000,
+    "totalCalories": 1200,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-25 09:26:18",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-25 09:26:18",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "195",
+    "orderNumber": "GZ-20260925-87",
+    "registrationNo": "REG-807773",
+    "createdAt": "2026-09-25 08:30:07",
+    "roomName": "Spri karumkit",
+    "patientName": "Melani",
+    "phoneNumber": "089656059586",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110365112",
+        "name": "Nasi Kuning + telur + orek tempe + timun",
+        "portion": 8,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 80000,
+    "totalCalories": 1200,
+    "patientNotes": "",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-25 08:30:07",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-25 08:30:07",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "194",
+    "orderNumber": "GZ-20260925-45",
+    "registrationNo": "REG-796364",
+    "createdAt": "2026-09-25 08:29:57",
+    "roomName": "Laboratorium",
+    "patientName": "Rini lab",
+    "phoneNumber": "087822101448",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1790145429302",
+        "name": "roti bakar coklat",
+        "portion": 1,
+        "price": 10000,
+        "category": "buah_snack",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1789110720484",
+        "name": "Mie goreng (mie, telur, sayur)",
+        "portion": 2,
+        "price": 15000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 40000,
+    "totalCalories": 450,
+    "patientNotes": "Yang 1 telornya di orak arik dan pake cabe rawit 1",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-25 08:29:57",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-25 08:29:57",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "193",
+    "orderNumber": "GZ-20260925-78",
+    "registrationNo": "REG-499385",
+    "createdAt": "2026-09-25 08:25:00",
+    "roomName": "Promoter 10",
+    "patientName": "Ayunda",
+    "phoneNumber": "085893289281",
+    "mealTime": "siang",
+    "items": [
+      {
+        "menuItemId": "menu-1789110754478",
+        "name": "Mie kuah (mie, telur, sayur)",
+        "portion": 1,
+        "price": 15000,
+        "category": "makanan_utama",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 15000,
+    "totalCalories": 150,
+    "patientNotes": "Mienya tambah potongan cabai 2",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-25 08:25:00",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-25 08:25:00",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "192",
+    "orderNumber": "GZ-20260925-11",
+    "registrationNo": "REG-480490",
+    "createdAt": "2026-09-25 08:24:41",
+    "roomName": "Apotek IGD",
+    "patientName": "Amalia",
+    "phoneNumber": "081322913998",
+    "mealTime": "pagi",
+    "items": [
+      {
+        "menuItemId": "menu-1789454954937",
+        "name": "Nasi goreng",
+        "portion": 1,
+        "price": 15000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1790145429302",
+        "name": "roti bakar coklat",
+        "portion": 1,
+        "price": 10000,
+        "category": "buah_snack",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 25000,
+    "totalCalories": 300,
+    "patientNotes": "Nasi goreng pedes asin",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-25 08:24:41",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-25 08:24:41",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
+    "id": "191",
+    "orderNumber": "GZ-20260925-46",
+    "registrationNo": "REG-290874",
+    "createdAt": "2026-09-25 08:04:51",
+    "roomName": "Pengadaan",
+    "patientName": "Robert",
+    "phoneNumber": "081999613689",
+    "mealTime": "pagi",
+    "items": [
+      {
+        "menuItemId": "menu-1789110391032",
+        "name": "Bubur ayam lengkap",
+        "portion": 1,
+        "price": 10000,
+        "category": "makanan_utama",
+        "calories": 150
+      },
+      {
+        "menuItemId": "menu-1790145429302",
+        "name": "roti bakar coklat",
+        "portion": 1,
+        "price": 10000,
+        "category": "buah_snack",
+        "calories": 150
+      }
+    ],
+    "totalPrice": 20000,
+    "totalCalories": 300,
+    "patientNotes": "minta tambahan kecap",
+    "status": "baru",
+    "statusHistory": [
+      {
+        "status": "baru",
+        "timestamp": "2026-09-25 08:04:51",
+        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
+      }
+    ],
+    "simrsSync": {
+      "synced": true,
+      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
+      "timestamp": "2026-09-25 08:04:51",
+      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
+    }
+  },
+  {
     "id": "190",
     "orderNumber": "GZ-20260925-54",
     "registrationNo": "REG-263742",
@@ -4373,1299 +8132,6 @@
       "synced": true,
       "statusText": "Tersimpan di SIMRS (PostgreSQL)",
       "timestamp": "2026-09-17 07:57:49",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
-    }
-  },
-  {
-    "id": "70",
-    "orderNumber": "GZ-20260917-62",
-    "registrationNo": "REG-087849",
-    "createdAt": "2026-09-17 07:48:08",
-    "roomName": "Keuangan",
-    "patientName": "Bina",
-    "phoneNumber": "085317834848",
-    "mealTime": "pagi",
-    "items": [
-      {
-        "menuItemId": "menu-1789110391032",
-        "name": "Bubur ayam lengkap",
-        "portion": 1,
-        "price": 10000,
-        "category": "makanan_utama",
-        "calories": 150
-      }
-    ],
-    "totalPrice": 10000,
-    "totalCalories": 150,
-    "patientNotes": "Jangan pake seledri & kecap",
-    "status": "baru",
-    "statusHistory": [
-      {
-        "status": "baru",
-        "timestamp": "2026-09-17 07:48:08",
-        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
-      }
-    ],
-    "simrsSync": {
-      "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-17 07:48:08",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
-    }
-  },
-  {
-    "id": "69",
-    "orderNumber": "GZ-20260917-14",
-    "registrationNo": "REG-295333",
-    "createdAt": "2026-09-17 07:34:56",
-    "roomName": "Hamidah",
-    "patientName": "Radiologi",
-    "phoneNumber": "081220462264",
-    "mealTime": "siang",
-    "items": [
-      {
-        "menuItemId": "menu-1789110391032",
-        "name": "Bubur ayam lengkap",
-        "portion": 1,
-        "price": 10000,
-        "category": "makanan_utama",
-        "calories": 150
-      }
-    ],
-    "totalPrice": 10000,
-    "totalCalories": 150,
-    "patientNotes": "",
-    "status": "baru",
-    "statusHistory": [
-      {
-        "status": "baru",
-        "timestamp": "2026-09-17 07:34:56",
-        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
-      }
-    ],
-    "simrsSync": {
-      "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-17 07:34:56",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
-    }
-  },
-  {
-    "id": "67",
-    "orderNumber": "GZ-20260916-87",
-    "registrationNo": "REG-917077",
-    "createdAt": "2026-09-16 13:25:17",
-    "roomName": "Laboratirium",
-    "patientName": "Rini lab",
-    "phoneNumber": "087822101448",
-    "mealTime": "siang",
-    "items": [
-      {
-        "menuItemId": "menu-1789110720484",
-        "name": "Mie goreng (mie, telur, sayur)",
-        "portion": 1,
-        "price": 15000,
-        "category": "makanan_utama",
-        "calories": 150
-      },
-      {
-        "menuItemId": "menu-1789110754478",
-        "name": "Mie kuah (mie, telur, sayur)",
-        "portion": 1,
-        "price": 15000,
-        "category": "makanan_utama",
-        "calories": 150
-      }
-    ],
-    "totalPrice": 30000,
-    "totalCalories": 300,
-    "patientNotes": "",
-    "status": "baru",
-    "statusHistory": [
-      {
-        "status": "baru",
-        "timestamp": "2026-09-16 13:25:17",
-        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
-      }
-    ],
-    "simrsSync": {
-      "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-16 13:25:17",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
-    }
-  },
-  {
-    "id": "66",
-    "orderNumber": "GZ-20260916-27",
-    "registrationNo": "REG-471903",
-    "createdAt": "2026-09-16 13:01:12",
-    "roomName": "Igd",
-    "patientName": "Iim",
-    "phoneNumber": "081222237920",
-    "mealTime": "siang",
-    "items": [
-      {
-        "menuItemId": "menu-1789110754478",
-        "name": "Mie kuah (mie, telur, sayur)",
-        "portion": 1,
-        "price": 15000,
-        "category": "makanan_utama",
-        "calories": 150
-      }
-    ],
-    "totalPrice": 15000,
-    "totalCalories": 150,
-    "patientNotes": "Cabe nya 2 biji diiris",
-    "status": "baru",
-    "statusHistory": [
-      {
-        "status": "baru",
-        "timestamp": "2026-09-16 13:01:12",
-        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
-      }
-    ],
-    "simrsSync": {
-      "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-16 13:01:12",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
-    }
-  },
-  {
-    "id": "65",
-    "orderNumber": "GZ-20260916-11",
-    "registrationNo": "REG-931065",
-    "createdAt": "2026-09-16 12:35:31",
-    "roomName": "Instalasi Radiologi",
-    "patientName": "Dudi",
-    "phoneNumber": "082370327100",
-    "mealTime": "malam",
-    "items": [
-      {
-        "menuItemId": "menu-1789110754478",
-        "name": "Mie kuah (mie, telur, sayur)",
-        "portion": 2,
-        "price": 15000,
-        "category": "makanan_utama",
-        "calories": 150
-      }
-    ],
-    "totalPrice": 30000,
-    "totalCalories": 300,
-    "patientNotes": "Telor ceplok, saos, kecap, cabe rawit, tomat",
-    "status": "baru",
-    "statusHistory": [
-      {
-        "status": "baru",
-        "timestamp": "2026-09-16 12:35:31",
-        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
-      }
-    ],
-    "simrsSync": {
-      "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-16 12:35:31",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
-    }
-  },
-  {
-    "id": "61",
-    "orderNumber": "GZ-20260916-26",
-    "registrationNo": "REG-908557",
-    "createdAt": "2026-09-16 12:18:29",
-    "roomName": "instalasi gizi",
-    "patientName": "narsi",
-    "phoneNumber": "082132859225",
-    "mealTime": "siang",
-    "items": [
-      {
-        "menuItemId": "menu-1789110504741",
-        "name": "Nasi + ayam goreng + tahu/tempe + sayur + sambal",
-        "portion": 1,
-        "price": 25000,
-        "category": "makanan_utama",
-        "calories": 150
-      }
-    ],
-    "totalPrice": 25000,
-    "totalCalories": 150,
-    "patientNotes": "",
-    "status": "baru",
-    "statusHistory": [
-      {
-        "status": "baru",
-        "timestamp": "2026-09-16 12:18:29",
-        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
-      }
-    ],
-    "simrsSync": {
-      "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-16 12:18:29",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
-    }
-  },
-  {
-    "id": "58",
-    "orderNumber": "GZ-20260916-77",
-    "registrationNo": "REG-953514",
-    "createdAt": "2026-09-16 12:02:34",
-    "roomName": "Instalasi Gizi",
-    "patientName": "Mahes - Mahasiswa Gizi Cirebon",
-    "phoneNumber": "087879757241",
-    "mealTime": "siang",
-    "items": [
-      {
-        "menuItemId": "menu-1789110365112",
-        "name": "Nasi Kuning + telur + orek tempe + timun",
-        "portion": 1,
-        "price": 10000,
-        "category": "makanan_utama",
-        "calories": 150
-      }
-    ],
-    "totalPrice": 10000,
-    "totalCalories": 150,
-    "patientNotes": "",
-    "status": "baru",
-    "statusHistory": [
-      {
-        "status": "baru",
-        "timestamp": "2026-09-16 12:02:34",
-        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
-      }
-    ],
-    "simrsSync": {
-      "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-16 12:02:34",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
-    }
-  },
-  {
-    "id": "56",
-    "orderNumber": "GZ-20260916-43",
-    "registrationNo": "REG-026060",
-    "createdAt": "2026-09-16 11:13:46",
-    "roomName": "instalasi gizi",
-    "patientName": "sinta-mahasiswa gizi cirebon",
-    "phoneNumber": "087829460875",
-    "mealTime": "siang",
-    "items": [
-      {
-        "menuItemId": "menu-1789110365112",
-        "name": "Nasi Kuning + telur + orek tempe + timun",
-        "portion": 2,
-        "price": 10000,
-        "category": "makanan_utama",
-        "calories": 150
-      }
-    ],
-    "totalPrice": 20000,
-    "totalCalories": 300,
-    "patientNotes": "sambal pisah",
-    "status": "baru",
-    "statusHistory": [
-      {
-        "status": "baru",
-        "timestamp": "2026-09-16 11:13:46",
-        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
-      }
-    ],
-    "simrsSync": {
-      "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-16 11:13:46",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
-    }
-  },
-  {
-    "id": "55",
-    "orderNumber": "GZ-20260916-68",
-    "registrationNo": "REG-572555",
-    "createdAt": "2026-09-16 11:06:13",
-    "roomName": "Radiologi",
-    "patientName": "Hamidah",
-    "phoneNumber": "081220462264",
-    "mealTime": "siang",
-    "items": [
-      {
-        "menuItemId": "menu-1789110391032",
-        "name": "Bubur ayam lengkap",
-        "portion": 1,
-        "price": 10000,
-        "category": "makanan_utama",
-        "calories": 150
-      }
-    ],
-    "totalPrice": 10000,
-    "totalCalories": 150,
-    "patientNotes": "",
-    "status": "baru",
-    "statusHistory": [
-      {
-        "status": "baru",
-        "timestamp": "2026-09-16 11:06:13",
-        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
-      }
-    ],
-    "simrsSync": {
-      "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-16 11:06:13",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
-    }
-  },
-  {
-    "id": "54",
-    "orderNumber": "GZ-20260916-14",
-    "registrationNo": "REG-964395",
-    "createdAt": "2026-09-16 09:49:25",
-    "roomName": "Ruang IPKL",
-    "patientName": "Bu yeti/decky",
-    "phoneNumber": "081212472598",
-    "mealTime": "siang",
-    "items": [
-      {
-        "menuItemId": "menu-1789454954937",
-        "name": "Nasi goreng",
-        "portion": 1,
-        "price": 15000,
-        "category": "makanan_utama",
-        "calories": 150
-      },
-      {
-        "menuItemId": "menu-1789110720484",
-        "name": "Mie goreng (mie, telur, sayur)",
-        "portion": 1,
-        "price": 15000,
-        "category": "makanan_utama",
-        "calories": 150
-      }
-    ],
-    "totalPrice": 30000,
-    "totalCalories": 300,
-    "patientNotes": "",
-    "status": "baru",
-    "statusHistory": [
-      {
-        "status": "baru",
-        "timestamp": "2026-09-16 09:49:25",
-        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
-      }
-    ],
-    "simrsSync": {
-      "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-16 09:49:25",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
-    }
-  },
-  {
-    "id": "53",
-    "orderNumber": "GZ-20260916-90",
-    "registrationNo": "REG-433329",
-    "createdAt": "2026-09-16 09:40:35",
-    "roomName": "instalasi gizi",
-    "patientName": "narsi",
-    "phoneNumber": "082132859225",
-    "mealTime": "siang",
-    "items": [
-      {
-        "menuItemId": "menu-1789110504741",
-        "name": "Nasi + ayam goreng + tahu/tempe + sayur + sambal",
-        "portion": 1,
-        "price": 25000,
-        "category": "makanan_utama",
-        "calories": 150
-      }
-    ],
-    "totalPrice": 25000,
-    "totalCalories": 150,
-    "patientNotes": "boleh dikirim waktu sekarang",
-    "status": "baru",
-    "statusHistory": [
-      {
-        "status": "baru",
-        "timestamp": "2026-09-16 09:40:35",
-        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
-      }
-    ],
-    "simrsSync": {
-      "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-16 09:40:35",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
-    }
-  },
-  {
-    "id": "52",
-    "orderNumber": "GZ-20260916-39",
-    "registrationNo": "REG-372369",
-    "createdAt": "2026-09-16 09:39:32",
-    "roomName": "instalasi gizi",
-    "patientName": "narsi",
-    "phoneNumber": "082132859225",
-    "mealTime": "siang",
-    "items": [
-      {
-        "menuItemId": "menu-1789110504741",
-        "name": "Nasi + ayam goreng + tahu/tempe + sayur + sambal",
-        "portion": 1,
-        "price": 25000,
-        "category": "makanan_utama",
-        "calories": 150
-      }
-    ],
-    "totalPrice": 25000,
-    "totalCalories": 150,
-    "patientNotes": "",
-    "status": "baru",
-    "statusHistory": [
-      {
-        "status": "baru",
-        "timestamp": "2026-09-16 09:39:32",
-        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
-      }
-    ],
-    "simrsSync": {
-      "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-16 09:39:32",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
-    }
-  },
-  {
-    "id": "51",
-    "orderNumber": "GZ-20260916-71",
-    "registrationNo": "REG-367522",
-    "createdAt": "2026-09-16 09:39:28",
-    "roomName": "Hd",
-    "patientName": "Nova",
-    "phoneNumber": "081394416003",
-    "mealTime": "pagi",
-    "items": [
-      {
-        "menuItemId": "menu-1789110419140",
-        "name": "Roti bakar + telur + teh hangat",
-        "portion": 1,
-        "price": 10000,
-        "category": "makanan_utama",
-        "calories": 150
-      }
-    ],
-    "totalPrice": 10000,
-    "totalCalories": 150,
-    "patientNotes": "Telor ceplokny setengah mateng",
-    "status": "baru",
-    "statusHistory": [
-      {
-        "status": "baru",
-        "timestamp": "2026-09-16 09:39:28",
-        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
-      }
-    ],
-    "simrsSync": {
-      "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-16 09:39:28",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
-    }
-  },
-  {
-    "id": "50",
-    "orderNumber": "GZ-20260916-91",
-    "registrationNo": "REG-342830",
-    "createdAt": "2026-09-16 09:39:03",
-    "roomName": "Instalasi Gizi",
-    "patientName": "Wawa - Mhs gizi cirebon",
-    "phoneNumber": "089673701582",
-    "mealTime": "pagi",
-    "items": [
-      {
-        "menuItemId": "menu-1789353018255",
-        "name": "Kopi Hangat / Es",
-        "portion": 1,
-        "price": 6000,
-        "category": "minuman",
-        "calories": 150
-      },
-      {
-        "menuItemId": "menu-1789110391032",
-        "name": "Bubur ayam lengkap",
-        "portion": 3,
-        "price": 10000,
-        "category": "makanan_utama",
-        "calories": 150
-      }
-    ],
-    "totalPrice": 36000,
-    "totalCalories": 600,
-    "patientNotes": "Kopi nya es, banyakin ya teh es nya hehe 🙏",
-    "status": "baru",
-    "statusHistory": [
-      {
-        "status": "baru",
-        "timestamp": "2026-09-16 09:39:03",
-        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
-      }
-    ],
-    "simrsSync": {
-      "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-16 09:39:03",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
-    }
-  },
-  {
-    "id": "49",
-    "orderNumber": "GZ-20260916-76",
-    "registrationNo": "REG-636816",
-    "createdAt": "2026-09-16 09:27:17",
-    "roomName": "instalasi gizi",
-    "patientName": "salsa",
-    "phoneNumber": "089663472278",
-    "mealTime": "siang",
-    "items": [
-      {
-        "menuItemId": "menu-1789110365112",
-        "name": "Nasi Kuning + telur + orek tempe + timun",
-        "portion": 1,
-        "price": 10000,
-        "category": "makanan_utama",
-        "calories": 150
-      }
-    ],
-    "totalPrice": 10000,
-    "totalCalories": 150,
-    "patientNotes": "",
-    "status": "baru",
-    "statusHistory": [
-      {
-        "status": "baru",
-        "timestamp": "2026-09-16 09:27:17",
-        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
-      }
-    ],
-    "simrsSync": {
-      "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-16 09:27:17",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
-    }
-  },
-  {
-    "id": "48",
-    "orderNumber": "GZ-20260916-15",
-    "registrationNo": "REG-333633",
-    "createdAt": "2026-09-16 09:22:14",
-    "roomName": "Subbag Binfung",
-    "patientName": "Fitria",
-    "phoneNumber": "081221182115",
-    "mealTime": "siang",
-    "items": [
-      {
-        "menuItemId": "menu-1789110365112",
-        "name": "Nasi Kuning + telur + orek tempe + timun",
-        "portion": 1,
-        "price": 10000,
-        "category": "makanan_utama",
-        "calories": 150
-      }
-    ],
-    "totalPrice": 10000,
-    "totalCalories": 150,
-    "patientNotes": "Sambel banyak,",
-    "status": "baru",
-    "statusHistory": [
-      {
-        "status": "baru",
-        "timestamp": "2026-09-16 09:22:14",
-        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
-      }
-    ],
-    "simrsSync": {
-      "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-16 09:22:14",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
-    }
-  },
-  {
-    "id": "46",
-    "orderNumber": "GZ-20260915-81",
-    "registrationNo": "REG-848793",
-    "createdAt": "2026-09-15 16:50:49",
-    "roomName": "Forensik",
-    "patientName": "Mulyadi",
-    "phoneNumber": "081395297379",
-    "mealTime": "siang",
-    "items": [
-      {
-        "menuItemId": "menu-1789454954937",
-        "name": "Nasi goreng",
-        "portion": 2,
-        "price": 15000,
-        "category": "makanan_utama",
-        "calories": 150
-      }
-    ],
-    "totalPrice": 30000,
-    "totalCalories": 300,
-    "patientNotes": "Jangan pake ayam dan sosis",
-    "status": "baru",
-    "statusHistory": [
-      {
-        "status": "baru",
-        "timestamp": "2026-09-15 16:50:49",
-        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
-      }
-    ],
-    "simrsSync": {
-      "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-15 16:50:49",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
-    }
-  },
-  {
-    "id": "45",
-    "orderNumber": "GZ-20260915-37",
-    "registrationNo": "REG-359355",
-    "createdAt": "2026-09-15 16:09:20",
-    "roomName": "Tribrata",
-    "patientName": "Haelva",
-    "phoneNumber": "081224590838",
-    "mealTime": "malam",
-    "items": [
-      {
-        "menuItemId": "menu-1789110504741",
-        "name": "Nasi + ayam goreng + tahu/tempe + sayur + sambal",
-        "portion": 2,
-        "price": 25000,
-        "category": "makanan_utama",
-        "calories": 150
-      }
-    ],
-    "totalPrice": 50000,
-    "totalCalories": 300,
-    "patientNotes": "Ayam bagian paha",
-    "status": "baru",
-    "statusHistory": [
-      {
-        "status": "baru",
-        "timestamp": "2026-09-15 16:09:20",
-        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
-      }
-    ],
-    "simrsSync": {
-      "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-15 16:09:20",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
-    }
-  },
-  {
-    "id": "43",
-    "orderNumber": "GZ-20260915-22",
-    "registrationNo": "REG-352811",
-    "createdAt": "2026-09-15 10:02:33",
-    "roomName": "RUANGAN URJANGMED",
-    "patientName": "PUJI SANTOSO",
-    "phoneNumber": "081222702920",
-    "mealTime": "siang",
-    "items": [
-      {
-        "menuItemId": "menu-1789110419140",
-        "name": "Roti bakar + telur + teh hangat",
-        "portion": 1,
-        "price": 10000,
-        "category": "makanan_utama",
-        "calories": 150
-      }
-    ],
-    "totalPrice": 10000,
-    "totalCalories": 150,
-    "patientNotes": "TEH TAWAR PANAS BANGET",
-    "status": "baru",
-    "statusHistory": [
-      {
-        "status": "baru",
-        "timestamp": "2026-09-15 10:02:33",
-        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
-      }
-    ],
-    "simrsSync": {
-      "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-15 10:02:33",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
-    }
-  },
-  {
-    "id": "42",
-    "orderNumber": "GZ-20260915-54",
-    "registrationNo": "REG-087925",
-    "createdAt": "2026-09-15 09:41:28",
-    "roomName": "instalasi gizi",
-    "patientName": "wawa",
-    "phoneNumber": "082319870271",
-    "mealTime": "siang",
-    "items": [
-      {
-        "menuItemId": "menu-1789353018255",
-        "name": "Kopi Hangat / Es",
-        "portion": 1,
-        "price": 6000,
-        "category": "minuman",
-        "calories": 150
-      },
-      {
-        "menuItemId": "menu-1789110504741",
-        "name": "Nasi + ayam goreng + tahu/tempe + sayur + sambal",
-        "portion": 2,
-        "price": 25000,
-        "category": "makanan_utama",
-        "calories": 150
-      }
-    ],
-    "totalPrice": 56000,
-    "totalCalories": 450,
-    "patientNotes": "kopi + gula (1 sendok) = ice\nmahasiswa gizi",
-    "status": "baru",
-    "statusHistory": [
-      {
-        "status": "baru",
-        "timestamp": "2026-09-15 09:41:28",
-        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
-      }
-    ],
-    "simrsSync": {
-      "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-15 09:41:28",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
-    }
-  },
-  {
-    "id": "41",
-    "orderNumber": "GZ-20260915-90",
-    "registrationNo": "REG-706041",
-    "createdAt": "2026-09-15 09:18:26",
-    "roomName": "R pengadaan",
-    "patientName": "P tedy",
-    "phoneNumber": "0811353568",
-    "mealTime": "siang",
-    "items": [
-      {
-        "menuItemId": "menu-1789110391032",
-        "name": "Bubur ayam lengkap",
-        "portion": 1,
-        "price": 10000,
-        "category": "makanan_utama",
-        "calories": 150
-      }
-    ],
-    "totalPrice": 10000,
-    "totalCalories": 150,
-    "patientNotes": "Pake kecap sambal",
-    "status": "baru",
-    "statusHistory": [
-      {
-        "status": "baru",
-        "timestamp": "2026-09-15 09:18:26",
-        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
-      }
-    ],
-    "simrsSync": {
-      "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-15 09:18:26",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
-    }
-  },
-  {
-    "id": "39",
-    "orderNumber": "GZ-20260915-89",
-    "registrationNo": "REG-181822",
-    "createdAt": "2026-09-15 08:19:42",
-    "roomName": "Kasubbagwasintern",
-    "patientName": "Ellya",
-    "phoneNumber": "081346535011",
-    "mealTime": "pagi",
-    "items": [
-      {
-        "menuItemId": "menu-1789110365112",
-        "name": "Nasi Kuning + telur + orek tempe + timun",
-        "portion": 6,
-        "price": 10000,
-        "category": "makanan_utama",
-        "calories": 150
-      },
-      {
-        "menuItemId": "menu-1789110391032",
-        "name": "Bubur ayam lengkap",
-        "portion": 4,
-        "price": 10000,
-        "category": "makanan_utama",
-        "calories": 150
-      }
-    ],
-    "totalPrice": 100000,
-    "totalCalories": 1500,
-    "patientNotes": "Buburnya kurangi asin nya yaa",
-    "status": "baru",
-    "statusHistory": [
-      {
-        "status": "baru",
-        "timestamp": "2026-09-15 08:19:42",
-        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
-      }
-    ],
-    "simrsSync": {
-      "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-15 08:19:42",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
-    }
-  },
-  {
-    "id": "38",
-    "orderNumber": "GZ-20260915-70",
-    "registrationNo": "REG-080745",
-    "createdAt": "2026-09-15 08:18:01",
-    "roomName": "Wasintern",
-    "patientName": "Evie",
-    "phoneNumber": "081122209222",
-    "mealTime": "siang",
-    "items": [
-      {
-        "menuItemId": "menu-1789110419140",
-        "name": "Roti bakar + telur + teh hangat",
-        "portion": 1,
-        "price": 10000,
-        "category": "makanan_utama",
-        "calories": 150
-      },
-      {
-        "menuItemId": "menu-1789353163749",
-        "name": "Aneka Juice (strawberry, melon, jeruk)",
-        "portion": 1,
-        "price": 12000,
-        "category": "minuman",
-        "calories": 150
-      }
-    ],
-    "totalPrice": 22000,
-    "totalCalories": 300,
-    "patientNotes": "",
-    "status": "baru",
-    "statusHistory": [
-      {
-        "status": "baru",
-        "timestamp": "2026-09-15 08:18:01",
-        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
-      }
-    ],
-    "simrsSync": {
-      "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-15 08:18:01",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
-    }
-  },
-  {
-    "id": "35",
-    "orderNumber": "GZ-20260915-65",
-    "registrationNo": "REG-249202",
-    "createdAt": "2026-09-15 08:04:10",
-    "roomName": "Ruang perinatologi",
-    "patientName": "chesy",
-    "phoneNumber": "088222754886",
-    "mealTime": "pagi",
-    "items": [
-      {
-        "menuItemId": "menu-1789110365112",
-        "name": "Nasi Kuning + telur + orek tempe + timun",
-        "portion": 1,
-        "price": 10000,
-        "category": "makanan_utama",
-        "calories": 150
-      }
-    ],
-    "totalPrice": 10000,
-    "totalCalories": 150,
-    "patientNotes": "",
-    "status": "baru",
-    "statusHistory": [
-      {
-        "status": "baru",
-        "timestamp": "2026-09-15 08:04:10",
-        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
-      }
-    ],
-    "simrsSync": {
-      "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-15 08:04:10",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
-    }
-  },
-  {
-    "id": "34",
-    "orderNumber": "GZ-20260915-98",
-    "registrationNo": "REG-073044",
-    "createdAt": "2026-09-15 08:01:13",
-    "roomName": "Urmin",
-    "patientName": "Devi",
-    "phoneNumber": "082217631114",
-    "mealTime": "siang",
-    "items": [
-      {
-        "menuItemId": "menu-1789110419140",
-        "name": "Roti bakar + telur + teh hangat",
-        "portion": 1,
-        "price": 10000,
-        "category": "makanan_utama",
-        "calories": 150
-      }
-    ],
-    "totalPrice": 10000,
-    "totalCalories": 150,
-    "patientNotes": "Buat teh gulanya sdkt",
-    "status": "baru",
-    "statusHistory": [
-      {
-        "status": "baru",
-        "timestamp": "2026-09-15 08:01:13",
-        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
-      }
-    ],
-    "simrsSync": {
-      "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-15 08:01:13",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
-    }
-  },
-  {
-    "id": "33",
-    "orderNumber": "GZ-20260915-28",
-    "registrationNo": "REG-985586",
-    "createdAt": "2026-09-15 07:59:46",
-    "roomName": "RUANG RADIOLOGI",
-    "patientName": "Firli",
-    "phoneNumber": "08822865429",
-    "mealTime": "siang",
-    "items": [
-      {
-        "menuItemId": "menu-1789110365112",
-        "name": "Nasi Kuning + telur + orek tempe + timun",
-        "portion": 3,
-        "price": 10000,
-        "category": "makanan_utama",
-        "calories": 150
-      }
-    ],
-    "totalPrice": 30000,
-    "totalCalories": 450,
-    "patientNotes": "nasi kuning hangat, sambal banyakn",
-    "status": "baru",
-    "statusHistory": [
-      {
-        "status": "baru",
-        "timestamp": "2026-09-15 07:59:46",
-        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
-      }
-    ],
-    "simrsSync": {
-      "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-15 07:59:46",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
-    }
-  },
-  {
-    "id": "32",
-    "orderNumber": "GZ-20260915-21",
-    "registrationNo": "REG-859175",
-    "createdAt": "2026-09-15 07:57:40",
-    "roomName": "Subbag Binfung",
-    "patientName": "Fitri",
-    "phoneNumber": "081221182115",
-    "mealTime": "siang",
-    "items": [
-      {
-        "menuItemId": "menu-1789110391032",
-        "name": "Bubur ayam lengkap",
-        "portion": 1,
-        "price": 10000,
-        "category": "makanan_utama",
-        "calories": 150
-      }
-    ],
-    "totalPrice": 10000,
-    "totalCalories": 150,
-    "patientNotes": "",
-    "status": "baru",
-    "statusHistory": [
-      {
-        "status": "baru",
-        "timestamp": "2026-09-15 07:57:40",
-        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
-      }
-    ],
-    "simrsSync": {
-      "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-15 07:57:40",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
-    }
-  },
-  {
-    "id": "31",
-    "orderNumber": "GZ-20260915-82",
-    "registrationNo": "REG-614799",
-    "createdAt": "2026-09-15 07:53:35",
-    "roomName": "Ruang simak Sebrang Keuangan",
-    "patientName": "Fadlal",
-    "phoneNumber": "082125573582",
-    "mealTime": "siang",
-    "items": [
-      {
-        "menuItemId": "menu-1789110419140",
-        "name": "Roti bakar + telur + teh hangat",
-        "portion": 2,
-        "price": 10000,
-        "category": "makanan_utama",
-        "calories": 150
-      }
-    ],
-    "totalPrice": 20000,
-    "totalCalories": 300,
-    "patientNotes": "Tehnya manis",
-    "status": "baru",
-    "statusHistory": [
-      {
-        "status": "baru",
-        "timestamp": "2026-09-15 07:53:35",
-        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
-      }
-    ],
-    "simrsSync": {
-      "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-15 07:53:35",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
-    }
-  },
-  {
-    "id": "30",
-    "orderNumber": "GZ-20260915-41",
-    "registrationNo": "REG-580699",
-    "createdAt": "2026-09-15 07:53:01",
-    "roomName": "ruang Ur ren",
-    "patientName": "dani",
-    "phoneNumber": "083820214334",
-    "mealTime": "pagi",
-    "items": [
-      {
-        "menuItemId": "menu-1789110365112",
-        "name": "Nasi Kuning + telur + orek tempe + timun",
-        "portion": 1,
-        "price": 10000,
-        "category": "makanan_utama",
-        "calories": 150
-      },
-      {
-        "menuItemId": "menu-1789110391032",
-        "name": "Bubur ayam lengkap",
-        "portion": 1,
-        "price": 10000,
-        "category": "makanan_utama",
-        "calories": 150
-      }
-    ],
-    "totalPrice": 20000,
-    "totalCalories": 300,
-    "patientNotes": "Tanpa pedas",
-    "status": "baru",
-    "statusHistory": [
-      {
-        "status": "baru",
-        "timestamp": "2026-09-15 07:53:01",
-        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
-      }
-    ],
-    "simrsSync": {
-      "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-15 07:53:01",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
-    }
-  },
-  {
-    "id": "29",
-    "orderNumber": "GZ-20260915-63",
-    "registrationNo": "REG-420800",
-    "createdAt": "2026-09-15 07:50:21",
-    "roomName": "Ruang Ur Ren",
-    "patientName": "Dani",
-    "phoneNumber": "083820214334",
-    "mealTime": "siang",
-    "items": [
-      {
-        "menuItemId": "menu-1789110365112",
-        "name": "Nasi Kuning + telur + orek tempe + timun",
-        "portion": 1,
-        "price": 10000,
-        "category": "makanan_utama",
-        "calories": 150
-      },
-      {
-        "menuItemId": "menu-1789110391032",
-        "name": "Bubur ayam lengkap",
-        "portion": 1,
-        "price": 10000,
-        "category": "makanan_utama",
-        "calories": 150
-      }
-    ],
-    "totalPrice": 20000,
-    "totalCalories": 300,
-    "patientNotes": "Tanpa pedas",
-    "status": "baru",
-    "statusHistory": [
-      {
-        "status": "baru",
-        "timestamp": "2026-09-15 07:50:21",
-        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
-      }
-    ],
-    "simrsSync": {
-      "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-15 07:50:21",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
-    }
-  },
-  {
-    "id": "28",
-    "orderNumber": "GZ-20260915-67",
-    "registrationNo": "REG-243205",
-    "createdAt": "2026-09-15 07:47:24",
-    "roomName": "urmin",
-    "patientName": "Rini",
-    "phoneNumber": "082116615289",
-    "mealTime": "pagi",
-    "items": [
-      {
-        "menuItemId": "menu-1789110419140",
-        "name": "Roti bakar + telur + teh hangat",
-        "portion": 1,
-        "price": 10000,
-        "category": "makanan_utama",
-        "calories": 150
-      }
-    ],
-    "totalPrice": 10000,
-    "totalCalories": 150,
-    "patientNotes": "telor di bikin omlet",
-    "status": "baru",
-    "statusHistory": [
-      {
-        "status": "baru",
-        "timestamp": "2026-09-15 07:47:24",
-        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
-      }
-    ],
-    "simrsSync": {
-      "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-15 07:47:24",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
-    }
-  },
-  {
-    "id": "27",
-    "orderNumber": "GZ-20260915-74",
-    "registrationNo": "REG-165855",
-    "createdAt": "2026-09-15 07:46:06",
-    "roomName": "Ruang Ur Ren",
-    "patientName": "Dani",
-    "phoneNumber": "083820214334",
-    "mealTime": "pagi",
-    "items": [
-      {
-        "menuItemId": "menu-1789110391032",
-        "name": "Bubur ayam lengkap",
-        "portion": 1,
-        "price": 10000,
-        "category": "makanan_utama",
-        "calories": 150
-      },
-      {
-        "menuItemId": "menu-1789110720484",
-        "name": "Mie goreng (mie, telur, sayur)",
-        "portion": 1,
-        "price": 15000,
-        "category": "makanan_utama",
-        "calories": 150
-      }
-    ],
-    "totalPrice": 25000,
-    "totalCalories": 300,
-    "patientNotes": "Tidak pedas",
-    "status": "baru",
-    "statusHistory": [
-      {
-        "status": "baru",
-        "timestamp": "2026-09-15 07:46:06",
-        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
-      }
-    ],
-    "simrsSync": {
-      "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-15 07:46:06",
-      "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
-    }
-  },
-  {
-    "id": "26",
-    "orderNumber": "GZ-20260915-43",
-    "registrationNo": "REG-552973",
-    "createdAt": "2026-09-15 07:35:53",
-    "roomName": "Urmin",
-    "patientName": "DEDEH",
-    "phoneNumber": "081214999201",
-    "mealTime": "pagi",
-    "items": [
-      {
-        "menuItemId": "menu-1789110419140",
-        "name": "Roti bakar + telur + teh hangat",
-        "portion": 1,
-        "price": 10000,
-        "category": "makanan_utama",
-        "calories": 150
-      }
-    ],
-    "totalPrice": 10000,
-    "totalCalories": 150,
-    "patientNotes": "Telur nya tidak terlalu mateng",
-    "status": "baru",
-    "statusHistory": [
-      {
-        "status": "baru",
-        "timestamp": "2026-09-15 07:35:53",
-        "note": "Tersinkron langsung dari tabel rego_pesanan_gizi_t SIMRS"
-      }
-    ],
-    "simrsSync": {
-      "synced": true,
-      "statusText": "Tersimpan di SIMRS (PostgreSQL)",
-      "timestamp": "2026-09-15 07:35:53",
       "targetUrl": "https://rsbsaonline.com/service/medifirst2000/emr/riwayat-pesanan-gizi"
     }
   }

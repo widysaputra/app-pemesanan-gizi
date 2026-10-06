@@ -661,9 +661,10 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
           natrium: m.sodium,
           waktu_makan: m.mealTimes,
           deskripsi: m.description,
-          gambar_url: m.image,
-          foto_url: m.image,
-          image: m.image,
+          foto_url: m.foto_url || m.image || m.gambar || '',
+          gambar: m.foto_url || m.image || m.gambar || '',
+          stock: typeof m.stock === 'number' ? m.stock : (typeof m.stok === 'number' ? m.stok : 50),
+          stok: typeof m.stock === 'number' ? m.stock : (typeof m.stok === 'number' ? m.stok : 50),
           isAvailable: isAvail,
           is_tersedia: isAvail,
           tersedia: isAvail,
@@ -709,29 +710,13 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
         });
       }
 
-      // Batch sync
+      // Batch sync: Kirim array menu_items tunggal yang ramping tanpa duplikasi berulang
       const first = mappedItems[0] || {} as any;
       const batchPayload = {
         menu_items: mappedItems,
-        items: mappedItems,
-        data: mappedItems,
-        menus: mappedItems,
-        hasil_json: {
-          menu_items: mappedItems,
-          items: mappedItems,
-          total: mappedItems.length,
-        },
         id: first.id || '1',
         id_menu: first.id || '1',
         name: first.name || 'Batch Menu',
-        nama: first.nama || 'Batch Menu',
-        nama_menu: first.nama_menu || 'Batch Menu',
-        category: first.category || 'makanan_utama',
-        kategori: first.kategori || 'makanan_utama',
-        price: first.price || 0,
-        harga: first.harga || 0,
-        calories: first.calories || 0,
-        kalori: first.kalori || 0,
         total: mappedItems.length,
         total_count: mappedItems.length,
         synced_at: new Date().toISOString(),

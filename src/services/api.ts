@@ -1833,7 +1833,6 @@ export class HospitalRealtimeService {
     data?: any;
     error?: string;
   }> {
-    // 2. Sinkronisasi master menu langsung dari browser
     const items = getLocalCachedMenu();
     const config = getLocalSimrsConfig();
     const targetUrl = (apiUrl || config.apiUrl || '').trim();
@@ -1843,31 +1842,50 @@ export class HospitalRealtimeService {
       throw new Error('URL Endpoint SIMRS belum dikonfigurasi');
     }
 
-    // Cek apakah endpoint diarahkan khusus ke save-master-menu (menyimpan 1 menu per request)
+    if (items.length === 0) {
+      return {
+        success: true,
+        message: 'Tidak ada item menu untuk disinkronkan.',
+        totalSynced: 0,
+      };
+    }
+
     const isSingleMenuEndpoint = targetUrl.includes('save-master-menu');
     const syncUrl = isSingleMenuEndpoint 
       ? resolveSimrsSingleMenuUrl(targetUrl) 
       : resolveSimrsBatchMenuUrl(targetUrl);
 
-    const enrichedItems = items.map(m => {
-      const img = m.image || (m as any).foto_url || (m as any).gambar_url || '';
-      const stockVal = typeof m.stock === 'number' ? m.stock : 50;
+    // Optimasi payload: gunakan 1 field foto_url dan hapus duplikasi properti gambar ganda
+    const cleanItems = items.map(m => {
+      const rawImg = m.image || (m as any).foto_url || (m as any).gambar || '';
+      const stockVal = typeof m.stock === 'number' ? m.stock : (typeof (m as any).stok === 'number' ? (m as any).stok : 50);
       const isAvail = m.isAvailable !== false && (m as any).is_tersedia !== false && (m as any).status !== 0 && stockVal > 0;
       return {
-        ...m,
+        id: m.id,
         id_menu: m.id,
+        kd_menu: m.id,
+        name: m.name,
+        nama: m.name,
         nama_menu: m.name,
+        category: m.category,
+        kategori: m.category,
+        price: m.price,
         harga: m.price,
+        calories: m.calories,
         kalori: m.calories,
-        foto_url: img,
-        gambar_url: img,
-        image: img,
-        foto: img,
-        gambar: img,
+        protein: m.protein,
+        karbohidrat: m.carbs,
+        carbs: m.carbs,
+        lemak: m.fat,
+        fat: m.fat,
+        natrium: m.sodium,
+        sodium: m.sodium,
+        waktu_makan: m.mealTimes,
+        deskripsi: m.description,
+        foto_url: rawImg,
+        gambar: rawImg,
         stock: stockVal,
         stok: stockVal,
-        qty_stok: stockVal,
-        sisa_stok: stockVal,
         isAvailable: isAvail,
         is_tersedia: isAvail,
         tersedia: isAvail,
@@ -1876,191 +1894,112 @@ export class HospitalRealtimeService {
       };
     });
 
-    // 1. Coba sinkronisasi via backend server terlebih dahulu
-    try {
-      const res = await fetch('/api/simrs/sync-menu', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          apiUrl: syncUrl, 
-          apiKey: targetToken, 
-          isSingle: isSingleMenuEndpoint,
-          menuItems: enrichedItems,
-          items: enrichedItems,
-        }),
-      });
-      const contentType = res.headers.get('content-type') || '';
-      if (contentType.includes('application/json')) {
-        const result = await res.json();
-        if (result && (result.success !== undefined || result.message || result.error)) {
-          return {
-            success: Boolean(result.success),
-            message: result.message || (result.success ? 'Berhasil sinkronisasi master menu ke SIMRS!' : (result.error || 'Gagal sinkronisasi menu')),
-            totalSynced: result.totalSynced || (result.success ? items.length : 0),
-            latency: result.latency,
-            data: result.data,
-            error: result.error,
-          };
-        }
-      }
-    } catch {
-      // Backend offline / Vercel
-    }
-
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    };
-    if (targetToken) {
-      const raw = targetToken.replace(/^Bearer\s+/i, '').trim();
-      headers['X-AUTH-TOKEN'] = raw;
-      headers['Authorization'] = `Bearer ${raw}`;
-    }
-
     const start = Date.now();
-    try {
-      if (isSingleMenuEndpoint) {
-        // Simpan setiap item menu satu per satu ke endpoint save-master-menu
-        let successCount = 0;
-        let lastResponseData: any = null;
-        for (const m of items) {
-          const itemPayload = {
-            id: m.id,
-            id_menu: m.id,
-            name: m.name,
-            nama: m.name,
-            nama_menu: m.name,
-            kategori: m.category,
-            category: m.category,
-            harga: m.price,
-            price: m.price,
-            kalori: m.calories,
-            calories: m.calories,
-            protein: m.protein,
-            karbohidrat: m.carbs,
-            lemak: m.fat,
-            natrium: m.sodium,
-            waktu_makan: m.mealTimes,
-            deskripsi: m.description,
-            image: m.image,
-            gambar: m.image,
-            gambar_url: m.image,
-            foto: m.image,
-            foto_url: m.image,
-            image_url: m.image,
-            url_gambar: m.image,
-            url_foto: m.image,
-            photo: m.image,
-            photo_url: m.image,
-            is_tersedia: m.isAvailable !== false,
-          };
-          const singleRes = await fetch(targetUrl, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(itemPayload),
-          });
-          if (singleRes.ok) {
-            successCount++;
-            lastResponseData = await singleRes.json().catch(() => null);
+
+    // Chunking: Bagi pengiriman menjadi batch kecil (3 item per batch)
+    // agar ukuran JSON selalu berada jauh di bawah limit Vercel (4.5 MB) & limit web server PHP
+    const CHUNK_SIZE = 3;
+    const chunks: typeof cleanItems[] = [];
+    for (let i = 0; i < cleanItems.length; i += CHUNK_SIZE) {
+      chunks.push(cleanItems.slice(i, i + CHUNK_SIZE));
+    }
+
+    let totalSyncedCount = 0;
+    let lastError: string | null = null;
+    let lastSuccessData: any = null;
+
+    for (let i = 0; i < chunks.length; i++) {
+      const currentChunk = chunks[i];
+      let chunkSuccess = false;
+
+      // 1. Sinkronisasi batch kecil via backend API
+      try {
+        const res = await fetch('/api/simrs/sync-menu', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            apiUrl: syncUrl,
+            apiKey: targetToken,
+            isSingle: isSingleMenuEndpoint,
+            menuItems: currentChunk,
+          }),
+        });
+
+        if (res.status === 413) {
+          throw new Error('Ukuran payload terlalu besar (HTTP 413)');
+        }
+
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          const result = await res.json();
+          if (res.ok && result.success) {
+            totalSyncedCount += (result.totalSynced || currentChunk.length);
+            lastSuccessData = result.data;
+            chunkSuccess = true;
+          } else {
+            lastError = result.error || result.message || `HTTP ${res.status}`;
+          }
+        } else {
+          const textRes = await res.text();
+          if (res.ok) {
+            totalSyncedCount += currentChunk.length;
+            chunkSuccess = true;
+          } else {
+            lastError = textRes.slice(0, 150) || `HTTP ${res.status}`;
           }
         }
-        const latency = `${Date.now() - start}ms`;
-        return {
-          success: successCount > 0,
-          totalSynced: successCount,
-          latency,
-          message: `Berhasil menyinkronkan ${successCount} dari ${items.length} master menu ke endpoint SIMRS!`,
-          data: lastResponseData || { status: 'success' },
-        };
+      } catch (err: any) {
+        lastError = err.message;
       }
 
-      // Batch Sync ke sync-batch-menu
-      const firstItem = items[0] || {} as any;
-      const res = await fetch(syncUrl, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          // Sertakan juga parameter id & name di level root agar aman jika endpoint ternyata save-master-menu
-          id: firstItem.id || 'menu-1',
-          id_menu: firstItem.id || 'menu-1',
-          name: firstItem.name || 'Master Menu',
-          nama: firstItem.name || 'Master Menu',
-          nama_menu: firstItem.name || 'Master Menu',
-          kategori: firstItem.category || 'makanan_utama',
-          category: firstItem.category || 'makanan_utama',
-          harga: firstItem.price || 0,
-          price: firstItem.price || 0,
-          kalori: firstItem.calories || 0,
-          calories: firstItem.calories || 0,
-          image: firstItem.image,
-          gambar_url: firstItem.image,
-          foto_url: firstItem.image,
-          menu_items: items.map(m => ({
-            id: m.id,
-            id_menu: m.id,
-            name: m.name,
-            nama_menu: m.name,
-            kategori: m.category,
-            category: m.category,
-            harga: m.price,
-            price: m.price,
-            kalori: m.calories,
-            calories: m.calories,
-            protein: m.protein,
-            karbohidrat: m.carbs,
-            lemak: m.fat,
-            natrium: m.sodium,
-            waktu_makan: m.mealTimes,
-            deskripsi: m.description,
-            image: m.image,
-            gambar: m.image,
-            gambar_url: m.image,
-            foto: m.image,
-            foto_url: m.image,
-            image_url: m.image,
-            url_gambar: m.image,
-            url_foto: m.image,
-            photo: m.image,
-            photo_url: m.image,
-            status_tersedia: m.isAvailable,
-            is_tersedia: m.isAvailable,
-          })),
-          items: enrichedItems,
-        }),
-      });
-      const latency = `${Date.now() - start}ms`;
-      const data = await res.json().catch(() => null);
-
-      if (res.ok) {
-        return {
-          success: true,
-          totalSynced: items.length,
-          latency,
-          message: `Berhasil menyinkronkan ${items.length} master menu gizi ke SIMRS!`,
-          data,
-        };
-      } else {
-        const errorText = data?.message || `HTTP ${res.status}: Gagal menyinkronkan menu`;
-        return {
-          success: false,
-          message: errorText,
-          error: errorText,
-          latency,
-          data,
-        };
+      // 2. Jika pengiriman via backend gagal, coba kirim langsung ke endpoint single save-master-menu
+      if (!chunkSuccess) {
+        for (const item of currentChunk) {
+          try {
+            const singleUrl = resolveSimrsSingleMenuUrl(targetUrl);
+            const rawToken = targetToken.replace(/^Bearer\s+/i, '').trim();
+            const headers: Record<string, string> = {
+              'Content-Type': 'application/json',
+              Accept: 'application/json',
+            };
+            if (rawToken) {
+              headers['X-AUTH-TOKEN'] = rawToken;
+              headers['Authorization'] = `Bearer ${rawToken}`;
+            }
+            const singleRes = await fetch(singleUrl, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify(item),
+            });
+            if (singleRes.ok) {
+              totalSyncedCount++;
+              chunkSuccess = true;
+              lastSuccessData = await singleRes.json().catch(() => null);
+            }
+          } catch {}
+        }
       }
-    } catch (err: any) {
-      const isCors = err.message?.includes('Failed to fetch') || err.name === 'TypeError';
-      const errorMsg = isCors
-        ? `Gagal terhubung langsung ke SIMRS dari browser (CORS). Pastikan backend aktif atau server Laravel SIMRS mengizinkan CORS header.`
-        : `Gagal menyinkronkan master menu ke SIMRS: ${err.message}`;
+    }
+
+    const latency = `${Date.now() - start}ms`;
+
+    if (totalSyncedCount > 0) {
       return {
-        success: false,
-        totalSynced: 0,
-        message: errorMsg,
-        error: errorMsg,
+        success: true,
+        totalSynced: totalSyncedCount,
+        latency,
+        message: `Berhasil menyinkronkan ${totalSyncedCount} dari ${items.length} master menu ke database SIMRS!`,
+        data: lastSuccessData,
       };
     }
+
+    return {
+      success: false,
+      totalSynced: 0,
+      latency,
+      message: lastError || 'Gagal menyinkronkan menu ke SIMRS',
+      error: lastError || 'Gagal menyinkronkan menu ke SIMRS',
+    };
   }
 
   // --- ADMIN SECURITY & PASSWORD ---
