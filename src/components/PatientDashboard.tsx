@@ -381,7 +381,7 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({
       // Auto-trigger direct WhatsApp link to Dapur Gizi
       if (messageContent) {
         try {
-          const targetGiziPhone = '081573570843';
+          const targetGiziPhone = '081959563733';
           const cleanGizi = targetGiziPhone.replace(/[^0-9]/g, '');
           const targetGiziWa = cleanGizi.startsWith('0') ? `62${cleanGizi.slice(1)}` : cleanGizi.startsWith('62') ? cleanGizi : `62${cleanGizi}`;
           const directWaUrl = `https://api.whatsapp.com/send?phone=${targetGiziWa}&text=${encodeURIComponent(messageContent)}`;

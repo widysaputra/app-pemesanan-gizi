@@ -21,7 +21,7 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
 
   if (!isOpen || !order) return null;
 
-  const rawTarget = '081573570843';
+  const rawTarget = '081959563733';
   const cleanPhone = rawTarget.replace(/[^0-9]/g, '');
   const giziPhoneWaTarget = cleanPhone.startsWith('0') ? `62${cleanPhone.slice(1)}` : cleanPhone.startsWith('62') ? cleanPhone : `62${cleanPhone}`;
   const giziPhoneFormatted = rawTarget;
