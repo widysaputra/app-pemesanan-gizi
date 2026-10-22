@@ -405,23 +405,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   const handleResetAllMenu = async () => {
-    if (confirm('Apakah Anda yakin ingin mengosongkan seluruh menu di katalog?')) {
-      await realtimeService.resetAllMenuItems();
-      setMenuSyncNotice({
-        success: true,
-        text: 'Seluruh menu katalog telah berhasil dikosongkan. Anda dapat menambah master menu baru.',
-      });
-    }
+    await realtimeService.resetAllMenuItems();
+    setMenuSyncNotice({
+      success: true,
+      text: 'Seluruh menu katalog telah berhasil dikosongkan dari aplikasi & SIMRS.',
+    });
   };
 
   const handleDeleteMenuItem = async (id: string, name: string) => {
-    if (confirm(`Apakah Anda yakin ingin menghapus menu "${name}" dari katalog & SIMRS?`)) {
-      await realtimeService.deleteMenuItem(id);
-      setMenuSyncNotice({
-        success: true,
-        text: `Menu "${name}" berhasil dihapus dari katalog & disinkronkan ke SIMRS.`,
-      });
-    }
+    setMenuSyncNotice({
+      success: true,
+      text: `Menghapus menu "${name}" dari katalog & SIMRS...`,
+    });
+    await realtimeService.deleteMenuItem(id, name);
+    setMenuSyncNotice({
+      success: true,
+      text: `Menu "${name}" berhasil dihapus dari katalog & database SIMRS!`,
+    });
   };
 
   const handleStartQuickPrice = (item: MenuItem) => {

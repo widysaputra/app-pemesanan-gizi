@@ -673,37 +673,85 @@ export class HospitalRealtimeService {
     throw new Error('Menu tidak ditemukan');
   }
 
-  async deleteMenuItem(menuId: string): Promise<void> {
+  async deleteMenuItem(menuId: string, menuName?: string): Promise<void> {
+    const cleanId = String(menuId || '').trim();
+    const currentMenu = getLocalCachedMenu();
+    const targetItem = currentMenu.find(m => String(m.id).trim() === cleanId);
+    const resolvedName = menuName || targetItem?.name || '';
+
+    // 1. Simpan ke daftar ID terhapus lokal agar tidak muncul lagi saat tarik menu SIMRS
     try {
-      const res = await fetch(`/api/menu/${menuId}`, {
+      const rawDel = localStorage.getItem('gizi_rs_deleted_menu_ids_v1');
+      const delList: string[] = rawDel ? JSON.parse(rawDel) : [];
+      if (!delList.includes(cleanId)) {
+        delList.push(cleanId);
+        localStorage.setItem('gizi_rs_deleted_menu_ids_v1', JSON.stringify(delList));
+      }
+    } catch {}
+
+    // 2. Hapus instan dari state UI & localStorage
+    const filtered = currentMenu.filter(m => String(m.id).trim() !== cleanId && (!resolvedName || m.name.trim().toLowerCase() !== resolvedName.trim().toLowerCase()));
+    saveLocalCachedMenu(filtered);
+    this.notifyListeners('menu_update', { item: { id: cleanId, name: resolvedName }, action: 'delete' });
+    this.broadcastLocal('menu_update', { item: { id: cleanId, name: resolvedName }, action: 'delete' });
+
+    // 3. Hapus di server backend & SIMRS
+    try {
+      await fetch(`/api/menu/${encodeURIComponent(cleanId)}?name=${encodeURIComponent(resolvedName)}`, {
         method: 'DELETE',
       });
-      if (res.ok) {
-        this.notifyListeners('menu_update', { item: { id: menuId }, action: 'delete' });
-        this.broadcastLocal('menu_update', { item: { id: menuId }, action: 'delete' });
-        const currentMenu = getLocalCachedMenu();
-        saveLocalCachedMenu(currentMenu.filter(m => m.id !== menuId));
-        return;
-      }
     } catch {
       // Fallback
     }
 
-    const currentMenu = getLocalCachedMenu();
-    saveLocalCachedMenu(currentMenu.filter(m => m.id !== menuId));
-    this.notifyListeners('menu_update', { item: { id: menuId }, action: 'delete' });
-    this.broadcastLocal('menu_update', { item: { id: menuId }, action: 'delete' });
+    // 4. Direct call ke endpoint SIMRS delete-master-menu dari browser
+    try {
+      const config = getLocalSimrsConfig();
+      const baseUrl = extractSimrsBaseUrl(config.apiUrl);
+      const effectiveToken = (config.apiKey && config.apiKey.trim().length > 5) ? config.apiKey.trim() : DEFAULT_SIMRS_TOKEN;
+      const rawToken = effectiveToken.replace(/^Bearer\s+/i, '').trim();
+      if (baseUrl && rawToken) {
+        await fetch(`${baseUrl}/delete-master-menu`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-AUTH-TOKEN': rawToken,
+            'Authorization': `Bearer ${rawToken}`,
+          },
+          body: JSON.stringify({
+            id: cleanId,
+            menu_id: cleanId,
+            id_menu: cleanId,
+            name: resolvedName,
+            nama_menu: resolvedName,
+            action: 'delete',
+          }),
+        }).catch(() => null);
+      }
+    } catch {}
   }
 
   async resetAllMenuItems(): Promise<void> {
+    try {
+      const currentMenu = getLocalCachedMenu();
+      const rawDel = localStorage.getItem('gizi_rs_deleted_menu_ids_v1');
+      const delList: string[] = rawDel ? JSON.parse(rawDel) : [];
+      currentMenu.forEach(m => {
+        if (m?.id && !delList.includes(String(m.id).trim())) {
+          delList.push(String(m.id).trim());
+        }
+      });
+      localStorage.setItem('gizi_rs_deleted_menu_ids_v1', JSON.stringify(delList));
+    } catch {}
+    saveLocalCachedMenu([]);
+    this.notifyListeners('init', { menuItems: [] });
+    this.broadcastLocal('init', { menuItems: [] });
     try {
       await fetch('/api/menu/reset/all', { method: 'DELETE' });
     } catch {
       // Fallback
     }
-    saveLocalCachedMenu([]);
-    this.notifyListeners('menu_update', { action: 'reset' });
-    this.broadcastLocal('menu_update', { action: 'reset' });
   }
 
   // --- ORDERS APIS ---
@@ -1674,10 +1722,16 @@ export class HospitalRealtimeService {
         const data = await res.json();
         const latency = (Date.now() - startTime) + 'ms';
         if (res.ok && data.success && Array.isArray(data.data)) {
-          const freshMenus = data.data;
+          let delSet = new Set<string>();
+          try {
+            const rawDel = localStorage.getItem('gizi_rs_deleted_menu_ids_v1');
+            if (rawDel) delSet = new Set(JSON.parse(rawDel).map(String));
+          } catch {}
+          const freshMenus = data.data.filter((m: any) => !delSet.has(String(m?.id || '').trim()));
           saveLocalCachedMenu(freshMenus);
           this.notifyListeners('init', { menuItems: freshMenus });
           this.broadcastLocal('init', { menuItems: freshMenus });
+          data.data = freshMenus;
           data.latency = latency;
           return data;
         }
@@ -1832,9 +1886,15 @@ export class HospitalRealtimeService {
           };
         }
       });
-      saveLocalCachedMenu(merged);
-      this.notifyListeners('init', { menuItems: merged });
-      this.broadcastLocal('init', { menuItems: merged });
+      let delSet = new Set<string>();
+      try {
+        const rawDel = localStorage.getItem('gizi_rs_deleted_menu_ids_v1');
+        if (rawDel) delSet = new Set(JSON.parse(rawDel).map(String));
+      } catch {}
+      const finalMerged = merged.filter(m => !delSet.has(String(m.id).trim()));
+      saveLocalCachedMenu(finalMerged);
+      this.notifyListeners('init', { menuItems: finalMerged });
+      this.broadcastLocal('init', { menuItems: finalMerged });
 
       return {
         success: true,

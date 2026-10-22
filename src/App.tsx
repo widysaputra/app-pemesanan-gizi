@@ -174,7 +174,7 @@ export default function App() {
             return merged;
           });
         }
-        if (Array.isArray(event.data?.menuItems) && event.data.menuItems.length > 0) {
+        if (Array.isArray(event.data?.menuItems)) {
           const dedupedInit = deduplicateMenuItems(event.data.menuItems);
           setMenuItems(dedupedInit);
           saveLocalCachedMenu(dedupedInit);
@@ -333,10 +333,8 @@ export default function App() {
 
   // Reset demo
   const handleResetDemo = async () => {
-    if (confirm('Kembalikan semua menu dan pesanan ke data awal demo?')) {
-      await realtimeService.resetDemo();
-      await loadData();
-    }
+    await realtimeService.resetDemo();
+    await loadData();
   };
 
   // Admin access handlers
