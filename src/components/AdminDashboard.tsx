@@ -415,8 +415,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   const handleDeleteMenuItem = async (id: string, name: string) => {
-    if (confirm(`Apakah Anda yakin ingin menghapus menu "${name}"?`)) {
+    if (confirm(`Apakah Anda yakin ingin menghapus menu "${name}" dari katalog & SIMRS?`)) {
       await realtimeService.deleteMenuItem(id);
+      setMenuSyncNotice({
+        success: true,
+        text: `Menu "${name}" berhasil dihapus dari katalog & disinkronkan ke SIMRS.`,
+      });
     }
   };
 

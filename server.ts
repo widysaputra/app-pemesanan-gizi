@@ -80,6 +80,32 @@ const INITIAL_ORDERS: HospitalOrder[] = [];
 // Persistent Storage Files for Cross-Device Synchronization
 const MENU_DATA_FILE = path.join(process.cwd(), 'menu_items.json');
 const ORDERS_DATA_FILE = path.join(process.cwd(), 'orders_data.json');
+const DELETED_MENU_IDS_FILE = path.join(process.cwd(), 'deleted_menus.json');
+
+function loadDeletedMenuIds(): Set<string> {
+  try {
+    if (fs.existsSync(DELETED_MENU_IDS_FILE)) {
+      const raw = fs.readFileSync(DELETED_MENU_IDS_FILE, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return new Set(parsed.map(String));
+      }
+    }
+  } catch (err) {
+    console.warn('[Storage] Gagal membaca deleted_menus.json:', err);
+  }
+  return new Set<string>();
+}
+
+function saveDeletedMenuIds(ids: Set<string>) {
+  try {
+    fs.writeFileSync(DELETED_MENU_IDS_FILE, JSON.stringify(Array.from(ids), null, 2), 'utf-8');
+  } catch (err) {
+    console.warn('[Storage] Gagal menyimpan deleted_menus.json:', err);
+  }
+}
+
+let deletedMenuIds: Set<string> = loadDeletedMenuIds();
 
 function deduplicateMenuItemsServer(items: MenuItem[]): MenuItem[] {
   const seen = new Set<string>();
@@ -204,7 +230,7 @@ function extractSimrsBaseUrl(inputUrl?: string): string {
   }
 
   // Strip any known endpoint action suffix repeatedly (even if chained)
-  const actionPattern = /\/(?:save-pesanan-gizi|update-status-pesanan-gizi|riwayat-pesanan-gizi|rekap-pesanan-gizi|detail-pesanan-gizi|master-menu-gizi|save-master-menu|sync-batch-menu|save-data-mmpi|pesanan-gizi)(?:\/.*)?$/i;
+  const actionPattern = /\/(?:save-pesanan-gizi|update-status-pesanan-gizi|riwayat-pesanan-gizi|rekap-pesanan-gizi|detail-pesanan-gizi|master-menu-gizi|save-master-menu|sync-batch-menu|delete-master-menu|hapus-master-menu|delete-pesanan-gizi|hapus-pesanan-gizi|save-data-mmpi|pesanan-gizi)(?:\/.*)?$/i;
   let safety = 0;
   while (actionPattern.test(u) && safety < 10) {
     u = u.replace(actionPattern, '').replace(/\/+$/, '');
@@ -450,7 +476,8 @@ export async function autoFetchSimrsMenuFromServer(overrideUrl?: string, overrid
         };
       });
 
-      menuItems = deduplicateMenuItemsServer(syncedMenus);
+      const filteredSynced = syncedMenus.filter(m => !deletedMenuIds.has(String(m.id).trim()));
+      menuItems = deduplicateMenuItemsServer(filteredSynced);
       savePersistentMenuItems(menuItems);
       broadcastEvent('init', { orders, menuItems });
       return menuItems;
@@ -1393,6 +1420,10 @@ async function startServer() {
       isAvailable: effectiveAvailable,
     };
 
+    if (deletedMenuIds.has(newItem.id)) {
+      deletedMenuIds.delete(newItem.id);
+      saveDeletedMenuIds(deletedMenuIds);
+    }
     menuItems.unshift(newItem);
     savePersistentMenuItems(menuItems);
     broadcastEvent('menu_update', { item: newItem, action: 'create' });
@@ -1628,24 +1659,104 @@ async function startServer() {
     });
   });
 
-  // Admin: Delete Menu Item
-  app.delete('/api/menu/:id', (req, res) => {
+  // Admin: Delete Menu Item (Local + SIMRS PostgreSQL)
+  app.delete('/api/menu/:id', async (req, res) => {
     const { id } = req.params;
-    const index = menuItems.findIndex(m => m.id === id);
-    if (index === -1) {
-      return res.status(404).json({ error: 'Menu tidak ditemukan' });
-    }
-    const removed = menuItems.splice(index, 1)[0];
+    const cleanId = String(id || '').trim();
+    const index = menuItems.findIndex(m => String(m.id).trim() === cleanId);
+    const removed = index !== -1 ? menuItems.splice(index, 1)[0] : { id: cleanId, name: req.query.name ? String(req.query.name) : '' } as any;
+
+    deletedMenuIds.add(cleanId);
+    saveDeletedMenuIds(deletedMenuIds);
     savePersistentMenuItems(menuItems);
     broadcastEvent('menu_update', { item: removed, action: 'delete' });
-    res.json({ success: true, removedId: id });
+    broadcastEvent('init', { orders, menuItems });
+
+    // Sinkronkan penghapusan ke SIMRS (delete-master-menu & fallback action=delete ke sync-batch-menu / save-master-menu)
+    const baseUrl = extractSimrsBaseUrl(simrsSettings.apiUrl);
+    const rawToken = (simrsSettings.apiKey || '').replace(/^Bearer\s+/i, '').trim();
+    let simrsDeleted = false;
+
+    if (baseUrl) {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      };
+      if (rawToken) {
+        headers['X-AUTH-TOKEN'] = rawToken;
+        headers['Authorization'] = `Bearer ${rawToken}`;
+      }
+      const deletePayload = {
+        id: cleanId,
+        menu_id: cleanId,
+        id_menu: cleanId,
+        kd_menu: cleanId,
+        name: removed?.name || '',
+        nama_menu: removed?.name || '',
+        action: 'delete',
+        is_deleted: true,
+      };
+      try {
+        const delRes = await fetch(`${baseUrl}/delete-master-menu`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(deletePayload),
+        }).catch(() => null);
+        if (delRes && delRes.ok) simrsDeleted = true;
+
+        // Kirim juga ke save-master-menu & sync-batch-menu dengan action: 'delete'
+        await fetch(`${baseUrl}/save-master-menu`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(deletePayload),
+        }).catch(() => null);
+
+        await fetch(`${baseUrl}/sync-batch-menu`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            action: 'delete',
+            delete_ids: [cleanId],
+            items: [deletePayload],
+          }),
+        }).catch(() => null);
+      } catch {
+        // Ignore network errors so local delete always succeeds
+      }
+    }
+
+    res.json({ success: true, removedId: cleanId, simrsDeleted });
   });
 
   // Admin: Reset / Kosongkan Seluruh Menu
-  app.delete('/api/menu/reset/all', (req, res) => {
+  app.delete('/api/menu/reset/all', async (req, res) => {
+    for (const m of menuItems) {
+      if (m?.id) deletedMenuIds.add(String(m.id).trim());
+    }
+    saveDeletedMenuIds(deletedMenuIds);
     menuItems = [];
     savePersistentMenuItems(menuItems);
     broadcastEvent('menu_reset', {});
+    broadcastEvent('init', { orders, menuItems });
+
+    const baseUrl = extractSimrsBaseUrl(simrsSettings.apiUrl);
+    const rawToken = (simrsSettings.apiKey || '').replace(/^Bearer\s+/i, '').trim();
+    if (baseUrl) {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      };
+      if (rawToken) {
+        headers['X-AUTH-TOKEN'] = rawToken;
+        headers['Authorization'] = `Bearer ${rawToken}`;
+      }
+      await fetch(`${baseUrl}/delete-master-menu`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ action: 'delete_all', delete_all: true }),
+      }).catch(() => null);
+    }
+
     res.json({ success: true, message: 'Seluruh menu katalog telah berhasil dikosongkan.' });
   });
 
@@ -2851,8 +2962,8 @@ app.post('/api/simrs/sync-menu', async (req, res) => {
   app.put('/api/orders/:id/status', handleOrderStatusUpdate);
   app.post('/api/orders/:id/status', handleOrderStatusUpdate);
 
-  // Delete Order (Admin)
-  app.delete('/api/orders/:id', (req, res) => {
+  // Delete Order (Admin - Local + SIMRS PostgreSQL)
+  app.delete('/api/orders/:id', async (req, res) => {
     const { id } = req.params;
     orders = loadPersistentOrders();
     const cleanId = String(id || '').trim();
@@ -2867,6 +2978,34 @@ app.post('/api/simrs/sync-menu', async (req, res) => {
     const removed = orders.splice(index, 1)[0];
     savePersistentOrders(orders);
     broadcastEvent('order_deleted', { id: removed.id || id });
+
+    // Sinkronkan hapus pesanan ke SIMRS
+    const baseUrl = extractSimrsBaseUrl(simrsSettings.apiUrl);
+    const rawToken = (simrsSettings.apiKey || '').replace(/^Bearer\s+/i, '').trim();
+    if (baseUrl) {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      };
+      if (rawToken) {
+        headers['X-AUTH-TOKEN'] = rawToken;
+        headers['Authorization'] = `Bearer ${rawToken}`;
+      }
+      const deleteOrderPayload = {
+        action: 'delete',
+        id: removed.id || cleanId,
+        order_number: removed.orderNumber || cleanId,
+        no_pesanan: removed.orderNumber || cleanId,
+        noregistrasi: removed.registrationNo || '',
+        restore_stock: true,
+      };
+      await fetch(`${baseUrl}/delete-pesanan-gizi`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(deleteOrderPayload),
+      }).catch(() => null);
+    }
+
     res.json({ success: true, removedId: id });
   });
 

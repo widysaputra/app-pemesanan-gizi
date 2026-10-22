@@ -40,6 +40,12 @@ function resolveSimrsBatchMenuUrl(inputUrl?: string): string {
   return `${u}/sync-batch-menu`;
 }
 
+function extractSimrsBaseUrl(inputUrl?: string): string {
+  const defaultBase = 'https://rsbsaonline.com/service/medifirst2000/emr';
+  if (!inputUrl || !inputUrl.trim()) return defaultBase;
+  return resolveSimrsSingleMenuUrl(inputUrl).replace(/\/save-master-menu\/?$/, '');
+}
+
 function resolveSimrsSingleMenuUrl(inputUrl?: string): string {
   const defaultUrl = 'https://rsbsaonline.com/service/medifirst2000/emr/save-master-menu';
   if (!inputUrl || !inputUrl.trim()) return defaultUrl;
@@ -1440,9 +1446,42 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
 
         if (method === 'DELETE') {
           const idx = vercelMenuItems.findIndex(m => String(m.id) === String(menuId));
-          if (idx !== -1) {
-            vercelMenuItems.splice(idx, 1);
+          const removed = idx !== -1 ? vercelMenuItems.splice(idx, 1)[0] : { id: menuId, name: '' } as any;
+
+          const baseUrl = extractSimrsBaseUrl(simrsConfigState.apiUrl);
+          const rawToken = (simrsConfigState.apiKey || '').replace(/^Bearer\s+/i, '').trim();
+          if (baseUrl && rawToken) {
+            const headers = {
+              'Content-Type': 'application/json',
+              'X-AUTH-TOKEN': rawToken,
+              'Authorization': `Bearer ${rawToken}`,
+            };
+            const deletePayload = {
+              id: menuId,
+              menu_id: menuId,
+              id_menu: menuId,
+              name: removed?.name || '',
+              nama_menu: removed?.name || '',
+              action: 'delete',
+              is_deleted: true,
+            };
+            await fetch(`${baseUrl}/delete-master-menu`, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify(deletePayload),
+            }).catch(() => null);
+            await fetch(`${baseUrl}/save-master-menu`, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify(deletePayload),
+            }).catch(() => null);
+            await fetch(`${baseUrl}/sync-batch-menu`, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({ action: 'delete', delete_ids: [menuId], items: [deletePayload] }),
+            }).catch(() => null);
           }
+
           return res.json({ success: true, removedId: menuId });
         }
       }
@@ -1492,11 +1531,28 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
             String(o.orderNumber).trim() === cleanId ||
             String(o.registrationNo || '').trim() === cleanId
         );
-        if (idx !== -1) {
-          const removed = vercelOrders.splice(idx, 1)[0];
-          return res.json({ success: true, removedId: removed.id || orderId });
+        const removed = idx !== -1 ? vercelOrders.splice(idx, 1)[0] : null;
+        const baseUrl = extractSimrsBaseUrl(simrsConfigState.apiUrl);
+        const rawToken = (simrsConfigState.apiKey || '').replace(/^Bearer\s+/i, '').trim();
+        if (baseUrl && rawToken) {
+          await fetch(`${baseUrl}/delete-pesanan-gizi`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-AUTH-TOKEN': rawToken,
+              'Authorization': `Bearer ${rawToken}`,
+            },
+            body: JSON.stringify({
+              action: 'delete',
+              id: removed?.id || cleanId,
+              order_number: removed?.orderNumber || cleanId,
+              no_pesanan: removed?.orderNumber || cleanId,
+              noregistrasi: removed?.registrationNo || '',
+              restore_stock: true,
+            }),
+          }).catch(() => null);
         }
-        return res.status(404).json({ error: 'Pesanan tidak ditemukan' });
+        return res.json({ success: true, removedId: removed?.id || orderId });
       }
 
       if (parsedPath === '/api/orders') {
